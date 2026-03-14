@@ -8,4 +8,4 @@ COPY docker/odoo.conf /etc/odoo/odoo.conf
 
 USER odoo
 
-CMD ["odoo", "-d", "sistema_creditos_gl7u", "-i", "base", "--without-demo=all"]
+CMD ["odoo"]
