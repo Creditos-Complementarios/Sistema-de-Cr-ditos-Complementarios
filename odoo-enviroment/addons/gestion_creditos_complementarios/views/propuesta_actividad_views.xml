@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================== -->
+    <!--  JD-01SC: Solicitud de Nuevo Tipo de Actividad Complementaria     -->
+    <!--  Formulario de envío al Comité Académico                         -->
+    <!-- ================================================================== -->
+
+    <!-- Formulario principal -->
+    <record id="view_propuesta_actividad_form" model="ir.ui.view">
+        <field name="name">creditos.propuesta.actividad.form</field>
+        <field name="model">creditos.propuesta.actividad</field>
+        <field name="arch" type="xml">
+            <form string="Nueva Actividad Complementaria">
+
+                <!-- Barra de estado -->
+                <header>
+                    <button name="action_enviar_comite"
+                            string="Enviar al Comité Académico"
+                            type="object"
+                            class="btn-primary"
+                            invisible="estado_solicitud != 'en_revision'"
+                            groups="gestion_creditos_complementarios.group_jefe_departamento"
+                            confirm="¿Está seguro de enviar esta propuesta al Comité Académico?"/>
+                    <button name="action_aprobar"
+                            string="Aprobar Propuesta"
+                            type="object"
+                            class="btn-success"
+                            invisible="estado_solicitud != 'en_revision'"
+                            groups="gestion_creditos_complementarios.group_comite_academico"
+                            confirm="¿Confirma la aprobación de esta propuesta?"/>
+                    <button name="action_rechazar"
+                            string="Rechazar Propuesta"
+                            type="object"
+                            class="btn-danger"
+                            invisible="estado_solicitud != 'en_revision'"
+                            groups="gestion_creditos_complementarios.group_comite_academico"/>
+                    <field name="estado_solicitud" widget="statusbar"
+                           statusbar_visible="en_revision,aprobada,rechazada"/>
+                </header>
+
+                <sheet>
+                    <!-- Encabezado de referencia -->
+                    <div class="oe_title">
+                        <label for="nombre_actividad"/>
+                        <h1>
+                            <field name="nombre_actividad"
+                                   placeholder="Nombre de la actividad complementaria…"
+                                   readonly="estado_solicitud != 'en_revision'"/>
+                        </h1>
+                        <div invisible="not encabezado">
+                            <span class="text-muted">Referencia: </span>
+                            <field name="encabezado" readonly="1"/>
+                        </div>
+                    </div>
+                    <field name="aprobacion_automatica" invisible="1"/>
+
+                    <!-- Alerta aprobación automótica -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="not aprobacion_automatica">
+                        <i class="fa fa-info-circle"/> Esta propuesta fue
+                        <strong>aprobada automáticamente</strong> por vencimiento del plazo
+                        de 5 días hábiles sin respuesta del Comité Académico.
+                    </div>
+
+                    <!-- Alerta rechazo -->
+                    <div class="alert alert-danger" role="alert"
+                         invisible="estado_solicitud != 'rechazada'">
+                        <i class="fa fa-times-circle"/>
+                        <strong>Propuesta rechazada.</strong>
+                        <span invisible="not motivo_rechazo">
+                            Motivo: <field name="motivo_rechazo" readonly="1"/>
+                        </span>
+                    </div>
+
+                    <!-- Sección 1: Identificación -->
+                    <group string="Identificación de la Actividad">
+                        <group>
+                            <field name="tipo_actividad_id"
+                                   readonly="estado_solicitud != 'en_revision'"
+                                   options="{'no_create': True}"
+                                   help="Seleccione el tipo de actividad. Los tipos NO predefinidos requieren aprobación del Comité Académico."/>
+                            <field name="departamento_id"
+                                   readonly="estado_solicitud != 'en_revision'"
+                                   options="{'no_create': True}"/>
+                            <field name="periodo_id"
+                                   readonly="estado_solicitud != 'en_revision'"
+                                   options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="jefe_departamento_id"
+                                   readonly="estado_solicitud != 'en_revision'"
+                                   options="{'no_create': True}"
+                                   domain="[('creditos_es_jefe_depto', '=', True)]"/>
+                            <field name="fecha"
+                                   readonly="1"/>
+                            <field name="fecha_limite_aprobacion"
+                                   readonly="1"
+                                   invisible="estado_solicitud != 'en_revision'"/>
+                        </group>
+                    </group>
+
+                    <!-- Sección 2: Responsable de Actividad -->
+                    <group string="Responsable de Actividad">
+                        <group>
+                            <field name="responsable_actividad_id"
+                                   readonly="estado_solicitud != 'en_revision'"
+                                   options="{'no_create': True}"
+                                   domain="[('creditos_es_responsable_designado', '=', True)]"
+                                   help="Solo se muestran los responsables designados por el Coordinador de Carrera."/>
+                        </group>
+                        <group>
+                            <!-- Mensaje informativo cuando no hay responsables designados -->
+                            <div class="text-muted" colspan="2"
+                                 invisible="responsable_actividad_id != False">
+                                <i class="fa fa-info-circle"/>
+                                El Coordinador de Carrera debe designar responsables antes de
+                                que puedan seleccionarse aquí.
+                            </div>
+                        </group>
+                    </group>
+
+                    <!-- Sección 3: Detalles de la Actividad -->
+                    <group string="Detalles de la Actividad">
+                        <group>
+                            <field name="cantidad_horas"
+                                   readonly="estado_solicitud != 'en_revision'"/>
+                            <!-- Créditos: solo 1 o 0.5 -->
+                            <field name="creditos"
+                                   readonly="estado_solicitud != 'en_revision'"
+                                   widget="radio"
+                                   help="Seleccione el valor de créditos complementarios (1 o 0.5)."/>
+                        </group>
+                        <group>
+                            <field name="fecha_inicio_actividad"
+                                   readonly="estado_solicitud != 'en_revision'"/>
+                            <field name="fecha_fin_actividad"
+                                   readonly="estado_solicitud != 'en_revision'"/>
+                        </group>
+                    </group>
+
+                    <!-- Sección 4: Cupo -->
+                    <group string="Cupo de Participantes">
+                        <group>
+                            <field name="cupo_ilimitado"
+                                   readonly="estado_solicitud != 'en_revision'"/>
+                        </group>
+                        <group invisible="cupo_ilimitado">
+                            <field name="cupo_min"
+                                   readonly="estado_solicitud != 'en_revision'"
+                                   string="Cupo Mínimo"/>
+                            <field name="cupo_max"
+                                   readonly="estado_solicitud != 'en_revision'"
+                                   string="Cupo Máximo"/>
+                        </group>
+                        <div class="text-muted" invisible="not cupo_ilimitado">
+                            <i class="fa fa-infinity"/>
+                            <strong> Cupo ilimitado</strong> — Esta actividad no tiene
+                            restricción de número de participantes (curso masivo).
+                        </div>
+                    </group>
+
+                    <!-- Sección 5: Descripción e imagen -->
+                    <group string="Descripción e Imagen">
+                        <field name="descripcion"
+                               nolabel="1"
+                               colspan="2"
+                               placeholder="Descripción detallada de la actividad (máx. 2000 caracteres)…"
+                               readonly="estado_solicitud != 'en_revision'"/>
+                        <field name="ruta_imagen"
+                               widget="image"
+                               class="oe_avatar"
+                               readonly="estado_solicitud != 'en_revision'"/>
+                    </group>
+
+                    <!-- Sección 6: Horarios (opcional) -->
+                    <notebook>
+                        <page string="Horarios por Día de la Semana"
+                              name="horarios"
+                              invisible="estado_solicitud != 'en_revision'">
+                            <field name="horario_ids"
+                                   readonly="estado_solicitud != 'en_revision'">
+                                <list editable="bottom">
+                                    <field name="dia_semana"/>
+                                    <field name="hora_inicio" widget="float_time"/>
+                                    <field name="hora_fin" widget="float_time"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Horarios" name="horarios_ro"
+                              invisible="estado_solicitud == 'en_revision'">
+                            <field name="horario_ids" readonly="1">
+                                <list>
+                                    <field name="dia_semana"/>
+                                    <field name="hora_inicio" widget="float_time"/>
+                                    <field name="hora_fin" widget="float_time"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Motivo de Rechazo"
+                              name="rechazo"
+                              invisible="estado_solicitud != 'rechazada'"
+                              groups="gestion_creditos_complementarios.group_comite_academico">
+                            <field name="motivo_rechazo"
+                                   placeholder="Indique el motivo del rechazo…"
+                                   readonly="estado_solicitud != 'en_revision'"/>
+                        </page>
+                    </notebook>
+
+                </sheet>
+
+                <!-- Chatter -->
+                <chatter/>
+
+            </form>
+        </field>
+    </record>
+
+    <!-- Vista lista de propuestas -->
+    <record id="view_propuesta_actividad_list" model="ir.ui.view">
+        <field name="name">creditos.propuesta.actividad.list</field>
+        <field name="model">creditos.propuesta.actividad</field>
+        <field name="arch" type="xml">
+            <list string="Propuestas de Actividades Complementarias"
+                  decoration-success="estado_solicitud == 'aprobada'"
+                  decoration-danger="estado_solicitud == 'rechazada'">
+                <field name="encabezado"/>
+                <field name="nombre_actividad"/>
+                <field name="tipo_actividad_id"/>
+                <field name="departamento_id"/>
+                <field name="jefe_departamento_id"/>
+                <field name="periodo_id"/>
+                <field name="fecha"/>
+                <field name="fecha_limite_aprobacion"/>
+                <field name="estado_solicitud" widget="badge"
+                       decoration-success="estado_solicitud == 'aprobada'"
+                       decoration-danger="estado_solicitud == 'rechazada'"
+                       decoration-warning="estado_solicitud == 'en_revision'"/>
+                <field name="aprobacion_automatica"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vista bósqueda -->
+    <record id="view_propuesta_actividad_search" model="ir.ui.view">
+        <field name="name">creditos.propuesta.actividad.search</field>
+        <field name="model">creditos.propuesta.actividad</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Propuestas">
+                <field name="nombre_actividad"/>
+                <field name="encabezado"/>
+                <separator/>
+                <filter string="En Revision" name="en_revision"
+                        domain="[('estado_solicitud', '=', 'en_revision')]"/>
+                <filter string="Aprobadas" name="aprobadas"
+                        domain="[('estado_solicitud', '=', 'aprobada')]"/>
+                <filter string="Rechazadas" name="rechazadas"
+                        domain="[('estado_solicitud', '=', 'rechazada')]"/>
+                <filter string="Aprobacion Automatica" name="automaticas"
+                        domain="[('aprobacion_automatica', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Acciones -->
+    <record id="action_propuesta_actividad_jefe" model="ir.actions.act_window">
+        <field name="name">Nueva Actividad Complementaria</field>
+        <field name="res_model">creditos.propuesta.actividad</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_en_revision': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Registre una nueva propuesta de actividad complementaria
+            </p>
+            <p>
+                Complete el formulario con todos los detalles de la actividad.
+                Si el tipo seleccionado es <strong>no predefinido</strong>, la propuesta
+                será enviada al Comité Académico para su aprobación.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_propuesta_actividad_comite" model="ir.actions.act_window">
+        <field name="name">Propuestas Pendientes de Revisión</field>
+        <field name="res_model">creditos.propuesta.actividad</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('estado_solicitud', '=', 'en_revision')]</field>
+        <field name="context">{'search_default_en_revision': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay propuestas pendientes de revisión
+            </p>
+        </field>
+    </record>
+
+    <record id="action_propuesta_actividad_all" model="ir.actions.act_window">
+        <field name="name">Todas las Propuestas</field>
+        <field name="res_model">creditos.propuesta.actividad</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aún no hay propuestas registradas
+            </p>
+        </field>
+    </record>
+
+</odoo>

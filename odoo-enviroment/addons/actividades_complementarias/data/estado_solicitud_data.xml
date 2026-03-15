@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="estado_solicitud_en_revision" model="actividad.estado.solicitud">
+            <field name="name">En Revisión</field>
+            <field name="code">en_revision</field>
+        </record>
+        <record id="estado_solicitud_aprobada" model="actividad.estado.solicitud">
+            <field name="name">Aprobada</field>
+            <field name="code">aprobada</field>
+        </record>
+        <record id="estado_solicitud_rechazada" model="actividad.estado.solicitud">
+            <field name="name">Rechazada</field>
+            <field name="code">rechazada</field>
+        </record>
+    </data>
+</odoo>

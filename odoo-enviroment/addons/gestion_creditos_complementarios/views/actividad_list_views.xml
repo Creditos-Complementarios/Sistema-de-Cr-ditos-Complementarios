@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista lista -->
+    <record id="view_actividad_complementaria_list" model="ir.ui.view">
+        <field name="name">creditos.actividad.complementaria.list</field>
+        <field name="model">creditos.actividad.complementaria</field>
+        <field name="arch" type="xml">
+            <list string="Actividades Complementarias"
+                  decoration-success="estado_actividad == 'finalizada'"
+                  decoration-info="estado_actividad == 'en_curso'"
+                  decoration-warning="estado_actividad == 'pendiente_inicio'"
+                  decoration-danger="estado_actividad == 'rechazada'">
+                <field name="nombre_actividad"/>
+                <field name="tipo_actividad_id"/>
+                <field name="departamento_id"/>
+                <field name="periodo_id"/>
+                <field name="jefe_departamento_id"/>
+                <field name="responsable_actividad_id"/>
+                <field name="creditos"/>
+                <field name="fecha_inicio"/>
+                <field name="fecha_fin"/>
+                <field name="total_estudiantes"/>
+                <field name="estado_actividad" widget="badge"
+                       decoration-success="estado_actividad == 'finalizada'"
+                       decoration-info="estado_actividad == 'en_curso'"
+                       decoration-warning="estado_actividad == 'aprobada' or estado_actividad == 'pendiente_inicio'"
+                       decoration-danger="estado_actividad == 'rechazada'"/>
+            </list>
+        </field>
+    </record>
+</odoo>

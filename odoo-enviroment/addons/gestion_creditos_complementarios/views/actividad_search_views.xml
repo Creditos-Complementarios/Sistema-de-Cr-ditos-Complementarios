@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_actividad_complementaria_search" model="ir.ui.view">
+        <field name="name">creditos.actividad.complementaria.search</field>
+        <field name="model">creditos.actividad.complementaria</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Actividades">
+                <field name="nombre_actividad" string="Nombre"/>
+                <separator/>
+                <filter string="Aprobadas" name="aprobadas"
+                        domain="[('estado_actividad', '=', 'aprobada')]"/>
+                <filter string="Pendientes de Inicio" name="pendientes_inicio"
+                        domain="[('estado_actividad', '=', 'pendiente_inicio')]"/>
+                <filter string="En Curso" name="en_curso"
+                        domain="[('estado_actividad', '=', 'en_curso')]"/>
+                <filter string="Finalizadas" name="finalizadas"
+                        domain="[('estado_actividad', '=', 'finalizada')]"/>
+                <filter string="Rechazadas" name="rechazadas"
+                        domain="[('estado_actividad', '=', 'rechazada')]"/>
+                <separator/>
+                <filter string="Sin Responsable" name="sin_responsable"
+                        domain="[('responsable_actividad_id', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_actividad_complementaria" model="ir.actions.act_window">
+        <field name="name">Gestion de Actividades Complementarias</field>
+        <field name="res_model">creditos.actividad.complementaria</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_actividad_complementaria_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aun no hay actividades complementarias registradas
+            </p>
+        </field>
+    </record>
+</odoo>

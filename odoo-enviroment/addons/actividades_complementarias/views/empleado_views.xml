@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Search ───────────────────────────────────────────────────────── -->
+    <record id="view_empleado_permiso_search" model="ir.ui.view">
+        <field name="name">actividad.empleado.permiso.search</field>
+        <field name="model">actividad.empleado.permiso</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Personal">
+                <field name="user_id" string="Nombre"/>
+                <field name="no_empleado" string="No. Empleado"/>
+                <field name="departamento_id"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── List ─────────────────────────────────────────────────────────── -->
+    <record id="view_empleado_permiso_list" model="ir.ui.view">
+        <field name="name">actividad.empleado.permiso.list</field>
+        <field name="model">actividad.empleado.permiso</field>
+        <field name="arch" type="xml">
+            <list string="Gestión de Personal">
+                <field name="user_id"/>
+                <field name="no_empleado"/>
+                <field name="departamento_id"/>
+                <field name="perm_modificar_actividades" widget="boolean_toggle"/>
+                <field name="perm_difundir_actividades" widget="boolean_toggle"/>
+                <field name="perm_asignar_alumnos" widget="boolean_toggle"/>
+                <field name="perm_enviar_catalogo" widget="boolean_toggle"/>
+                <field name="fecha_ultimo_uso"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Form ─────────────────────────────────────────────────────────── -->
+    <record id="view_empleado_permiso_form" model="ir.ui.view">
+        <field name="name">actividad.empleado.permiso.form</field>
+        <field name="model">actividad.empleado.permiso</field>
+        <field name="arch" type="xml">
+            <form string="Permisos de Personal">
+                <sheet>
+                    <group string="Datos del Empleado">
+                        <field name="user_id"/>
+                        <field name="no_empleado"/>
+                        <field name="carrera"/>
+                        <field name="departamento_id"/>
+                        <field name="fecha_ultimo_uso" readonly="1"/>
+                    </group>
+                    <group string="Permisos Delegados">
+                        <field name="perm_modificar_actividades"/>
+                        <field name="perm_difundir_actividades"/>
+                        <field name="perm_asignar_alumnos"/>
+                        <field name="perm_enviar_catalogo"/>
+                    </group>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Nota:</strong> Los permisos se remueven automáticamente después de 30 días sin uso.
+                        El Jefe de Departamento siempre conserva el derecho exclusivo de firmar constancias y generar actividades.
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Actions ──────────────────────────────────────────────────────── -->
+    <record id="action_empleado_permiso" model="ir.actions.act_window">
+        <field name="name">Gestión de Personal</field>
+        <field name="res_model">actividad.empleado.permiso</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_empleado_permiso_search"/>
+    </record>
+
+</odoo>

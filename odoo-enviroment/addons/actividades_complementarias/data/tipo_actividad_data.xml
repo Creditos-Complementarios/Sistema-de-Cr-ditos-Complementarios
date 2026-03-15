@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="tipo_deportiva" model="actividad.tipo">
+            <field name="name">Deportiva</field>
+            <field name="es_predefinida">True</field>
+        </record>
+        <record id="tipo_cultural" model="actividad.tipo">
+            <field name="name">Cultural</field>
+            <field name="es_predefinida">True</field>
+        </record>
+        <record id="tipo_academica" model="actividad.tipo">
+            <field name="name">Académica</field>
+            <field name="es_predefinida">True</field>
+        </record>
+        <record id="tipo_servicio_social" model="actividad.tipo">
+            <field name="name">Servicio Social</field>
+            <field name="es_predefinida">True</field>
+        </record>
+        <record id="tipo_nueva" model="actividad.tipo">
+            <field name="name">Nueva (Propuesta)</field>
+            <field name="es_predefinida">False</field>
+        </record>
+    </data>
+</odoo>

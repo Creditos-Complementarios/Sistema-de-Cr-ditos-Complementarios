@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Cron: actualizar estados de actividades por fecha -->
+        <record id="cron_actualizar_estados_actividad" model="ir.cron">
+            <field name="name">Actividades Complementarias: Actualizar estados por fecha</field>
+            <field name="model_id" ref="model_actividad_complementaria"/>
+            <field name="state">code</field>
+            <field name="code">model._actualizar_estado_por_fecha()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Cron: auto-aprobar propuestas vencidas (5 días sin respuesta) -->
+        <record id="cron_auto_aprobar_propuestas" model="ir.cron">
+            <field name="name">Actividades Complementarias: Auto-aprobar propuestas vencidas</field>
+            <field name="model_id" ref="model_actividad_propuesta"/>
+            <field name="state">code</field>
+            <field name="code">model._auto_aprobar_propuestas_vencidas()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Cron: remover permisos inactivos (30 días sin uso) -->
+        <record id="cron_remover_permisos_inactivos" model="ir.cron">
+            <field name="name">Actividades Complementarias: Remover permisos inactivos</field>
+            <field name="model_id" ref="model_actividad_empleado_permiso"/>
+            <field name="state">code</field>
+            <field name="code">model._remover_permisos_inactivos()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="estado_aprobada" model="actividad.estado">
+            <field name="name">Aprobada</field>
+            <field name="code">aprobada</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="estado_rechazada" model="actividad.estado">
+            <field name="name">Rechazada</field>
+            <field name="code">rechazada</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="estado_pendiente_inicio" model="actividad.estado">
+            <field name="name">Pendiente de Inicio</field>
+            <field name="code">pendiente_inicio</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="estado_en_curso" model="actividad.estado">
+            <field name="name">En Curso</field>
+            <field name="code">en_curso</field>
+            <field name="sequence">40</field>
+        </record>
+        <record id="estado_finalizada" model="actividad.estado">
+            <field name="name">Finalizada</field>
+            <field name="code">finalizada</field>
+            <field name="sequence">50</field>
+        </record>
+    </data>
+</odoo>

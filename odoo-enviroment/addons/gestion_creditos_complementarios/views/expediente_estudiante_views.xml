@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================== -->
+    <!--  Expediente del Estudiante                    -->
+    <!-- ============================================== -->
+
+    <record id="view_expediente_estudiante_form" model="ir.ui.view">
+        <field name="name">creditos.expediente.estudiante.form</field>
+        <field name="model">creditos.expediente.estudiante</field>
+        <field name="arch" type="xml">
+            <form string="Expediente del Estudiante">
+                <sheet>
+                    <group string="Datos del Estudiante">
+                        <group>
+                            <field name="estudiante_id" options="{'no_create': True}"/>
+                            <field name="creditos_acumulados" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="nivel_desempeno_promedio" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Constancias">
+                            <field name="constancia_ids" readonly="1">
+                                <list decoration-success="estado_constancia == 'completa'"
+                                      decoration-warning="estado_constancia != 'completa'">
+                                    <field name="actividad_id"/>
+                                    <field name="estado_constancia" widget="badge"
+                                           decoration-success="estado_constancia == 'completa'"
+                                           decoration-warning="estado_constancia != 'completa'"/>
+                                    <field name="fecha_generacion"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_expediente_estudiante_list" model="ir.ui.view">
+        <field name="name">creditos.expediente.estudiante.list</field>
+        <field name="model">creditos.expediente.estudiante</field>
+        <field name="arch" type="xml">
+            <list string="Expedientes">
+                <field name="estudiante_id"/>
+                <field name="creditos_acumulados"/>
+                <field name="nivel_desempeno_promedio"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_expediente_estudiante" model="ir.actions.act_window">
+        <field name="name">Expedientes de Estudiantes</field>
+        <field name="res_model">creditos.expediente.estudiante</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

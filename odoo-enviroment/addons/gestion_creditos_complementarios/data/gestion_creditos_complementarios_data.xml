@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Secuencia para propuestas -->
+        <record id="seq_propuesta_actividad" model="ir.sequence">
+            <field name="name">Propuesta de Actividad Complementaria</field>
+            <field name="code">creditos.propuesta.actividad</field>
+            <field name="prefix">PROP-%(year)s-</field>
+            <field name="padding">4</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+        <!-- Cron: Aprobacion automatica a 5 dias -->
+        <!-- NOTE: In Odoo 17+, ir.cron no longer inherits ir.actions.server.
+             The `state` field no longer exists. Only `code` is needed. -->
+        <record id="cron_aprobar_propuestas_vencidas" model="ir.cron">
+            <field name="name">CC: Aprobar propuestas vencidas (5 dias sin respuesta)</field>
+            <field name="model_id" ref="model_creditos_propuesta_actividad"/>
+            <field name="code">model._cron_aprobar_propuestas_vencidas()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Cron: Actualizar estado de actividades -->
+        <record id="cron_actualizar_estado_actividades" model="ir.cron">
+            <field name="name">CC: Actualizar estado de actividades complementarias</field>
+            <field name="model_id" ref="model_creditos_actividad_complementaria"/>
+            <field name="code">model._cron_actualizar_estados()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- Tipos de actividad predefinidos -->
+        <record id="tipo_actividad_cultural" model="creditos.tipo.actividad">
+            <field name="nombre">Cultural</field>
+            <field name="es_predefinida">True</field>
+        </record>
+        <record id="tipo_actividad_deportiva" model="creditos.tipo.actividad">
+            <field name="nombre">Deportiva</field>
+            <field name="es_predefinida">True</field>
+        </record>
+        <record id="tipo_actividad_social" model="creditos.tipo.actividad">
+            <field name="nombre">Social / Voluntariado</field>
+            <field name="es_predefinida">True</field>
+        </record>
+        <record id="tipo_actividad_academica" model="creditos.tipo.actividad">
+            <field name="nombre">Academica</field>
+            <field name="es_predefinida">True</field>
+        </record>
+        <record id="tipo_actividad_nueva" model="creditos.tipo.actividad">
+            <field name="nombre">Nueva (Requiere Aprobacion)</field>
+            <field name="es_predefinida">False</field>
+        </record>
+
+    </data>
+</odoo>
