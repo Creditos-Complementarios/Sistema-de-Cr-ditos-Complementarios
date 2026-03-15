@@ -12,7 +12,7 @@
     """,
     'author': 'Desarrollo Institucional',
     'category': 'Education',
-    'depends': ['base', 'mail'],
+    'depends': ['base', 'mail', 'hr'],
     'data': [
         'security/actividades_security.xml',
         'security/ir.model.access.csv',
@@ -30,4 +30,7 @@
     'installable': True,
     'application': True,
     'license': 'LGPL-3',
+    'demo': [
+        'data/demo_data.xml',
+    ],
 }

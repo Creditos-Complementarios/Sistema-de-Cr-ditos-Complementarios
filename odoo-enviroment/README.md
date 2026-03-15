@@ -72,7 +72,10 @@ docker compose logs -f odoo
    - **Email**: `admin@example.com`
    - **Password**: `admin`
    - **Language**: Español (México)
+   - **Demo Data**: True
 4. Haz clic en **Create Database**.
+
+**Demo user password:** Admin1234!
 
 ---
 
