@@ -35,6 +35,7 @@ jobs:
           flake8 odoo/addons/ \
             --max-line-length=120 \
             --exclude=__pycache__,*.pyc,.git \
+            --per-file-ignores="__init__.py:F401" \
             --statistics
 
   # ── 2. Unit / integration tests ─────────────────────────────────────────────
