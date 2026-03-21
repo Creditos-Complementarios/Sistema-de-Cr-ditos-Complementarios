@@ -42,8 +42,6 @@ odoo/
 | `modulo_uno` | _Descripción breve_ | `sale`, `account` | Back-end |
 | `modulo_dos` | _Descripción breve_ | `stock` | Back-end |
 
-_Mantener esta tabla actualizada al añadir o deprecar módulos._
-
 ---
 
 ## Configuración del entorno
