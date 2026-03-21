@@ -14,8 +14,6 @@ env:
 
 jobs:
   # ── 1. Linting ──────────────────────────────────────────────────────────────
-  # Runs first — fast feedback (< 30s). Developers catch style issues
-  # before the slow Docker test stage runs.
   lint:
     name: Lint (flake8)
     runs-on: ubuntu-latest
@@ -41,8 +39,6 @@ jobs:
             --statistics
 
   # ── 2. Unit / integration tests ─────────────────────────────────────────────
-  # Runs on every PR push and on every push to develop/main.
-  # The developer is responsible for fixing failures before requesting review.
   tests:
     name: Odoo Tests
     runs-on: ubuntu-latest
@@ -67,7 +63,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Build module list dynamically — no need to update CI when adding modules
       - name: Discover custom modules
         id: modules
         run: |
@@ -77,9 +72,6 @@ jobs:
       - name: Pull Odoo image
         run: docker pull ${{ env.ODOO_IMAGE }}
 
-      # Step 1: Bootstrap the database with Odoo's base schema.
-      # This is required because CI starts with a blank Postgres — no tables,
-      # no base module. Without this step, Odoo refuses to run tests.
       - name: Initialize Odoo database
         run: |
           docker run --rm \
@@ -100,9 +92,6 @@ jobs:
               --without-demo=True \
               --log-level=warn
 
-      # Step 2: Install custom modules and run their tagged tests.
-      # --test-tags filters to only tests tagged with the module name,
-      # matching the @tagged('actividades_complementarias') convention.
       - name: Install modules and run tests
         run: |
           docker run --rm \
@@ -125,9 +114,6 @@ jobs:
               --without-demo=True
 
   # ── 3. Build Docker image ────────────────────────────────────────────────────
-  # Validates the Dockerfile builds without errors.
-  # Runs on PRs AND pushes — Dockerfile breakage is caught before merge,
-  # not after. Does NOT push to any registry (that belongs in a deploy pipeline).
   build:
     name: Build Docker image
     runs-on: ubuntu-latest
@@ -137,10 +123,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # odoo.conf is in .gitignore and won't exist in CI checkout.
+      # Copy the example file so the Dockerfile COPY step finds it.
+      - name: Prepare odoo.conf for build
+        run: cp infrastructure/config/odoo.conf.example infrastructure/config/odoo.conf
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # The Dockerfile lives in infrastructure/ — set context and file path explicitly.
+      # context is repo root so Dockerfile COPY paths resolve correctly:
+      #   odoo/addons/        → COPY odoo/addons/ /mnt/extra-addons/
+      #   infrastructure/config/odoo.conf → COPY infrastructure/config/odoo.conf ...
       - name: Build image (validation only — no push)
         uses: docker/build-push-action@v5
         with:

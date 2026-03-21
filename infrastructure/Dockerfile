@@ -6,12 +6,12 @@ USER root
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Custom addons
+# Custom addons — path relative to repo root (build context)
 RUN mkdir -p /mnt/extra-addons
-COPY addons/ /mnt/extra-addons/
+COPY odoo/addons/ /mnt/extra-addons/
 
-# Odoo config
-COPY config/odoo.conf /etc/odoo/odoo.conf
+# Odoo config — path relative to repo root (build context)
+COPY infrastructure/config/odoo.conf /etc/odoo/odoo.conf
 
 USER odoo
 
