@@ -9,6 +9,7 @@ class PropuestaActividadComplementaria(models.Model):
     _description = 'Propuesta de Actividad Complementaria al Comité'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'fecha desc'
+    _rec_name = 'encabezado'
 
     # ── Datos básicos ────────────────────────────────────────────────────────
     actividad_id = fields.Many2one(
@@ -48,6 +49,26 @@ class PropuestaActividadComplementaria(models.Model):
     )
     motivo_rechazo = fields.Text(string='Motivo de Rechazo')
 
+    # ── Campos de la actividad para lectura del Comité ───────────────────
+    actividad_nombre = fields.Char(related='actividad_id.name', string='Nombre', readonly=True)
+    actividad_tipo = fields.Many2one(related='actividad_id.tipo_actividad_id', string='Tipo', readonly=True)
+    actividad_jefe = fields.Many2one(related='actividad_id.jefe_departamento_id', string='Jefe', readonly=True)
+    actividad_departamento = fields.Many2one(
+        related='actividad_id.departamento_id',
+        string='Departamento',
+        readonly=True,
+    )
+    actividad_periodo = fields.Many2one(related='actividad_id.periodo', string='Periodo', readonly=True)
+    actividad_fecha_inicio = fields.Date(related='actividad_id.fecha_inicio', string='Fecha Inicio', readonly=True)
+    actividad_fecha_fin = fields.Date(related='actividad_id.fecha_fin', string='Fecha Fin', readonly=True)
+    actividad_horas = fields.Float(related='actividad_id.cantidad_horas', string='Horas', readonly=True)
+    actividad_creditos = fields.Selection(related='actividad_id.creditos', string='Créditos', readonly=True)
+    actividad_descripcion = fields.Text(related='actividad_id.descripcion', string='Descripción', readonly=True)
+    actividad_cupo = fields.Char(
+        string='Cupo',
+        compute='_compute_actividad_cupo',
+    )
+
     # ────────────────────────────────────────────────────────────────────────
     # Computes
     # ────────────────────────────────────────────────────────────────────────
@@ -56,6 +77,17 @@ class PropuestaActividadComplementaria(models.Model):
     def _compute_encabezado(self):
         for rec in self:
             rec.encabezado = rec.actividad_id.name if rec.actividad_id else ''
+
+    @api.depends('actividad_id')
+    def _compute_actividad_cupo(self):
+        for rec in self:
+            if rec.actividad_id:
+                if rec.actividad_id.cupo_ilimitado:
+                    rec.actividad_cupo = 'Ilimitado'
+                else:
+                    rec.actividad_cupo = f'{rec.actividad_id.cupo_min} – {rec.actividad_id.cupo_max}'
+            else:
+                rec.actividad_cupo = ''
 
     @api.depends('fecha')
     def _compute_fecha_limite(self):
@@ -86,6 +118,40 @@ class PropuestaActividadComplementaria(models.Model):
         self.write({'estado_solicitud_id': estado_rechazada.id})
         self.actividad_id.write({'estado_id': estado_act_rechazada.id})
         self.message_post(body=f'Propuesta rechazada. Motivo: {self.motivo_rechazo}')
+
+    def action_abrir_wizard_rechazo(self):
+        """Abre el wizard de rechazo para capturar el motivo."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Rechazar Propuesta',
+            'res_model': 'actividad.wizard.rechazar',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_propuesta_id': self.id},
+        }
+
+    def action_abrir_wizard_aprobacion(self):
+        """Abre el wizard de aprobacion para asignar creditos."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Aprobar Propuesta',
+            'res_model': 'actividad.wizard.aprobar',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_propuesta_id': self.id},
+        }
+
+    def action_regresar_lista(self):
+        """Regresa a la lista de propuestas."""
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Propuestas',
+            'res_model': 'actividad.propuesta',
+            'view_mode': 'list,form',
+            'target': 'current',
+        }
 
     def _auto_aprobar_propuestas_vencidas(self):
         """Cron: aprueba automáticamente propuestas sin respuesta tras 5 días."""

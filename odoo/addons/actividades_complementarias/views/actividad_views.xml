@@ -29,7 +29,8 @@
         <field name="name">actividad.complementaria.list</field>
         <field name="model">actividad.complementaria</field>
         <field name="arch" type="xml">
-            <list string="Actividades Complementarias" decoration-success="estado_code=='en_curso'"
+            <list string="Actividades Complementarias" create="0"
+                  decoration-success="estado_code=='en_curso'"
                   decoration-info="estado_code=='pendiente_inicio'"
                   decoration-muted="estado_code=='finalizada'"
                   decoration-danger="estado_code=='rechazada'">
@@ -53,17 +54,44 @@
         <field name="arch" type="xml">
             <form string="Actividad Complementaria">
                 <header>
+                    <button name="action_enviar_comite" string="Enviar al Comité Académico"
+                            type="object" class="btn-warning"
+                            invisible="tiene_propuesta_activa or tipo_actividad_predefinida or actividad_predefinida or estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada']"
+                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"
+                            confirm="¿Confirma el envío de esta actividad al Comité Académico para su revisión?"/>
+                    <!-- Botón para actividades predefinidas (sin pasar por el Comité) -->
+                    <button name="action_enviar_catalogo" string="Enviar al Catálogo"
+                            type="object" class="btn-success"
+                            invisible="not actividad_predefinida or en_catalogo or estado_code in ['rechazada','finalizada']"
+                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"
+                            confirm="Esta actividad es predefinida y se enviará directo al catálogo. ¿Confirma?"/>
                     <field name="estado_id" widget="statusbar"
-                           statusbar_visible="aprobada,pendiente_inicio,en_curso,finalizada"/>
+                           statusbar_visible="en_revision,aprobada,rechazada,pendiente_inicio,en_curso,finalizada"/>
                     <button name="action_enviar_catalogo" string="Enviar al Catálogo"
                             type="object" class="btn-primary"
-                            invisible="estado_code not in ['aprobada','pendiente_inicio'] or en_catalogo"/>
+                            invisible="estado_code not in ['aprobada','pendiente_inicio'] or en_catalogo"
+                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
+                    <button name="action_iniciar_actividad" string="Iniciar Actividad"
+                            type="object" class="btn-success"
+                            invisible="estado_code not in ['aprobada','pendiente_inicio']"
+                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"
+                            confirm="¿Confirma el inicio de esta actividad?"/>
+                    <button name="action_finalizar_actividad" string="Finalizar Actividad"
+                            type="object" class="btn-secondary"
+                            invisible="estado_code != 'en_curso'"
+                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"
+                            confirm="¿Confirma la finalización de esta actividad?"/>
                     <button name="action_firmar_constancias" string="Firmar Constancias"
                             type="object" class="btn-primary"
                             invisible="estado_code != 'finalizada' or constancias_firmadas"
-                            groups="actividades_complementarias.group_jefe_departamento"/>
+                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                 </header>
                 <sheet>
+                    <field name="tiene_propuesta_activa" invisible="1"/>
+                    <field name="tipo_actividad_predefinida" invisible="1"/>
+                    <field name="tipo_es_nueva" invisible="1"/>
+                    <field name="dominio_responsable" invisible="1"/>
+                    <field name="dominio_alumnos" invisible="1"/>
                     <field name="ruta_imagen" widget="image" class="oe_avatar"/>
                     <div class="oe_title">
                         <h1><field name="name" placeholder="Nombre de la actividad..."/></h1>
@@ -71,10 +99,15 @@
                     <group>
                         <group string="Información General">
                             <field name="tipo_actividad_id"/>
+                            <field name="actividad_predefinida"
+                                   invisible="tipo_es_nueva"
+                                   help="Seleccione si la actividad es predefinida (aprobación automática). Deje en blanco para quitar la selección."/>
                             <field name="periodo"/>
                             <field name="jefe_departamento_id" readonly="1"/>
                             <field name="departamento_id" readonly="1"/>
-                            <field name="responsable_actividad_id"/>
+                            <field name="responsable_actividad_id"
+                                   domain="dominio_responsable"
+                                   options="{'no_create': True, 'no_quick_create': True}"/>
                         </group>
                         <group string="Fechas y Duración">
                             <field name="fecha_inicio"/>
@@ -96,10 +129,12 @@
                     <notebook>
                         <page string="Alumnos Asignados" name="alumnos"
                               invisible="estado_code in ['aprobada','rechazada'] or en_catalogo">
-                            <field name="alumno_ids">
+                            <field name="alumno_ids"
+                                   domain="dominio_alumnos"
+                                   options="{'no_create': True, 'no_quick_create': True}">
                                 <list>
                                     <field name="name"/>
-                                    <field name="email"/>
+                                    <field name="login" string="Correo / Usuario"/>
                                 </list>
                             </field>
                         </page>
@@ -144,9 +179,31 @@
         </field>
     </record>
 
+    <!-- Vista lista para Mis Actividades (JD): permite crear -->
+    <record id="view_actividad_list_jefe" model="ir.ui.view">
+        <field name="name">actividad.complementaria.list.jefe</field>
+        <field name="model">actividad.complementaria</field>
+        <field name="inherit_id" ref="view_actividad_list"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="create">true</attribute>
+            </list>
+        </field>
+    </record>
+
     <!-- ── Actions ──────────────────────────────────────────────────────── -->
     <record id="action_actividad_complementaria" model="ir.actions.act_window">
-        <field name="name">Actividades Complementarias</field>
+        <field name="name">Mis Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('jefe_departamento_id', '=', uid)]</field>
+        <field name="search_view_id" ref="view_actividad_search"/>
+        <field name="views" eval="[(ref('view_actividad_list_jefe'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
+    </record>
+
+    <!-- Acción para admin: ve todas las actividades sin filtro -->
+    <record id="action_actividad_todas" model="ir.actions.act_window">
+        <field name="name">Todas las Actividades</field>
         <field name="res_model">actividad.complementaria</field>
         <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="view_actividad_search"/>
