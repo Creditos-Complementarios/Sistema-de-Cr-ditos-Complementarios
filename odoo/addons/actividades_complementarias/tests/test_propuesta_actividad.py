@@ -10,9 +10,8 @@ from odoo.tests.common import TransactionCase
 class TestPropuestaActividad(TransactionCase):
     """Tests para el modelo actividad.propuesta.
 
-    Todos los estados se obtienen con env.ref() usando los xmlids definidos
-    en los archivos de datos del módulo. Nunca se crean entradas en
-    ir.model.data manualmente — el módulo ya las carga al instalarse.
+    Todos los estados y periodos se obtienen con env.ref() usando los xmlids
+    definidos en los archivos de datos del módulo.
     """
 
     @classmethod
@@ -31,12 +30,11 @@ class TestPropuestaActividad(TransactionCase):
         )
 
         # Estados de actividad — definidos en estado_actividad_data.xml
-        cls.estado_aprobada = cls.env.ref(
-            'actividades_complementarias.estado_aprobada'
-        )
-        cls.estado_rechazada = cls.env.ref(
-            'actividades_complementarias.estado_rechazada'
-        )
+        cls.estado_aprobada = cls.env.ref('actividades_complementarias.estado_aprobada')
+        cls.estado_rechazada = cls.env.ref('actividades_complementarias.estado_rechazada')
+
+        # Periodo — Many2one, definido en periodo_data.xml
+        cls.periodo = cls.env.ref('actividades_complementarias.periodo_2025_A')
 
         cls.tipo = cls.env['actividad.tipo'].create({'name': 'Taller Test'})
 
@@ -44,14 +42,14 @@ class TestPropuestaActividad(TransactionCase):
         cls.actividad = cls.env['actividad.complementaria'].create({
             'name': 'Actividad para Propuesta',
             'tipo_actividad_id': cls.tipo.id,
-            'periodo': '2025-A',
+            'periodo': cls.periodo.id,   # Many2one: pasar el ID del registro
             'fecha_inicio': hoy + timedelta(days=1),
             'fecha_fin': hoy + timedelta(days=2),
             'cantidad_horas': 4.0,
         })
 
     def _make_propuesta(self, **kwargs):
-        """Helper: crea una propuesta con valores mínimos válidos."""
+        """Helper: crea una propuesta en estado 'en revisión'."""
         vals = {
             'actividad_id': self.actividad.id,
             'estado_solicitud_id': self.estado_sol_en_revision.id,
