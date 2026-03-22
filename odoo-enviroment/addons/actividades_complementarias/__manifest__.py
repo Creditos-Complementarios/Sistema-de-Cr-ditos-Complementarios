@@ -19,14 +19,23 @@
         'data/tipo_actividad_data.xml',
         'data/estado_actividad_data.xml',
         'data/estado_solicitud_data.xml',
+        'data/periodo_data.xml',
         'data/cron_data.xml',
         'views/tipo_actividad_views.xml',
+        'views/periodo_views.xml',
         'views/actividad_views.xml',
         'views/propuesta_views.xml',
         'views/empleado_views.xml',
         'views/wizard_views.xml',
         'views/menu_views.xml',
     ],
+
+    'assets': {
+        'web.assets_backend': [
+            'actividades_complementarias/static/src/scss/style.scss',
+        ],
+    },
+    
     'installable': True,
     'application': True,
     'license': 'LGPL-3',

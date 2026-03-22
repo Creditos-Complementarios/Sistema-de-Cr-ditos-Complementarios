@@ -19,7 +19,7 @@ class WizardNuevaActividad(models.TransientModel):
     tipo_actividad_id = fields.Many2one(
         'actividad.tipo', string='Tipo de Actividad', required=True
     )
-    periodo = fields.Char(string='Periodo Escolar', required=True)
+    periodo = fields.Many2one('actividad.periodo', string='Periodo Escolar', required=True)
     fecha_inicio = fields.Date(string='Fecha de Inicio', required=True)
     fecha_fin = fields.Date(string='Fecha de Finalización', required=True)
     cantidad_horas = fields.Float(string='Cantidad de Horas', required=True)
@@ -35,16 +35,29 @@ class WizardNuevaActividad(models.TransientModel):
         compute='_compute_es_predefinida',
         store=False,
     )
+    actividad_predefinida = fields.Selection([
+        ('curso_mooc', 'Curso MOOC'),
+        ('extraescolar', 'Extraescolar'),
+    ], string='Actividades Predefinidas',
+       help='Seleccione si la actividad corresponde a un tipo predefinido. '
+            'Estas no requieren aprobación del Comité Académico.'
+    )
     responsable_actividad_id = fields.Many2one(
         'res.users', string='Responsable de Actividad'
     )
-    creditos = fields.Integer(string='Cantidad de Créditos')
+    creditos = fields.Selection([
+        ('0.5', '0.5 créditos'),
+        ('1.0', '1 crédito'),
+    ], string='Cantidad de Créditos')
 
     # ────────────────────────────────────────────────────────────────────────
-    @api.depends('tipo_actividad_id')
+    @api.depends('tipo_actividad_id', 'actividad_predefinida')
     def _compute_es_predefinida(self):
         for rec in self:
-            rec.es_predefinida = rec.tipo_actividad_id.es_predefinida if rec.tipo_actividad_id else False
+            rec.es_predefinida = (
+                bool(rec.actividad_predefinida) or
+                (rec.tipo_actividad_id.es_predefinida if rec.tipo_actividad_id else False)
+            )
 
     # ────────────────────────────────────────────────────────────────────────
     # Constraints
@@ -53,8 +66,9 @@ class WizardNuevaActividad(models.TransientModel):
     @api.constrains('fecha_inicio', 'fecha_fin')
     def _check_fechas(self):
         for rec in self:
-            if rec.fecha_inicio and rec.fecha_inicio < date.today():
-                raise ValidationError('La fecha de inicio no puede ser anterior a hoy.')
+            if not self.env.context.get('install_demo') and not self.env.context.get('skip_fecha_check'):
+                if rec.fecha_inicio and rec.fecha_inicio < date.today():
+                    raise ValidationError('La fecha de inicio no puede ser anterior a hoy.')
             if rec.fecha_fin and rec.fecha_inicio and rec.fecha_fin <= rec.fecha_inicio:
                 raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
 
@@ -74,18 +88,24 @@ class WizardNuevaActividad(models.TransientModel):
     def action_confirmar(self):
         """
         Crea la actividad y la enruta:
-        - Predefinida → catálogo directamente con estado 'pendiente_inicio'.
-        - Nueva       → propuesta al Comité con estado 'en_revision'.
+        - Predefinida (por tipo o por campo actividad_predefinida) → estado 'pendiente_inicio'
+          directamente (sin comité). El botón cambia a 'Enviar al Catálogo'.
+        - Nueva → estado 'en_revision', se crea propuesta al Comité.
+                   Solo pasa a 'aprobada' cuando el Comité la aprueba
+                   (o automáticamente a los 5 días por el cron).
         """
         self.ensure_one()
 
-        es_predefinida = self.tipo_actividad_id.es_predefinida
+        es_predefinida = (
+            bool(self.actividad_predefinida) or
+            (self.tipo_actividad_id.es_predefinida if self.tipo_actividad_id else False)
+        )
 
         if es_predefinida:
             estado = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
         else:
-            # Las nuevas quedan como aprobadas al crearse para el flujo de propuesta
-            estado = self.env.ref('actividades_complementarias.estado_aprobada')
+            # Queda en revisión hasta que el Comité decida (o pasen 5 días)
+            estado = self.env.ref('actividades_complementarias.estado_en_revision')
 
         vals = {
             'name': self.name,
@@ -112,14 +132,23 @@ class WizardNuevaActividad(models.TransientModel):
         actividad = self.env['actividad.complementaria'].create(vals)
 
         if not es_predefinida:
-            # Crear propuesta al comité
+            # Crear propuesta al comité en estado "en revisión"
             estado_revision = self.env.ref('actividades_complementarias.estado_solicitud_en_revision')
             self.env['actividad.propuesta'].create({
                 'actividad_id': actividad.id,
                 'estado_solicitud_id': estado_revision.id,
             })
             actividad.message_post(
-                body='Propuesta enviada al Comité Académico para su revisión.'
+                body='Propuesta enviada al Comité Académico para su revisión. '
+                     'Se aprobará automáticamente si no hay respuesta en 5 días.'
+            )
+        else:
+            tipo_label = dict(self._fields['actividad_predefinida'].selection).get(
+                self.actividad_predefinida, self.tipo_actividad_id.name
+            ) if self.actividad_predefinida else self.tipo_actividad_id.name
+            actividad.message_post(
+                body=f'Actividad predefinida ({tipo_label}) registrada y aprobada automáticamente. '
+                     f'Lista para enviar al catálogo.'
             )
 
         # Abrir el registro recién creado

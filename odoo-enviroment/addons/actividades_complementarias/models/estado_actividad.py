@@ -9,6 +9,7 @@ class EstadoActividad(models.Model):
 
     name = fields.Char(string='Nombre', required=True)
     code = fields.Selection([
+        ('en_revision', 'En Revisión'),
         ('aprobada', 'Aprobada'),
         ('rechazada', 'Rechazada'),
         ('pendiente_inicio', 'Pendiente de Inicio'),

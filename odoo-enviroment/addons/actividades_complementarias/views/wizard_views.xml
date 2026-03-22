@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ══════════════════════════════════════════════════════════════════
-         Wizard: Nueva Actividad Complementaria (JD-01SC)
-    ══════════════════════════════════════════════════════════════════ -->
+    <!-- Wizard: Nueva Actividad Complementaria -->
     <record id="view_wizard_nueva_actividad_form" model="ir.ui.view">
         <field name="name">actividad.wizard.nueva.form</field>
         <field name="model">actividad.wizard.nueva</field>
@@ -11,22 +9,22 @@
             <form string="Generar Actividad Complementaria">
                 <sheet>
                     <div class="alert alert-info" role="alert">
-                        Si selecciona un <strong>tipo predefinido</strong>, la actividad se registrará
-                        directamente. Si es un <strong>tipo nuevo</strong>, se enviará al Comité Académico
-                        para su revisión.
+                        Si selecciona un <strong>tipo predefinido</strong>, la actividad se registrara
+                        directamente. Si es un <strong>tipo nuevo</strong>, se enviara al Comite Academico
+                        para su revision.
                     </div>
-                    <group string="Información General">
-                        <field name="name" placeholder="Nombre de la actividad (máx. 200 caracteres)"/>
+                    <group string="Informacion General">
+                        <field name="name" placeholder="Nombre de la actividad (max. 200 caracteres)"/>
                         <field name="tipo_actividad_id"/>
                         <field name="es_predefinida" invisible="1"/>
+                        <field name="actividad_predefinida"/>
                         <field name="periodo" placeholder="Ej: 2025-A"/>
                     </group>
-                    <group string="Responsable (solo actividades predefinidas)"
-                           invisible="not es_predefinida">
+                    <group string="Responsable (solo actividades predefinidas)" invisible="not es_predefinida">
                         <field name="responsable_actividad_id"/>
                         <field name="creditos"/>
                     </group>
-                    <group string="Fechas y Duración">
+                    <group string="Fechas y Duracion">
                         <field name="fecha_inicio"/>
                         <field name="fecha_fin"/>
                         <field name="cantidad_horas"/>
@@ -37,17 +35,23 @@
                         <field name="cupo_min" invisible="cupo_ilimitado"/>
                         <field name="cupo_max" invisible="cupo_ilimitado"/>
                     </group>
-                    <group string="Descripción">
+                    <group string="Descripcion">
                         <field name="descripcion" nolabel="1" colspan="2"
-                               placeholder="Descripción de la actividad (máx. 2000 caracteres)..."/>
+                               placeholder="Descripcion de la actividad (max. 2000 caracteres)..."/>
                     </group>
                     <group string="Imagen">
                         <field name="ruta_imagen" widget="image" nolabel="1"/>
                     </group>
                 </sheet>
                 <footer>
-                    <button name="action_confirmar" string="Confirmar y Enviar"
-                            type="object" class="btn-primary"/>
+                    <button name="action_confirmar" string="Enviar al Catalogo"
+                            type="object" class="btn-primary"
+                            invisible="not es_predefinida"
+                            confirm="Esta actividad es predefinida y se aprobara automaticamente. Confirma el registro?"/>
+                    <button name="action_confirmar" string="Enviar al Comite Academico"
+                            type="object" class="btn-warning"
+                            invisible="es_predefinida"
+                            confirm="Confirma el envio de esta actividad al Comite Academico para su revision?"/>
                     <button name="action_cancelar" string="Cancelar"
                             type="object" class="btn-secondary"/>
                 </footer>
@@ -62,9 +66,36 @@
         <field name="target">new</field>
     </record>
 
-    <!-- ══════════════════════════════════════════════════════════════════
-         Wizard: Rechazar Propuesta
-    ══════════════════════════════════════════════════════════════════ -->
+    <!-- Wizard: Aprobar Propuesta -->
+    <record id="view_wizard_aprobar_form" model="ir.ui.view">
+        <field name="name">actividad.wizard.aprobar.form</field>
+        <field name="model">actividad.wizard.aprobar</field>
+        <field name="arch" type="xml">
+            <form string="Aprobar Propuesta">
+                <sheet>
+                    <group>
+                        <field name="nombre_actividad" string="Propuesta" readonly="1"/>
+                        <field name="creditos" string="Creditos Asignados" required="1"
+                               widget="radio"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirmar_aprobacion" string="Confirmar Aprobacion"
+                            type="object" class="btn-success"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_wizard_aprobar" model="ir.actions.act_window">
+        <field name="name">Aprobar Propuesta</field>
+        <field name="res_model">actividad.wizard.aprobar</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Wizard: Rechazar Propuesta -->
     <record id="view_wizard_rechazar_form" model="ir.ui.view">
         <field name="name">actividad.wizard.rechazar.form</field>
         <field name="model">actividad.wizard.rechazar</field>
@@ -72,7 +103,7 @@
             <form string="Rechazar Propuesta">
                 <sheet>
                     <group>
-                        <field name="propuesta_id" readonly="1"/>
+                        <field name="propuesta_id" readonly="1" string="Propuesta"/>
                         <field name="motivo_rechazo" required="1"
                                placeholder="Indique el motivo del rechazo..."/>
                     </group>
