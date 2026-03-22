@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ── Search ───────────────────────────────────────────────────────── -->
+    <!-- Search -->
     <record id="view_empleado_permiso_search" model="ir.ui.view">
         <field name="name">actividad.empleado.permiso.search</field>
         <field name="model">actividad.empleado.permiso</field>
@@ -10,40 +10,108 @@
                 <field name="user_id" string="Nombre"/>
                 <field name="no_empleado" string="No. Empleado"/>
                 <field name="departamento_id"/>
+                <filter name="filter_modificar" string="Puede Modificar Actividades" domain="[('perm_modificar_actividades','=',True)]"/>
+                <filter name="filter_difundir" string="Puede Difundir" domain="[('perm_difundir_actividades','=',True)]"/>
+                <filter name="filter_asignar" string="Puede Asignar Alumnos" domain="[('perm_asignar_alumnos','=',True)]"/>
+                <filter name="filter_catalogo" string="Puede Enviar al Catalogo" domain="[('perm_enviar_catalogo','=',True)]"/>
+                <separator/>
+                <filter name="group_departamento" string="Por Departamento" context="{'group_by':'departamento_id'}"/>
             </search>
         </field>
     </record>
 
-    <!-- ── List ─────────────────────────────────────────────────────────── -->
+    <!-- List -->
     <record id="view_empleado_permiso_list" model="ir.ui.view">
         <field name="name">actividad.empleado.permiso.list</field>
         <field name="model">actividad.empleado.permiso</field>
         <field name="arch" type="xml">
-            <list string="Gestión de Personal">
-                <field name="user_id"/>
-                <field name="no_empleado"/>
-                <field name="departamento_id"/>
-                <field name="perm_modificar_actividades" widget="boolean_toggle"/>
-                <field name="perm_difundir_actividades" widget="boolean_toggle"/>
-                <field name="perm_asignar_alumnos" widget="boolean_toggle"/>
-                <field name="perm_enviar_catalogo" widget="boolean_toggle"/>
-                <field name="fecha_ultimo_uso"/>
+            <list string="Gestion de Personal" create="0" delete="0">
+                <field name="user_id" string="Empleado"/>
+                <field name="no_empleado" string="No. Empleado"/>
+                <field name="departamento_id" string="Departamento"/>
+                <field name="departamento_grupo" string="Rama de Departamento"/>
+                <field name="perm_modificar_actividades" string="Modificar Actividades Comple..." widget="boolean_toggle"/>
+                <field name="perm_difundir_actividades" string="Difundir Actividades" widget="boolean_toggle"/>
+                <field name="perm_asignar_alumnos" string="Asignar Alumnos a Actividad" widget="boolean_toggle"/>
+                <field name="perm_enviar_catalogo" string="Enviar al Catalogo" widget="boolean_toggle"/>
+                <field name="fecha_ultimo_uso" string="Ultimo Uso"/>
             </list>
         </field>
     </record>
 
-    <!-- ── Form ─────────────────────────────────────────────────────────── -->
+    <!-- Kanban -->
+    <record id="view_empleado_permiso_kanban" model="ir.ui.view">
+        <field name="name">actividad.empleado.permiso.kanban</field>
+        <field name="model">actividad.empleado.permiso</field>
+        <field name="arch" type="xml">
+            <kanban create="0" delete="0">
+                <field name="user_id"/>
+                <field name="no_empleado"/>
+                <field name="departamento_id"/>
+                <field name="departamento_grupo"/>
+                <field name="perm_modificar_actividades"/>
+                <field name="perm_difundir_actividades"/>
+                <field name="perm_asignar_alumnos"/>
+                <field name="perm_enviar_catalogo"/>
+                <field name="fecha_ultimo_uso"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex align-items-center mb-2">
+                            <field name="user_id" widget="many2one_avatar_user" class="me-2"/>
+                            <div>
+                                <strong><field name="user_id"/></strong>
+                                <div class="text-muted small"># <field name="no_empleado"/></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge text-bg-primary"><field name="departamento_id"/></span>
+                            <span class="ms-1 badge text-bg-secondary small"><field name="departamento_grupo"/></span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                            <t t-if="record.perm_modificar_actividades.value">
+                                <span class="badge text-bg-success">Modificar Actividades</span>
+                            </t>
+                            <t t-else=""><span class="badge text-bg-light text-muted">Modificar Actividades</span></t>
+                            <t t-if="record.perm_difundir_actividades.value">
+                                <span class="badge text-bg-success">Difundir</span>
+                            </t>
+                            <t t-else=""><span class="badge text-bg-light text-muted">Difundir</span></t>
+                            <t t-if="record.perm_asignar_alumnos.value">
+                                <span class="badge text-bg-success">Asignar Alumnos</span>
+                            </t>
+                            <t t-else=""><span class="badge text-bg-light text-muted">Asignar Alumnos</span></t>
+                            <t t-if="record.perm_enviar_catalogo.value">
+                                <span class="badge text-bg-success">Enviar al Catalogo</span>
+                            </t>
+                            <t t-else=""><span class="badge text-bg-light text-muted">Enviar al Catalogo</span></t>
+                        </div>
+                        <div class="text-muted small">Ultimo uso: <field name="fecha_ultimo_uso"/></div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Form -->
     <record id="view_empleado_permiso_form" model="ir.ui.view">
         <field name="name">actividad.empleado.permiso.form</field>
         <field name="model">actividad.empleado.permiso</field>
         <field name="arch" type="xml">
-            <form string="Permisos de Personal">
+            <form string="Permisos de Personal" create="0">
                 <sheet>
+                    <div class="mb-3 d-flex gap-2">
+                        <button string="Guardar" type="object" name="action_guardar_permisos"
+                                class="btn btn-primary"/>
+                        <button string="Regresar" type="object" name="action_regresar_lista"
+                                class="btn btn-secondary"/>
+                    </div>
+                    <field name="dominio_user" invisible="1"/>
                     <group string="Datos del Empleado">
-                        <field name="user_id"/>
-                        <field name="no_empleado"/>
-                        <field name="carrera"/>
-                        <field name="departamento_id"/>
+                        <field name="user_id" readonly="1"/>
+                        <field name="no_empleado" readonly="1"/>
+                        <field name="carrera" readonly="1"/>
+                        <field name="departamento_id" readonly="1"/>
+                        <field name="departamento_grupo" readonly="1"/>
                         <field name="fecha_ultimo_uso" readonly="1"/>
                     </group>
                     <group string="Permisos Delegados">
@@ -53,8 +121,10 @@
                         <field name="perm_enviar_catalogo"/>
                     </group>
                     <div class="alert alert-warning" role="alert">
-                        <strong>Nota:</strong> Los permisos se remueven automáticamente después de 30 días sin uso.
-                        El Jefe de Departamento siempre conserva el derecho exclusivo de firmar constancias y generar actividades.
+                        <strong>Nota:</strong> Los permisos se remueven automaticamente despues de 30 dias sin uso.
+                        El Jefe de Departamento conserva el derecho exclusivo de firmar constancias,
+                        generar actividades y gestionar personal.
+                        Solo puede asignar empleados de <strong>su misma rama de departamento</strong>.
                     </div>
                 </sheet>
                 <chatter/>
@@ -62,12 +132,13 @@
         </field>
     </record>
 
-    <!-- ── Actions ──────────────────────────────────────────────────────── -->
+    <!-- Action -->
     <record id="action_empleado_permiso" model="ir.actions.act_window">
-        <field name="name">Gestión de Personal</field>
+        <field name="name">Gestion de Personal</field>
         <field name="res_model">actividad.empleado.permiso</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="view_empleado_permiso_search"/>
+        <field name="context">{}</field>
     </record>
 
 </odoo>

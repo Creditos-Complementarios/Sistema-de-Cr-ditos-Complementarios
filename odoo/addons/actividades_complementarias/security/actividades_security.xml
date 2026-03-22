@@ -3,18 +3,44 @@
 
     <record id="group_admin_actividades" model="res.groups">
         <field name="name">Administrador de Actividades Complementarias</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <record id="group_jefe_departamento" model="res.groups">
         <field name="name">Jefe de Departamento</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <record id="group_comite_academico" model="res.groups">
         <field name="name">Comité Académico</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
-    <record id="group_personal_departamento" model="res.groups">
-        <field name="name">Personal de Departamento</field>
+    <!-- Personal de Departamento dividido por rama -->
+    <record id="group_personal_departamento_sistemas" model="res.groups">
+        <field name="name">Personal de Departamento de Sistemas</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_personal_departamento_electrica" model="res.groups">
+        <field name="name">Personal de Departamento de Eléctrica</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_personal_departamento_biologia" model="res.groups">
+        <field name="name">Personal de Departamento de Biología</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Nuevos grupos -->
+    <record id="group_alumno" model="res.groups">
+        <field name="name">Alumno</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_responsable_actividad" model="res.groups">
+        <field name="name">Responsable de Actividad</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
 </odoo>
