@@ -27,7 +27,7 @@
         'views/wizard_views.xml',
         'views/menu_views.xml',
     ],
-     'assets': {
+    'assets': {
         'web.assets_backend': [
             'actividades_complementarias/static/src/scss/style.scss',
         ],
