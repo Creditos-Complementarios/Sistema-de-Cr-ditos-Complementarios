@@ -11,7 +11,6 @@
     ),
     'author': 'Desarrollo Institucional',
     'category': 'Education',
-    'license': 'LGPL-3',
     'depends': ['base', 'mail', 'hr'],
     'data': [
         'security/actividades_security.xml',
