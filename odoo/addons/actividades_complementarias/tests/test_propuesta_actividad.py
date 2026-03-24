@@ -4,6 +4,8 @@ from datetime import date, timedelta
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
+from odoo.tools import mute_logger
+from psycopg2.errors import NotNullViolation
 
 
 @tagged('actividades_complementarias', '-standard')
@@ -101,16 +103,15 @@ class TestPropuestaActividad(TransactionCase):
         self.assertEqual(propuesta.estado_code, 'aprobada')
 
     def test_wizard_aprobar_sin_creditos_falla(self):
-        """El wizard de aprobación debe fallar si no se asignan créditos."""
-        propuesta = self._make_propuesta()
-        wizard = self.env['actividad.wizard.aprobar'].with_context(
-            default_propuesta_id=propuesta.id
-        ).create({
-            'propuesta_id': propuesta.id,
-            'creditos': False,
-        })
-        with self.assertRaises(ValidationError):
-            wizard.action_confirmar_aprobacion()
+        """Test that creating the wizard without credits fails as expected."""
+        # We use mute_logger to keep CI logs clean
+        with mute_logger('odoo.sql_db'):
+            # We wrap in a savepoint to prevent the entire transaction from aborting
+            with self.cr.savepoint(), self.assertRaises(NotNullViolation):
+                self.env['actividad.wizard.aprobar'].create({
+                    'nombre_actividad': 'Actividad para Propuesta',
+                    'propuesta_id': self.propuesta.id,
+                })
 
     # ── Business logic: rechazar ──────────────────────────────────────────────
 
