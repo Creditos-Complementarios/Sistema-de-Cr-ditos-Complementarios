@@ -352,7 +352,8 @@ class Actividad(models.Model):
         self.write({'jd_firmo': True})
         if self.constancias_firmadas:
             self.message_post(
-                body='Constancias firmadas por el Jefe de Departamento. Ambas firmas completas — constancias liberadas a expedientes.'
+                body='Constancias firmadas por el Jefe de Departamento. ' \
+                'Ambas firmas completas — constancias liberadas a expedientes.'
                 )
         else:
             self.message_post(
