@@ -103,13 +103,15 @@ class TestPropuestaActividad(TransactionCase):
         self.assertEqual(propuesta.estado_code, 'aprobada')
 
     def test_wizard_aprobar_sin_creditos_falla(self):
-        # Mute the SQL logger so the expected error doesn't print a traceback in the console
-        with mute_logger('odoo.sql_db'), self.assertRaises(NotNullViolation):
-            self.env['actividad.wizard.aprobar'].create({
-                'nombre_actividad': 'Actividad para Propuesta',
-                'propuesta_id': self.propuesta.id,
-                # 'creditos' is intentionally omitted to trigger the NotNullViolation
-            })
+        """Test that creating the wizard without credits fails as expected."""
+        # We use mute_logger to keep CI logs clean
+        with mute_logger('odoo.sql_db'):
+            # We wrap in a savepoint to prevent the entire transaction from aborting
+            with self.cr.savepoint(), self.assertRaises(NotNullViolation):
+                self.env['actividad.wizard.aprobar'].create({
+                    'nombre_actividad': 'Actividad para Propuesta',
+                    'propuesta_id': self.propuesta.id,
+                })
 
     # ── Business logic: rechazar ──────────────────────────────────────────────
 
