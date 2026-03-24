@@ -48,6 +48,8 @@ class WizardNuevaActividad(models.TransientModel):
     creditos = fields.Selection([
         ('0.5', '0.5 créditos'),
         ('1.0', '1 crédito'),
+        ('1.5', '1.5 créditos'),
+        ('2.0', '2 créditos'),
     ], string='Cantidad de Créditos')
 
     # ────────────────────────────────────────────────────────────────────────
