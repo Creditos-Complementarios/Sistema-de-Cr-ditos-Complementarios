@@ -113,7 +113,7 @@ class WizardNuevaActividad(models.TransientModel):
             'name': self.name,
             'descripcion': self.descripcion,
             'tipo_actividad_id': self.tipo_actividad_id.id,
-            'periodo': self.periodo,
+            'periodo': self.periodo.id,
             'fecha_inicio': self.fecha_inicio,
             'fecha_fin': self.fecha_fin,
             'cantidad_horas': self.cantidad_horas,
