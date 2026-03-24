@@ -13,6 +13,8 @@ class WizardAprobarPropuesta(models.TransientModel):
     creditos = fields.Selection([
         ('0.5', '0.5 creditos'),
         ('1.0', '1 credito'),
+        ('1.5', '1.5 creditos'),
+        ('2.0', '2 creditos'),
     ], string='Creditos Asignados', required=True)
 
     @api.model
