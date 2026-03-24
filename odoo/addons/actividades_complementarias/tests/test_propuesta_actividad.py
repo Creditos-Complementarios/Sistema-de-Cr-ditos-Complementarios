@@ -4,6 +4,8 @@ from datetime import date, timedelta
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
+from odoo.tools import mute_logger
+from psycopg2.errors import NotNullViolation
 
 
 @tagged('actividades_complementarias', '-standard')
@@ -105,7 +107,7 @@ class TestPropuestaActividad(TransactionCase):
         with mute_logger('odoo.sql_db'), self.assertRaises(NotNullViolation):
             self.env['actividad.wizard.aprobar'].create({
                 'nombre_actividad': 'Actividad para Propuesta',
-                'propuesta_id': self.propuesta.id, # Ensure you use a valid ID here
+                'propuesta_id': self.propuesta.id,
                 # 'creditos' is intentionally omitted to trigger the NotNullViolation
             })
 
