@@ -39,8 +39,7 @@ odoo/
 
 | Módulo | Descripción | Depende de | Responsable |
 |---|---|---|---|
-| `modulo_uno` | _Descripción breve_ | `sale`, `account` | Back-end |
-| `modulo_dos` | _Descripción breve_ | `stock` | Back-end |
+| `actividades_complementarias` | Ciclo completo de créditos complementarios | `base`, `mail`, `hr` | Back-end |
 
 _Mantener esta tabla actualizada al añadir o deprecar módulos._
 
