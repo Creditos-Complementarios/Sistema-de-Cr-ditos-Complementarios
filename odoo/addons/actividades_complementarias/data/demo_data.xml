@@ -171,8 +171,8 @@
         <field name="periodo" ref="actividades_complementarias.periodo_2025_A"/>
         <field name="jefe_departamento_id" ref="user_jefe_electronica"/>
         <field name="responsable_actividad_id" ref="user_responsable_1"/>
-        <field name="fecha_inicio">2026-01-10</field>
-        <field name="fecha_fin">2026-03-10</field>
+        <field name="fecha_inicio">2026-09-10</field>
+        <field name="fecha_fin">2026-10-10</field>
         <field name="cantidad_horas">40</field>
         <field name="creditos">0.5</field>
         <field name="cupo_min">8</field>
@@ -187,8 +187,8 @@
         <field name="periodo" ref="actividades_complementarias.periodo_2025_B"/>
         <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
         <field name="responsable_actividad_id" ref="user_responsable_1"/>
-        <field name="fecha_inicio">2025-08-01</field>
-        <field name="fecha_fin">2025-12-15</field>
+        <field name="fecha_inicio">2026-08-01</field>
+        <field name="fecha_fin">2026-12-15</field>
         <field name="cantidad_horas">60</field>
         <field name="creditos">0.5</field>
         <field name="cupo_min">10</field>
@@ -215,8 +215,8 @@
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_deportiva"/>
         <field name="periodo" ref="actividades_complementarias.periodo_2025_A"/>
         <field name="jefe_departamento_id" ref="user_jefe_electronica"/>
-        <field name="fecha_inicio">2026-03-20</field>
-        <field name="fecha_fin">2026-03-21</field>
+        <field name="fecha_inicio">2026-05-20</field>
+        <field name="fecha_fin">2026-05-21</field>
         <field name="cantidad_horas">8</field>
         <field name="cupo_min">4</field>
         <field name="cupo_max">16</field>
@@ -231,7 +231,7 @@
         <field name="periodo" ref="actividades_complementarias.periodo_2025_A"/>
         <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
         <field name="responsable_actividad_id" ref="user_responsable_1"/>
-        <field name="fecha_inicio">2026-04-01</field>
+        <field name="fecha_inicio">2026-04-14</field>
         <field name="fecha_fin">2026-06-30</field>
         <field name="cantidad_horas">40</field>
         <field name="creditos">1.0</field>
