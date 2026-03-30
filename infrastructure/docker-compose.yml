@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16
+    container_name: odoo19_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+    volumes:
+      - odoo_pgdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-odoo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  odoo:
+    image: odoo:19.0
+    container_name: odoo19_app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${ODOO_PORT:-8069}:8069"
+      - "${ODOO_LONGPOLL_PORT:-8072}:8072"
+    environment:
+      HOST: db
+      PORT: 5432
+      USER: ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+    volumes:
+      # Paths are relative to this file's location: infrastructure/
+      # ../odoo/addons  → goes up one level to repo root, then into odoo/addons
+      # ./config/...    → infrastructure/config/odoo.conf
+      - ../odoo/addons:/mnt/extra-addons
+      - odoo_filestore:/var/lib/odoo
+      - ./config/odoo.conf:/etc/odoo/odoo.conf
+    restart: unless-stopped
+    command: odoo --dev=all
+
+volumes:
+  odoo_pgdata:
+  odoo_filestore:

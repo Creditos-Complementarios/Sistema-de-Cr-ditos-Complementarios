@@ -1,0 +1,231 @@
+# ============================================================
+#  .gitignore — Odoo 19 Community (Docker + módulos custom)
+#  Cubre: Python, Odoo runtime, Docker, editors, OS
+# ============================================================
+
+
+# ------------------------------------------------------------
+# SECRETOS Y CONFIGURACIÓN LOCAL  ← nunca versionar
+# ------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+infra/config/odoo.conf    # Contiene master_password, db_password, etc.
+*.secret
+secrets/
+
+
+# ------------------------------------------------------------
+# ODOO — archivos generados en runtime
+# ------------------------------------------------------------
+
+# Filestore (adjuntos, imágenes, documentos subidos por usuarios)
+filestore/
+/var/lib/odoo/filestore/
+
+# Sesiones web
+.sessions/
+/var/lib/odoo/sessions/
+
+# Logs
+*.log
+logs/
+/var/log/odoo/
+
+# Caché de assets compilados (JS/CSS minificado)
+web/static/lib/
+# Nota: si tus addons generan assets compilados localmente:
+odoo/addons/**/static/description/icon_generated.*
+
+# Archivos .pyc y caché de Python en módulos Odoo
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/.pytest_cache/
+
+# Migraciones generadas automáticamente (no las de tu autoría)
+# Descomenta si no versionar migraciones:
+# odoo/addons/**/migrations/
+
+
+# ------------------------------------------------------------
+# PYTHON
+# ------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Entornos virtuales (si alguien instala Odoo sin Docker)
+venv/
+.venv/
+env/
+.env/
+ENV/
+pip-selfcheck.json
+
+# Distribución / empaquetado
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+
+# mypy / pyright
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# pytest
+.pytest_cache/
+nosetests.xml
+test-results/
+
+
+# ------------------------------------------------------------
+# DOCKER
+# ------------------------------------------------------------
+
+# Volúmenes montados localmente (datos de PostgreSQL, filestore)
+volumes/
+pgdata/
+odoo-data/
+db-data/
+
+# Override para desarrollo local (puede tener puertos, bind mounts personales)
+infrastructure/docker-compose.override.yml
+
+# Directorios creados automáticamente por Docker cuando un bind-mount
+# no existe en el host — Docker los crea vacíos, no deben versionarse.
+infrastructure/infrastructure/
+infrastructure/odoo/
+infrastructure/addons/
+
+
+# ------------------------------------------------------------
+# BASE DE DATOS — dumps y backups locales
+# ------------------------------------------------------------
+*.sql
+*.dump
+*.backup
+backups/
+db_backups/
+
+
+# ------------------------------------------------------------
+# EDITORES E IDEs
+# ------------------------------------------------------------
+
+# VS Code
+.vscode/
+!.vscode/extensions.json    # Sí versionar extensiones recomendadas del equipo
+!.vscode/settings.json.example
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+
+# ------------------------------------------------------------
+# SISTEMA OPERATIVO
+# ------------------------------------------------------------
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+
+
+# ------------------------------------------------------------
+# ODOO SCAFFOLD — archivos de demo que no se deben subir
+# ------------------------------------------------------------
+# Descomenta si usas `odoo scaffold` solo para referencia local:
+# **/demo/
+# **/tests/
+
+
+# ------------------------------------------------------------
+# CERTIFICADOS Y LLAVES
+# ------------------------------------------------------------
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+ssl/
+
+
+# ------------------------------------------------------------
+# MISCELÁNEOS
+# ------------------------------------------------------------
+*.tmp
+*.bak
+*.orig
+*.rej
+.cache/
+tmp/
+temp/
+node_modules/          # Si algún módulo usa npm/webpack
+package-lock.json      # Generado automáticamente
+
+
+# ============================================================
+# QUÉ SÍ DEBE ESTAR EN GIT (referencia)
+# ============================================================
+# ✔ odoo/addons/mi_modulo/__manifest__.py
+# ✔ odoo/addons/mi_modulo/models/, views/, security/, data/
+# ✔ odoo/addons/mi_modulo/migrations/  (scripts de migración propios)
+# ✔ infra/docker-compose.yml
+# ✔ infra/Dockerfile (si tienes imagen custom)
+# ✔ infra/config/odoo.conf.example
+# ✔ infra/docker-compose.override.yml.example
+# ✔ .env.example  (plantilla sin valores reales)
+# ✔ requirements.txt (dependencias Python extra de los addons)
+# ✔ .vscode/extensions.json (recomendaciones del equipo)
+# ✔ docs/**/*.md, docs/**/*.drawio
+# ✔ README.md, infra/README.md, odoo/README.md, docs/README.md
+# ============================================================
