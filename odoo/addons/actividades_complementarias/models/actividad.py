@@ -161,7 +161,8 @@ class Actividad(models.Model):
     permisos_actividad_pendiente_inicio = fields.Boolean(
         string='Solo Responsable, Fechas y Horas Editables',
         compute='_compute_permisos_edicion',
-        help='True cuando el JD solo puede modificar los campos Responsable de Actividad, Fecha de Inicio, Fecha de Finalización y Horario por Día.',
+        help='True cuando el JD solo puede modificar los campos Responsable de Actividad, Fecha de Inicio, ' \
+        'Fecha de Finalización y Horario por Día.',
     )
     permisos_actividad_en_curso = fields.Boolean(
         string='Solo Responsable Editable',
@@ -395,7 +396,7 @@ class Actividad(models.Model):
                       'por el Comité Académico. No puede modificarla durante la revisión.')
                     % rec.name
                 )
-            
+                        
             # ── Regla 3: En catálogo / Pendiente de Inicio ──
             if rec.en_catalogo or rec.estado_code in ('aprobada', 'pendiente_inicio'):
                 campos_permitidos = {'responsable_actividad_id', 'fecha_inicio', 'fecha_fin', 'horario'}
@@ -403,8 +404,9 @@ class Actividad(models.Model):
                 if campos_no_permitidos:
                     raise UserError(
                         _('La actividad "%s" está en aprobada o pendiente de inicio. '
-                          'En este estado únicamente puede modificar '
-                          '"Responsable de Actividad", "Fecha de Inicio", "Fecha de Finalización", y "Horario por Día".')
+                          'En este estado únicamente puede modificar'
+                          '"Responsable de Actividad", "Fecha de Inicio", "Fecha de Finalización", '
+                          'y "Horario por Día".')
                         % rec.name
                     )
 
