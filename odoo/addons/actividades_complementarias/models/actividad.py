@@ -396,7 +396,6 @@ class Actividad(models.Model):
                       'por el Comité Académico. No puede modificarla durante la revisión.')
                     % rec.name
                 )
-            
             # ── Regla 3: En catálogo / Pendiente de Inicio ──
             if rec.en_catalogo or rec.estado_code in ('aprobada', 'pendiente_inicio'):
                 campos_permitidos = {'responsable_actividad_id', 'fecha_inicio', 'fecha_fin', 'horario'}
