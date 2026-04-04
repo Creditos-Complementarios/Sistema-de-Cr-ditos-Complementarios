@@ -25,6 +25,7 @@ def _n_dias_habiles(n, desde=None):
             contados += 1
     return candidato
 
+
 class TestActividad(TransactionCase):
     """Tests para el modelo actividad.complementaria.
 
@@ -48,7 +49,7 @@ class TestActividad(TransactionCase):
         # tipo_actividad no tiene XMLs de datos predefinidos — se crea aquí
         cls.tipo = cls.env['actividad.tipo'].create({'name': 'Conferencia Test'})
 
-        cls.fecha_valida    = _n_dias_habiles(5)   # mínimo exacto exigido por el constraint
+        cls.fecha_valida = _n_dias_habiles(5)   # mínimo exacto exigido por el constraint
         cls.fecha_fin_valida = _n_dias_habiles(6)   # un día hábil más, para que fin > inicio
 
     def _make_actividad(self, **kwargs):
