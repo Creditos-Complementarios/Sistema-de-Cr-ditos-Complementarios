@@ -1,7 +1,28 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
-from datetime import date
+from datetime import date, timedelta
+
+
+def _n_dias_habiles(n, desde=None):
+    """Avanza *n* días hábiles (excluyendo domingos) desde *desde*.
+
+    Args:
+        n:     Número de días hábiles a avanzar.
+        desde: Fecha base. Si es None se usa la fecha actual.
+    Returns:
+        date con la fecha resultante.
+    """
+    base = desde if desde is not None else date.today()
+    contados = 0
+    candidato = base
+    while contados < n:
+        candidato += timedelta(days=1)
+        if candidato.weekday() != 6:   # 6 = domingo
+            contados += 1
+    return candidato
+
+
 
 
 class Actividad(models.Model):
@@ -431,39 +452,54 @@ class Actividad(models.Model):
     # Constraints
     # ────────────────────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _fecha_minima_inicio():
-        """Devuelve la fecha mínima válida para fecha_inicio.
-
-        Cuenta 5 días hábiles hacia adelante desde hoy, excluyendo domingos.
-        """
-        from datetime import timedelta as td
-        candidato = date.today()
-        contados = 0
-        while contados < 5:
-            candidato += td(days=1)
-            if candidato.weekday() != 6:   # 6 = domingo
-                contados += 1
-        return candidato
-
     @api.constrains('fecha_inicio', 'fecha_fin')
     def _check_fechas(self):
         bypass = (
             self.env.context.get('install_demo')
             or self.env.context.get('skip_fecha_check')
         )
+        manana = date.today() + timedelta(days=1)
         for rec in self:
             if rec.fecha_inicio and not bypass:
-                min_fecha = self._fecha_minima_inicio()
-                if rec.fecha_inicio < min_fecha:
-                    raise ValidationError(
-                        _(
-                            'La fecha de inicio debe ser al menos 5 días hábiles '
-                            '(sin domingos) a partir de hoy. '
-                            'La fecha mínima válida es %(fecha)s.',
-                            fecha=min_fecha.strftime('%d/%m/%Y'),
+                es_nuevo = not rec._origin.id   # True en create, False en write
+                if es_nuevo:
+                    # Al crear: mínimo 5 días hábiles desde hoy
+                    min_fecha = _n_dias_habiles(5)
+                    if rec.fecha_inicio < min_fecha:
+                        raise ValidationError(
+                            _(
+                                'La fecha de inicio debe ser al menos 5 días hábiles '
+                                '(sin domingos) a partir de hoy. '
+                                'La fecha mínima válida es %(fecha)s.',
+                                fecha=min_fecha.strftime('%d/%m/%Y'),
+                            )
                         )
+                else:
+                    # En edición: si existe propuesta aprobada, el mínimo se calcula
+                    # como 5 días hábiles contados desde la fecha de envío de esa propuesta,
+                    # de modo que el tiempo total (envío → inicio) sea al menos 5 días hábiles.
+                    # Piso absoluto: siempre al menos mañana.
+                    propuesta = self.env['actividad.propuesta'].search(
+                        [
+                            ('actividad_id', '=', rec.id),
+                            ('estado_code', '=', 'aprobada'),
+                        ],
+                        order='fecha desc',
+                        limit=1,
                     )
+                    if propuesta:
+                        min_desde_propuesta = _n_dias_habiles(5, desde=propuesta.fecha)
+                        min_fecha = max(min_desde_propuesta, manana)
+                    else:
+                        min_fecha = manana
+
+                    if rec.fecha_inicio < min_fecha:
+                        raise ValidationError(
+                            _(
+                                'La fecha de inicio no puede ser anterior a %(fecha)s.',
+                                fecha=min_fecha.strftime('%d/%m/%Y'),
+                            )
+                        )
             if rec.fecha_fin and rec.fecha_inicio and rec.fecha_fin <= rec.fecha_inicio:
                 raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
 

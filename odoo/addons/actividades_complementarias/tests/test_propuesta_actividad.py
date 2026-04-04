@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import date, timedelta
 
+from odoo import fields
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
@@ -66,7 +67,10 @@ class TestPropuestaActividad(TransactionCase):
         propuesta = self._make_propuesta()
         self.assertEqual(propuesta.encabezado, self.actividad.name)
 
-    def test_fecha_limite_es_cinco_dias_despues(self):
+    def test_fecha_envio_es_hoy(self):
+        """La fecha de envío de la propuesta debe ser la fecha actual en la zona horaria del usuario."""
+        propuesta = self._make_propuesta()
+        self.assertEqual(propuesta.fecha, fields.Date.context_today(propuesta))
         """La fecha límite de revisión debe ser 5 días después de la fecha de envío."""
         propuesta = self._make_propuesta()
         esperada = propuesta.fecha + timedelta(days=5)

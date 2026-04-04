@@ -116,6 +116,61 @@ class TestActividad(TransactionCase):
         with self.assertRaises(ValidationError):
             self._make_actividad(fecha_inicio=self.fecha_valida, fecha_fin=self.fecha_valida)
 
+    def test_edicion_sin_propuesta_manana_ok(self):
+        """En edición sin propuesta aprobada, mover fecha_inicio a mañana es válido."""
+        actividad = self._make_actividad()
+        manana = date.today() + timedelta(days=1)
+        actividad.write({
+            'fecha_inicio': manana,
+            'fecha_fin': manana + timedelta(days=1),
+        })
+        self.assertEqual(actividad.fecha_inicio, manana)
+
+    def test_edicion_sin_propuesta_hoy_falla(self):
+        """En edición sin propuesta aprobada, fecha_inicio = hoy debe fallar."""
+        actividad = self._make_actividad()
+        with self.assertRaises(ValidationError):
+            actividad.write({'fecha_inicio': date.today()})
+
+    def test_edicion_con_propuesta_usa_fecha_envio(self):
+        """Con propuesta aprobada, el mínimo de fecha_inicio se calcula desde la fecha de envío."""
+        # Crear la actividad sorteando el constraint (usamos fechas futuras válidas)
+        actividad = self._make_actividad()
+
+        # Simular una propuesta cuya fecha de envío fue hace un día hábil:
+        # buscamos el día hábil más reciente anterior a hoy.
+        fecha_envio = date.today() - timedelta(days=1)
+        while fecha_envio.weekday() == 6:   # retroceder si cae en domingo
+            fecha_envio -= timedelta(days=1)
+
+        estado_en_revision = self.env.ref(
+            'actividades_complementarias.estado_solicitud_en_revision'
+        )
+        estado_aprobada = self.env.ref(
+            'actividades_complementarias.estado_solicitud_aprobada'
+        )
+        propuesta = self.env['actividad.propuesta'].create({
+            'actividad_id': actividad.id,
+            'estado_solicitud_id': estado_en_revision.id,
+            'fecha': fecha_envio,
+        })
+        propuesta.write({'estado_solicitud_id': estado_aprobada.id})
+
+        # La fecha mínima válida es 5 días hábiles desde fecha_envio, pero
+        # nunca antes de mañana.
+        min_fecha = max(_n_dias_habiles(5, desde=fecha_envio), date.today() + timedelta(days=1))
+
+        # Un día antes del mínimo debe fallar
+        with self.assertRaises(ValidationError):
+            actividad.write({'fecha_inicio': min_fecha - timedelta(days=1)})
+
+        # El día exacto del mínimo debe funcionar
+        actividad.write({
+            'fecha_inicio': min_fecha,
+            'fecha_fin': min_fecha + timedelta(days=1),
+        })
+        self.assertEqual(actividad.fecha_inicio, min_fecha)
+
     # ── Constraints de cupos ─────────────────────────────────────────────────
 
     def test_cupo_min_cero_falla(self):
