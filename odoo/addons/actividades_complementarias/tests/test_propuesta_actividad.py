@@ -39,7 +39,9 @@ class TestPropuestaActividad(TransactionCase):
         cls.tipo = cls.env['actividad.tipo'].create({'name': 'Taller Test'})
 
         hoy = date.today()
-        cls.actividad = cls.env['actividad.complementaria'].create({
+        cls.actividad = cls.env['actividad.complementaria'].with_context(
+            skip_fecha_check=True
+        ).create({
             'name': 'Actividad para Propuesta',
             'tipo_actividad_id': cls.tipo.id,
             'periodo': cls.periodo.id,   # Many2one: pasar el ID del registro
