@@ -11,7 +11,7 @@ from odoo.tests.common import TransactionCase
 # ---------------------------------------------------------------------------
 
 def _n_dias_habiles(n, desde=None):
-    """Devuelve la fecha resultante de avanzar *n* días hábiles (sin domingos).
+    """Devuelve la fecha resultante de avanzar *n* días hábiles (lunes a viernes).
 
     Args:
         n:     Número de días hábiles a avanzar.
@@ -22,7 +22,7 @@ def _n_dias_habiles(n, desde=None):
     candidato = base
     while contados < n:
         candidato += timedelta(days=1)
-        if candidato.weekday() != 6:   # 6 = domingo
+        if candidato.weekday() < 5:   # 0=lun … 4=vie; 5=sáb, 6=dom
             contados += 1
     return candidato
 
@@ -138,9 +138,9 @@ class TestActividad(TransactionCase):
         actividad = self._make_actividad()
 
         # Simular una propuesta cuya fecha de envío fue hace un día hábil:
-        # buscamos el día hábil más reciente anterior a hoy.
+        # buscamos el día hábil (lun-vie) más reciente anterior a hoy.
         fecha_envio = date.today() - timedelta(days=1)
-        while fecha_envio.weekday() == 6:   # retroceder si cae en domingo
+        while fecha_envio.weekday() >= 5:   # retroceder si cae en sáb(5) o dom(6)
             fecha_envio -= timedelta(days=1)
 
         estado_en_revision = self.env.ref(

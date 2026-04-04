@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 
 def _n_dias_habiles(n, desde=None):
-    """Avanza *n* días hábiles (excluyendo domingos) desde *desde*.
+    """Avanza *n* días hábiles (lunes a viernes) desde *desde*.
 
     Args:
         n:     Número de días hábiles a avanzar.
@@ -18,7 +18,7 @@ def _n_dias_habiles(n, desde=None):
     candidato = base
     while contados < n:
         candidato += timedelta(days=1)
-        if candidato.weekday() != 6:   # 6 = domingo
+        if candidato.weekday() < 5:   # 0=lun … 4=vie; 5=sáb, 6=dom
             contados += 1
     return candidato
 
@@ -353,6 +353,23 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
 
     # ────────────────────────────────────────────────────────────────────────
+    # ORM override: create()
+    # ────────────────────────────────────────────────────────────────────────
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Estampa el flag actividad_creating=True en el contexto para que
+        _check_fechas pueda distinguir una creación de una edición.
+
+        _origin.id no es fiable aquí porque el constraint corre después de que
+        el registro ya fue insertado en la BD y _origin ya tiene un ID real.
+        """
+        return super(
+            Actividad,
+            self.with_context(actividad_creating=True),
+        ).create(vals_list)
+
+    # ────────────────────────────────────────────────────────────────────────
     # ORM override: write()
     # ────────────────────────────────────────────────────────────────────────
 
@@ -461,7 +478,9 @@ class Actividad(models.Model):
         manana = date.today() + timedelta(days=1)
         for rec in self:
             if rec.fecha_inicio and not bypass:
-                es_nuevo = not rec._origin.id   # True en create, False en write
+                # True durante create() gracias al flag que estampa el override;
+                # False durante write() donde el flag no está presente.
+                es_nuevo = self.env.context.get('actividad_creating', False)
                 if es_nuevo:
                     # Al crear: mínimo 5 días hábiles desde hoy
                     min_fecha = _n_dias_habiles(5)
