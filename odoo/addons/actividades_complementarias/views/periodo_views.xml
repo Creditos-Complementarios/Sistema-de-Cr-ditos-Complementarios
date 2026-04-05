@@ -6,8 +6,7 @@
         <field name="model">actividad.periodo</field>
         <field name="arch" type="xml">
             <list string="Periodos Escolares"
-                  create="false" edit="false" delete="false" duplicate="false"
-                  archiving="false">
+                  create="false" edit="false" delete="false" duplicate="false">
                 <field name="name"/>
             </list>
         </field>
@@ -24,7 +23,6 @@
                     </div>
                     <group>
                         <field name="name" readonly="1"/>
-                        <field name="active" invisible="1"/>
                     </group>
                 </sheet>
             </form>
