@@ -5,9 +5,10 @@
         <field name="name">actividad.periodo.list</field>
         <field name="model">actividad.periodo</field>
         <field name="arch" type="xml">
-            <list string="Periodos Escolares" editable="bottom">
+            <list string="Periodos Escolares"
+                  create="false" edit="false" delete="false" duplicate="false"
+                  archiving="false">
                 <field name="name"/>
-                <field name="active"/>
             </list>
         </field>
     </record>
@@ -16,11 +17,14 @@
         <field name="name">actividad.periodo.form</field>
         <field name="model">actividad.periodo</field>
         <field name="arch" type="xml">
-            <form string="Periodo Escolar">
+            <form string="Periodo Escolar" create="false" edit="false" delete="false" duplicate="false">
                 <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Los periodos escolares se sincronizan desde una base de datos externa y son de solo lectura.
+                    </div>
                     <group>
-                        <field name="name" placeholder="Ej: 2025-2026, 2025-A"/>
-                        <field name="active"/>
+                        <field name="name" readonly="1"/>
+                        <field name="active" invisible="1"/>
                     </group>
                 </sheet>
             </form>
