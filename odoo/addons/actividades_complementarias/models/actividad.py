@@ -187,7 +187,6 @@ class Actividad(models.Model):
        help='Si la actividad es de tipo predefinido se aprueba automáticamente '
             'sin pasar por el Comité Académico. Puede dejarse en blanco para quitarlo.',
     )
-    
     # ── Flags de permisos de edición (por estado) ─
     permisos_actividad_pendiente_inicio = fields.Boolean(
         string='Solo Responsable, Fechas y Horas Editables',
