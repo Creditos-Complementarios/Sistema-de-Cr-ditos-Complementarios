@@ -29,6 +29,18 @@ class Actividad(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'fecha_inicio desc'
 
+    # Campos que el JD nunca puede escribir directamente (gestionados por el sistema).
+    # Las acciones de negocio que los necesiten deben usar:
+    #   self.with_context(bypass_edit_protection=True).write(vals)
+    _CAMPOS_AUTO_JD = frozenset({
+        'jefe_departamento_id',
+        'departamento_id',
+        'estado_id',
+        'en_catalogo',
+        'jd_firmo',
+        'responsable_firmo',
+    })
+
     # ── Identificación ──────────────────────────────────────────────────────
     name = fields.Char(
         string='Nombre de la Actividad',
@@ -174,6 +186,24 @@ class Actividad(models.Model):
        tracking=True,
        help='Si la actividad es de tipo predefinido se aprueba automáticamente '
             'sin pasar por el Comité Académico. Puede dejarse en blanco para quitarlo.',
+    )
+    
+    # ── Flags de permisos de edición (por estado) ─
+    permisos_actividad_pendiente_inicio = fields.Boolean(
+        string='Solo Responsable, Fechas y Horas Editables',
+        compute='_compute_permisos_edicion',
+        help='True cuando el JD solo puede modificar los campos Responsable de Actividad, Fecha de Inicio, '
+        'Fecha de Finalización y Horario por Día.',
+    )
+    permisos_actividad_en_curso = fields.Boolean(
+        string='Solo Responsable Editable',
+        compute='_compute_permisos_edicion',
+        help='True cuando el JD solo puede modificar el campo Responsable de Actividad.',
+    )
+    permisos_actividad_finalizada = fields.Boolean(
+        string='Solo Lectura',
+        compute='_compute_permisos_edicion',
+        help='True cuando el usuario en sesión no puede editar ningún campo del formulario.',
     )
 
     # ────────────────────────────────────────────────────────────────────────
@@ -584,6 +614,8 @@ class Actividad(models.Model):
 
     # ────────────────────────────────────────────────────────────────────────
     # Business Logic
+    # Todas las acciones de negocio que escriben campos auto-gestionados
+    # usan with_context(bypass_edit_protection=True) para pasar el guard de write().
     # ────────────────────────────────────────────────────────────────────────
 
     def action_abrir_wizard_responsable(self):
@@ -625,7 +657,7 @@ class Actividad(models.Model):
             raise ValidationError('Esta actividad ya tiene una propuesta activa o aprobada en el Comité.')
         estado_revision_solicitud = self.env.ref('actividades_complementarias.estado_solicitud_en_revision')
         estado_en_revision = self.env.ref('actividades_complementarias.estado_en_revision')
-        self.write({'estado_id': estado_en_revision.id})
+        self.with_context(bypass_edit_protection=True).write({'estado_id': estado_en_revision.id})
         self.env['actividad.propuesta'].create({
             'actividad_id': self.id,
             'estado_solicitud_id': estado_revision_solicitud.id,
@@ -688,7 +720,7 @@ class Actividad(models.Model):
             )
         if self.estado_code not in ('aprobada', 'pendiente_inicio'):
             raise ValidationError('Solo se pueden enviar al catálogo actividades aprobadas o pendientes de inicio.')
-        self.write({'en_catalogo': True})
+        self.with_context(bypass_edit_protection=True).write({'en_catalogo': True})
         self.message_post(body='Actividad enviada al catálogo.')
         # Redirigir al catálogo de actividades (no quedar en vista superpuesta)
         action = self.env.ref(
@@ -707,7 +739,7 @@ class Actividad(models.Model):
         if self.estado_code not in ('aprobada', 'pendiente_inicio'):
             raise ValidationError('Solo se pueden iniciar actividades aprobadas o pendientes de inicio.')
         estado_en_curso = self.env.ref('actividades_complementarias.estado_en_curso')
-        self.write({'estado_id': estado_en_curso.id})
+        self.with_context(bypass_edit_protection=True).write({'estado_id': estado_en_curso.id})
         self.message_post(body='Actividad iniciada manualmente por el Jefe de Departamento.')
 
     def action_finalizar_actividad(self):
@@ -716,26 +748,49 @@ class Actividad(models.Model):
         if self.estado_code != 'en_curso':
             raise ValidationError('Solo se pueden finalizar actividades que estén en curso.')
         estado_finalizada = self.env.ref('actividades_complementarias.estado_finalizada')
-        self.write({'estado_id': estado_finalizada.id, 'en_catalogo': False})
+        self.with_context(bypass_edit_protection=True).write({
+            'estado_id': estado_finalizada.id,
+            'en_catalogo': False,
+        })
         self.message_post(body='Actividad finalizada. Removida del catálogo automáticamente.')
 
     def action_firmar_constancias(self):
-        """El JD firma su parte. Las constancias solo se liberan cuando ambos firmen."""
-        self.ensure_one()
-        if self.estado_code != 'finalizada':
-            raise ValidationError('Solo se pueden firmar constancias de actividades finalizadas.')
+        raise ValidationError('Solo se pueden firmar constancias de actividades finalizadas.')
         if self.jd_firmo:
             raise ValidationError('El Jefe de Departamento ya firmó las constancias de esta actividad.')
+        # La firma es una acción de negocio válida sobre una actividad finalizada
+        self.with_context(bypass_edit_protection=True).write({'jd_firmo': True})
         self.write({'jd_firmo': True})
         if self.constancias_firmadas:
             self.message_post(
-                body='Constancias firmadas por el Jefe de Departamento.' +
-                'Ambas firmas completas — constancias liberadas a expedientes.'
-                )
+                body='Constancias firmadas por el Jefe de Departamento. '
+                     'Ambas firmas completas — constancias liberadas a expedientes.'
+            )
         else:
             self.message_post(
-                body='Constancias firmadas por el Jefe de Departamento. Pendiente firma del Responsable de Actividad.'
-                )
+                body='Constancias firmadas por el Jefe de Departamento. '
+                     'Pendiente firma del Responsable de Actividad.'
+            )
+
+    def action_firmar_constancias_responsable(self):
+        """El Responsable de Actividad firma su parte. Las constancias solo se liberan cuando ambos firmen."""
+        self.ensure_one()
+        if self.estado_code != 'finalizada':
+            raise ValidationError('Solo se pueden firmar constancias de actividades finalizadas.')
+        if self.responsable_firmo:
+            raise ValidationError('El Responsable de Actividad ya firmó las constancias de esta actividad.')
+        # La firma es una acción de negocio válida sobre una actividad finalizada
+        self.with_context(bypass_edit_protection=True).write({'responsable_firmo': True})
+        if self.constancias_firmadas:
+            self.message_post(
+                body='Constancias firmadas por el Responsable de Actividad. '
+                     'Ambas firmas completas — constancias liberadas a expedientes.'
+            )
+        else:
+            self.message_post(
+                body='Constancias firmadas por el Responsable de Actividad. '
+                     'Pendiente firma del Jefe de Departamento.'
+            )
 
     def _actualizar_estado_por_fecha(self):
         """Cron: actualiza estados según fechas."""
@@ -748,14 +803,19 @@ class Actividad(models.Model):
                 ('estado_code', '=', 'pendiente_inicio'),
                 ('fecha_inicio', '<=', hoy),
             ])
-            pendientes.write({'estado_id': estado_en_curso.id})
+            pendientes.with_context(bypass_edit_protection=True).write(
+                {'estado_id': estado_en_curso.id}
+            )
 
         if estado_finalizada:
             en_curso = self.search([
                 ('estado_code', '=', 'en_curso'),
                 ('fecha_fin', '<=', hoy),
             ])
-            en_curso.write({'estado_id': estado_finalizada.id, 'en_catalogo': False})
+            en_curso.with_context(bypass_edit_protection=True).write({
+                'estado_id': estado_finalizada.id,
+                'en_catalogo': False,
+            })
 
 
 class ActividadDepartamento(models.Model):

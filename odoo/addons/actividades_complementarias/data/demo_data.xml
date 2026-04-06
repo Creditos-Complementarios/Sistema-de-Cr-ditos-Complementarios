@@ -415,7 +415,7 @@
         <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
         <field name="fecha_inicio">2026-05-10</field>
         <field name="fecha_fin">2026-05-12</field>
-        <field name="cantidad_horas">48</field>
+        <field name="cantidad_horas">12</field>
         <field name="cupo_ilimitado">True</field>
         <field name="estado_id" ref="actividades_complementarias.estado_en_revision"/>
     </record>
