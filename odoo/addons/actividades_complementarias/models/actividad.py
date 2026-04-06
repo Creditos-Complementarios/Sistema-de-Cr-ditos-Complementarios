@@ -1,7 +1,26 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
-from odoo.exceptions import ValidationError
-from datetime import date
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError, UserError
+from datetime import date, timedelta
+
+
+def _n_dias_habiles(n, desde=None):
+    """Avanza *n* días hábiles (lunes a viernes) desde *desde*.
+
+    Args:
+        n:     Número de días hábiles a avanzar.
+        desde: Fecha base. Si es None se usa la fecha actual.
+    Returns:
+        date con la fecha resultante.
+    """
+    base = desde if desde is not None else date.today()
+    contados = 0
+    candidato = base
+    while contados < n:
+        candidato += timedelta(days=1)
+        if candidato.weekday() < 5:   # 0=lun … 4=vie; 5=sáb, 6=dom
+            contados += 1
+    return candidato
 
 
 class Actividad(models.Model):
@@ -253,7 +272,6 @@ class Actividad(models.Model):
             if depto:
                 rec.departamento_id = depto
             else:
-                # Fallback: buscar en el registro de permisos del empleado
                 emp = self.env['actividad.empleado.permiso'].search(
                     [('user_id', '=', rec.jefe_departamento_id.id)], limit=1
                 )
@@ -269,17 +287,256 @@ class Actividad(models.Model):
         for rec in self:
             rec.alumno_count = len(rec.alumno_ids)
 
+    @api.depends('estado_code', 'en_catalogo', 'jefe_departamento_id')
+    def _compute_permisos_edicion(self):
+        """
+        Calcula los flags de solo-lectura para el formulario según el estado
+        del registro y el rol del usuario en sesión.
+
+        Las reglas implementadas son:
+        1. Finalizada             → permisos_actividad_finalizada=True para TODOS (incluido admin).
+        2. Admin (no finalizada)  → sin restricciones de formulario.
+        3. JD dueño, en_revision  → permisos_actividad_finalizada=True.
+        4. JD dueño, pendiente de inicio → permisos_actividad_pendiente_inicio = True
+        5. JD dueño, en_catalogo
+           o pendiente_inicio
+           o en_curso             → permisos_actividad_en_curso=True.
+        6. JD dueño, rechazada
+           o aprobada             → sin restricciones (puede editar campos no-auto).
+        7. JD viendo actividad
+           de otro JD             → permisos_actividad_finalizada=True (solo puede ver catálogo).
+        8. Cualquier otro rol     → permisos_actividad_finalizada=True.
+        """
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+        is_jd = self.env.user.has_group(
+            'actividades_complementarias.group_jefe_departamento'
+        )
+
+        for rec in self:
+            # Regla 1 (absoluta): finalizada → nadie edita
+            if rec.estado_code == 'finalizada':
+                rec.permisos_actividad_finalizada = True
+                rec.permisos_actividad_pendiente_inicio = False
+                rec.permisos_actividad_en_curso = False
+                continue
+
+            # Admin: sin restricciones de solo-lectura (salvo finalizada)
+            if is_admin:
+                rec.permisos_actividad_finalizada = False
+                rec.permisos_actividad_pendiente_inicio = False
+                rec.permisos_actividad_en_curso = False
+                continue
+
+            if not is_jd:
+                # Otros roles: formulario de solo lectura
+                rec.permisos_actividad_finalizada = True
+                rec.permisos_actividad_pendiente_inicio = False
+                rec.permisos_actividad_en_curso = False
+                continue
+
+            # Usuario es JD (no admin)
+            es_dueno = (rec.jefe_departamento_id.id == self.env.user.id)
+
+            if not es_dueno:
+                # Regla 6: JD viendo actividad de otro JD (solo catálogo accesible via record rule)
+                rec.permisos_actividad_finalizada = True
+                rec.permisos_actividad_pendiente_inicio = False
+                rec.permisos_actividad_en_curso = False
+
+            elif rec.estado_code in ('aprobada', 'pendiente_inicio'):
+                # Regla 4: actividad pendiende de inicio
+                rec.permisos_actividad_finalizada = False
+                rec.permisos_actividad_pendiente_inicio = True
+                rec.permisos_actividad_en_curso = False
+
+            elif rec.estado_code == 'en_revision':
+                # Regla 2/3: propuesta en revisión → JD no puede modificar nada
+                rec.permisos_actividad_finalizada = True
+                rec.permisos_actividad_pendiente_inicio = False
+                rec.permisos_actividad_en_curso = False
+
+            elif rec.en_catalogo or rec.estado_code == 'en_curso':
+                # Regla 3: en catálogo o iniciada → solo responsable_actividad_id
+                rec.permisos_actividad_finalizada = False
+                rec.permisos_actividad_pendiente_inicio = False
+                rec.permisos_actividad_en_curso = True
+
+            else:
+                # Regla 4: rechazada, aprobada u otro estado → acceso completo (no-auto)
+                rec.permisos_actividad_finalizada = False
+                rec.permisos_actividad_pendiente_inicio = False
+                rec.permisos_actividad_en_curso = False
+
+    # ────────────────────────────────────────────────────────────────────────
+    # ORM override: create()
+    # ────────────────────────────────────────────────────────────────────────
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Estampa el flag actividad_creating=True en el contexto para que
+        _check_fechas pueda distinguir una creación de una edición.
+
+        El flag se elimina del recordset devuelto para que llamadas
+        posteriores a write() sobre esos registros no lo hereden.
+        """
+        records = super(
+            Actividad,
+            self.with_context(actividad_creating=True),
+        ).create(vals_list)
+        return records.with_context(actividad_creating=False)
+
+    # ────────────────────────────────────────────────────────────────────────
+    # ORM override: write()
+    # ────────────────────────────────────────────────────────────────────────
+
+    def write(self, vals):
+        """
+        Aplica las reglas de edición según estado y rol del usuario en sesión.
+
+        Para que las acciones de negocio internas (cron, wizards, flujo de trabajo)
+        puedan modificar campos auto-gestionados o registros finalizados, deben usar:
+            self.with_context(bypass_edit_protection=True).write(vals)
+        """
+        # Las acciones internas del sistema omiten la protección
+        if self.env.context.get('bypass_edit_protection'):
+            return super().write(vals)
+
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+        is_jd = self.env.user.has_group(
+            'actividades_complementarias.group_jefe_departamento'
+        )
+
+        for rec in self:
+            # ── Regla 1: Finalizada → nadie puede modificar (incluido admin) ──
+            if rec.estado_code == 'finalizada':
+                raise UserError(
+                    _('La actividad "%s" está finalizada y no puede ser '
+                      'modificada por ningún usuario.')
+                    % rec.name
+                )
+
+            # Admin: sin restricciones de estado
+            if is_admin:
+                continue
+
+            # Otros roles: se gestionan vía model access / record rules
+            if not is_jd:
+                continue
+
+            # ── A partir de aquí: usuario es JD (no admin) ──
+
+            # ── Regla 5: JD nunca modifica actividades de otro JD ──
+            if rec.jefe_departamento_id.id != self.env.user.id:
+                raise UserError(
+                    _('No tiene permiso para modificar actividades de '
+                      'otros Jefes de Departamento.')
+                )
+
+            # JD no puede escribir directamente campos auto-gestionados
+            campos_auto_solicitados = set(vals.keys()) & self._CAMPOS_AUTO_JD
+            if campos_auto_solicitados:
+                raise UserError(
+                    _('Los siguientes campos son gestionados automáticamente '
+                      'por el sistema y no pueden modificarse directamente: %s.')
+                    % ', '.join(sorted(campos_auto_solicitados))
+                )
+
+            # ── Regla 2: Propuesta en revisión → JD no modifica nada ──
+            if rec.estado_code == 'en_revision':
+                raise UserError(
+                    _('La propuesta de la actividad "%s" está siendo revisada '
+                      'por el Comité Académico. No puede modificarla durante la revisión.')
+                    % rec.name
+                )
+            # ── Regla 3: En catálogo / Pendiente de Inicio ──
+            if rec.en_catalogo or rec.estado_code in ('aprobada', 'pendiente_inicio'):
+                campos_permitidos = {'responsable_actividad_id', 'fecha_inicio', 'fecha_fin', 'horario'}
+                campos_no_permitidos = set(vals.keys()) - campos_permitidos
+                if campos_no_permitidos:
+                    raise UserError(
+                        _('La actividad "%s" está en aprobada o pendiente de inicio. '
+                          'En este estado únicamente puede modificar'
+                          '"Responsable de Actividad", "Fecha de Inicio", "Fecha de Finalización", '
+                          'y "Horario por Día".')
+                        % rec.name
+                    )
+
+            # ── Regla 3: En catálogo / En Curso ──
+            #    Solo se permite modificar responsable_actividad_id
+            if rec.estado_code == 'en_curso':
+                campos_permitidos = {'responsable_actividad_id'}
+                campos_no_permitidos = set(vals.keys()) - campos_permitidos
+                if campos_no_permitidos:
+                    raise UserError(
+                        _('La actividad "%s" está en curso. '
+                          'En este estado únicamente puede modificar '
+                          '"Responsable de Actividad".')
+                        % rec.name
+                    )
+
+            # ── Regla 4: Rechazada → JD puede modificar cualquier campo
+            #    que no sea auto-gestionado (ya validado arriba). ──
+
+        return super().write(vals)
+
     # ────────────────────────────────────────────────────────────────────────
     # Constraints
     # ────────────────────────────────────────────────────────────────────────
 
     @api.constrains('fecha_inicio', 'fecha_fin')
     def _check_fechas(self):
+        bypass = (
+            self.env.context.get('install_demo')
+            or self.env.context.get('skip_fecha_check')
+        )
+        manana = date.today() + timedelta(days=1)
         for rec in self:
-            # No validar fechas pasadas cuando se cargan datos de demo o desde el sistema
-            if not self.env.context.get('install_demo') and not self.env.context.get('skip_fecha_check'):
-                if rec.fecha_inicio and rec.fecha_inicio < date.today():
-                    raise ValidationError('La fecha de inicio no puede ser anterior a hoy.')
+            if rec.fecha_inicio and not bypass:
+                # True durante create() gracias al flag que estampa el override;
+                # False durante write() donde el flag no está presente.
+                es_nuevo = self.env.context.get('actividad_creating', False)
+                if es_nuevo:
+                    # Al crear: mínimo 5 días hábiles desde hoy
+                    min_fecha = _n_dias_habiles(5)
+                    if rec.fecha_inicio < min_fecha:
+                        raise ValidationError(
+                            _(
+                                'La fecha de inicio debe ser al menos 5 días hábiles '
+                                '(sin domingos) a partir de hoy. '
+                                'La fecha mínima válida es %(fecha)s.',
+                                fecha=min_fecha.strftime('%d/%m/%Y'),
+                            )
+                        )
+                else:
+                    # En edición: si existe propuesta aprobada, el mínimo se calcula
+                    # como 5 días hábiles contados desde la fecha de envío de esa propuesta,
+                    # de modo que el tiempo total (envío → inicio) sea al menos 5 días hábiles.
+                    # Piso absoluto: siempre al menos mañana.
+                    propuesta = self.env['actividad.propuesta'].search(
+                        [
+                            ('actividad_id', '=', rec.id),
+                            ('estado_code', '=', 'aprobada'),
+                        ],
+                        order='fecha desc',
+                        limit=1,
+                    )
+                    if propuesta:
+                        min_desde_propuesta = _n_dias_habiles(5, desde=propuesta.fecha)
+                        min_fecha = max(min_desde_propuesta, manana)
+                    else:
+                        min_fecha = manana
+
+                    if rec.fecha_inicio < min_fecha:
+                        raise ValidationError(
+                            _(
+                                'La fecha de inicio no puede ser anterior a %(fecha)s.',
+                                fecha=min_fecha.strftime('%d/%m/%Y'),
+                            )
+                        )
             if rec.fecha_fin and rec.fecha_inicio and rec.fecha_fin <= rec.fecha_inicio:
                 raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
 
@@ -396,9 +653,7 @@ class Actividad(models.Model):
         }
 
     def action_enviar_catalogo(self):
-        """Envía la actividad al catálogo.
-        Si tiene actividad_predefinida, se aprueba automáticamente antes de enviar.
-        """
+        """Envía la actividad al catálogo."""
         self.ensure_one()
         if self.estado_code == 'rechazada':
             raise ValidationError(
