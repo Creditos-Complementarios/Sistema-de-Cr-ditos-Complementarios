@@ -106,6 +106,13 @@
               sequence="10"
               groups="actividades_complementarias.group_admin_actividades"/>
 
+    <menuitem id="menu_periodos"
+              name="Periodos Escolares"
+              parent="menu_configuracion"
+              action="action_periodo"
+              sequence="20"
+              groups="actividades_complementarias.group_admin_actividades,actividades_complementarias.group_jefe_departamento"/>
+
     <!-- ── Admin: todas las actividades sin filtro ───────────────────────── -->
     <menuitem id="menu_admin_todas_actividades"
               name="Todas las Actividades"

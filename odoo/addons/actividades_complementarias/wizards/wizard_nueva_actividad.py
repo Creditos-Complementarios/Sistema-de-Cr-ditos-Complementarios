@@ -1,8 +1,19 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
-from datetime import date
+from datetime import date, timedelta
 
+def _n_dias_habiles(n, desde=None):
+    """Avanza *n* días hábiles (lunes a viernes) desde *desde* (default: hoy)."""
+    base = desde if desde is not None else date.today()
+    contados = 0
+    candidato = base
+    while contados < n:
+        candidato += timedelta(days=1)
+        if candidato.weekday() < 5:   # 0=lun … 4=vie
+            contados += 1
+    return candidato
+from datetime import date
 
 class WizardNuevaActividad(models.TransientModel):
     """
@@ -69,11 +80,19 @@ class WizardNuevaActividad(models.TransientModel):
     def _check_fechas(self):
         for rec in self:
             if not self.env.context.get('install_demo') and not self.env.context.get('skip_fecha_check'):
+                if rec.fecha_inicio:
+                    min_fecha = _n_dias_habiles(5)
+                    if rec.fecha_inicio < min_fecha:
+                        raise ValidationError(
+                            f'La fecha de inicio debe ser al menos 5 días hábiles '
+                            f'a partir de hoy. La fecha mínima válida es '
+                            f'{min_fecha.strftime("%d/%m/%Y")}.'
+                        )
                 if rec.fecha_inicio and rec.fecha_inicio < date.today():
                     raise ValidationError('La fecha de inicio no puede ser anterior a hoy.')
             if rec.fecha_fin and rec.fecha_inicio and rec.fecha_fin <= rec.fecha_inicio:
                 raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
-
+            
     @api.constrains('cupo_min', 'cupo_max', 'cupo_ilimitado')
     def _check_cupos(self):
         for rec in self:
