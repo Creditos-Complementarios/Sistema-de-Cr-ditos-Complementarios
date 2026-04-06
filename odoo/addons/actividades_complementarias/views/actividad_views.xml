@@ -35,15 +35,17 @@
                 <field name="periodo"/>
                 <field name="fecha_inicio" string="Fecha Inicio" width="100px"/>
                 <field name="fecha_fin" string="Fecha Fin" width="100px"/>
-                <field name="estado_id"
-                         decoration-success="estado_code=='en_curso'"
-                         decoration-info="estado_code=='pendiente_inicio'"
-                         decoration-muted="estado_code=='finalizada'"
-                         decoration-danger="estado_code=='rechazada'"/>
+                <field name="estado_id" widget="badge"
+                         decoration-warning="estado_code == 'en_revision'"
+                         decoration-success="estado_code in ['aprobada', 'en_curso']"
+                         decoration-info="estado_code == 'pendiente_inicio'"
+                         decoration-danger="estado_code == 'rechazada'"
+                         decoration-muted="estado_code == 'finalizada'"/>
                 <field name="en_catalogo" widget="boolean" readonly="1"
                     column_invisible="context.get('hide_catalogo', False)"/>
                 <field name="alumno_count" string="Alumnos"/>
                 <field name="estado_code" column_invisible="1"/>
+
             </list>
         </field>
     </record>
