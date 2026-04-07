@@ -610,7 +610,6 @@ class Actividad(models.Model):
                     )
                 if rec.cantidad_horas <= 0:
                     raise ValidationError('La cantidad de horas debe ser mayor a 0.')
-
     @api.constrains('alumno_ids', 'cupo_max', 'cupo_ilimitado')
     def _check_cupo_alumnos(self):
         """Valida que el número de alumnos no supere el cupo máximo permitido."""
@@ -771,12 +770,14 @@ class Actividad(models.Model):
         self.message_post(body='Actividad finalizada. Removida del catálogo automáticamente.')
 
     def action_firmar_constancias(self):
-        raise ValidationError('Solo se pueden firmar constancias de actividades finalizadas.')
+        """El JD firma su parte. Las constancias solo se liberan cuando ambos firmen."""
+        self.ensure_one()
+        if self.estado_code != 'finalizada':
+            raise ValidationError('Solo se pueden firmar constancias de actividades finalizadas.')
         if self.jd_firmo:
             raise ValidationError('El Jefe de Departamento ya firmó las constancias de esta actividad.')
         # La firma es una acción de negocio válida sobre una actividad finalizada
         self.with_context(bypass_edit_protection=True).write({'jd_firmo': True})
-        self.write({'jd_firmo': True})
         if self.constancias_firmadas:
             self.message_post(
                 body='Constancias firmadas por el Jefe de Departamento. '
