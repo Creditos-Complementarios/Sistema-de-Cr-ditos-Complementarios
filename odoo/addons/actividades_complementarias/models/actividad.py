@@ -610,6 +610,17 @@ class Actividad(models.Model):
                     )
                 if rec.cantidad_horas <= 0:
                     raise ValidationError('La cantidad de horas debe ser mayor a 0.')
+    @api.constrains('alumno_ids', 'cupo_max', 'cupo_ilimitado')
+    def _check_cupo_alumnos(self):
+        """Valida que el número de alumnos no supere el cupo máximo permitido."""
+        for rec in self:
+            if not rec.cupo_ilimitado and len(rec.alumno_ids) > rec.cupo_max:
+                raise ValidationError(
+                    f'No se pueden añadir más alumnos. '
+                    f'La actividad "{rec.name}" tiene un cupo máximo de '
+                    f'{rec.cupo_max} alumno(s) y actualmente hay '
+                    f'{len(rec.alumno_ids)} inscrito(s).'
+                )
 
     # ────────────────────────────────────────────────────────────────────────
     # Business Logic
