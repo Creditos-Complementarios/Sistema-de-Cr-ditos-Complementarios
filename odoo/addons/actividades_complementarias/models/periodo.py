@@ -8,4 +8,3 @@ class PeriodoEscolar(models.Model):
     _order = 'name desc'
 
     name = fields.Char(string='Periodo', required=True, help='Ej: 2025-2026, 2025-A, 2026-B')
-    active = fields.Boolean(default=True)
