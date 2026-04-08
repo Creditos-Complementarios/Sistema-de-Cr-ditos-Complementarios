@@ -184,10 +184,10 @@
         <field name="model_id" ref="model_actividad_empleado_permiso"/>
         <field name="domain_force">[('departamento_id.jefe_id', '=', user.id)]</field>
         <field name="groups" eval="[(4, ref('actividades_complementarias.group_jefe_departamento'))]"/>
-        <field name="perm_read"   eval="True"/>
-        <field name="perm_write"  eval="True"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
         <field name="perm_create" eval="True"/>
-        <field name="perm_unlink" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
     </record>
 
 </odoo>
