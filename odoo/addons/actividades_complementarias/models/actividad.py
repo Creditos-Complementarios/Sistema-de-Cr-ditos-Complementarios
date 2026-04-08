@@ -41,6 +41,14 @@ class Actividad(models.Model):
         'responsable_firmo',
     })
 
+    # XML-IDs de los grupos de Personal de Departamento.
+    _GRUPOS_PERSONAL = (
+        'actividades_complementarias.group_personal_departamento_sistemas',
+        'actividades_complementarias.group_personal_departamento_electrica',
+        'actividades_complementarias.group_personal_departamento_biologia',
+        'actividades_complementarias.group_personal_departamento_extraescolar',
+    )
+
     # ── Identificación ──────────────────────────────────────────────────────
     name = fields.Char(
         string='Nombre de la Actividad',
@@ -204,6 +212,49 @@ class Actividad(models.Model):
         compute='_compute_permisos_edicion',
         help='True cuando el usuario en sesión no puede editar ningún campo del formulario.',
     )
+
+    # ────────────────────────────────────────────────────────────────────────
+    # Helpers de rol
+    # ────────────────────────────────────────────────────────────────────────
+
+    def _es_personal(self):
+        """True si el usuario en sesion pertenece a algun grupo de Personal."""
+        return any(self.env.user.has_group(g) for g in self._GRUPOS_PERSONAL)
+
+    def _get_permiso_personal(self):
+        """Devuelve el registro EmpleadoPermiso del usuario en sesion o vacio."""
+        return self.env['actividad.empleado.permiso'].sudo().search(
+            [('user_id', '=', self.env.user.id)], limit=1
+        )
+
+    # ────────────────────────────────────────────────────────────────────────
+    # ORM override: _search() -- filtrado automatico para Personal
+    # ────────────────────────────────────────────────────────────────────────
+
+    @api.model
+    def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
+        """Restringe la busqueda del Personal al departamento propio + catalogo."""
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+        is_jd = self.env.user.has_group(
+            'actividades_complementarias.group_jefe_departamento'
+        )
+        if not is_admin and not is_jd and self._es_personal():
+            permiso = self._get_permiso_personal()
+            if permiso and permiso.departamento_id:
+                dept_id = permiso.departamento_id.id
+                dept_domain = [
+                    '|',
+                    ('departamento_id', '=', dept_id),
+                    ('en_catalogo', '=', True),
+                ]
+            else:
+                dept_domain = [('en_catalogo', '=', True)]
+            domain = dept_domain + list(domain)
+        return super()._search(
+            domain, offset=offset, limit=limit, order=order, **kwargs
+        )
 
     # ────────────────────────────────────────────────────────────────────────
     # Computes
@@ -452,11 +503,43 @@ class Actividad(models.Model):
             if is_admin:
                 continue
 
-            # Otros roles: se gestionan vía model access / record rules
+            # ── Personal de Departamento ──────────────────────────────────────
+            if not is_jd and self._es_personal():
+                permiso = self._get_permiso_personal()
+                if not permiso:
+                    raise UserError(
+                        _('No tiene permisos delegados para modificar '
+                          'actividades complementarias.')
+                    )
+                # Solo puede modificar actividades de su propio departamento
+                if rec.departamento_id != permiso.departamento_id:
+                    raise UserError(
+                        _('No tiene permiso para modificar actividades '
+                          'de otros departamentos.')
+                    )
+                # Verificar permiso granular segun los campos modificados
+                campos_vals = set(vals.keys())
+                if 'alumno_ids' in campos_vals and not permiso.perm_asignar_alumnos:
+                    raise UserError(
+                        _('No tiene el permiso "Asignar Alumnos a Actividad".')
+                    )
+                if 'en_catalogo' in campos_vals and not permiso.perm_enviar_catalogo:
+                    raise UserError(
+                        _('No tiene el permiso "Enviar al Catalogo".')
+                    )
+                campos_generales = campos_vals - {'alumno_ids', 'en_catalogo'}
+                if campos_generales and not permiso.perm_modificar_actividades:
+                    raise UserError(
+                        _('No tiene el permiso "Modificar Actividades '
+                          'Complementarias".')
+                    )
+                continue
+
+            # Otros roles sin gestion especial
             if not is_jd:
                 continue
 
-            # ── A partir de aquí: usuario es JD (no admin) ──
+            # ── A partir de aqui: usuario es JD (no admin) ──
 
             # ── Regla 5: JD nunca modifica actividades de otro JD ──
             if rec.jefe_departamento_id.id != self.env.user.id:
@@ -646,9 +729,16 @@ class Actividad(models.Model):
         }
 
     def action_enviar_comite(self):
-        """Envía la actividad como propuesta al Comité Académico.
-        Permite reenvío cuando la propuesta fue rechazada previamente."""
+        """Envia la actividad como propuesta al Comite Academico.
+        Permite reenvio cuando la propuesta fue rechazada previamente."""
         self.ensure_one()
+        if self._es_personal():
+            permiso = self._get_permiso_personal()
+            if not permiso or not permiso.perm_modificar_actividades:
+                raise UserError(
+                    _('No tiene el permiso "Modificar Actividades Complementarias" '
+                      'para enviar una propuesta al Comite Academico.')
+                )
         if self.estado_code in ('aprobada', 'pendiente_inicio', 'en_curso', 'finalizada'):
             raise ValidationError(
                 'Esta actividad ya fue aprobada o está en curso/finalizada. '
@@ -701,8 +791,14 @@ class Actividad(models.Model):
         }
 
     def action_enviar_catalogo(self):
-        """Envía la actividad al catálogo."""
+        """Envia la actividad al catalogo."""
         self.ensure_one()
+        if self._es_personal():
+            permiso = self._get_permiso_personal()
+            if not permiso or not permiso.perm_enviar_catalogo:
+                raise UserError(
+                    _('No tiene el permiso "Enviar al Catalogo".')
+                )
         if self.estado_code == 'rechazada':
             raise ValidationError(
                 'Las actividades rechazadas no pueden ser enviadas al catálogo.'

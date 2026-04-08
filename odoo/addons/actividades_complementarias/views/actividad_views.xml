@@ -126,8 +126,7 @@
                     <field name="responsable_bloqueado" invisible="1"/>
                     <field name="horas_maximas" invisible="1"/>
                     <field name="ruta_imagen" widget="image" class="oe_avatar"
-                           readonly="permisos_actividad_finalizada or permisos_actividad_en_curso"/>
-                           
+                           readonly="estado_code in ['aprobada','en_curso','finalizada','en_revision']"/>
                     <div class="oe_title">
                         <h1>
                             <field name="name" placeholder="Nombre de la actividad..."
@@ -260,7 +259,7 @@
         <field name="name">Mis Actividades</field>
         <field name="res_model">actividad.complementaria</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="domain">[('jefe_departamento_id', '=', uid)]</field>
+        <field name="domain">[]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="views" eval="[(ref('view_actividad_list_jefe'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
@@ -273,7 +272,8 @@
         <field name="search_view_id" ref="view_actividad_search"/>
     </record>
 
-    <!-- Catálogo filtrado por departamento del JD: solo ve sus propias actividades en catálogo -->
+    <!-- Catalogo global: todas las actividades en catalogo.
+         El filtrado adicional para JD y Personal se aplica en Actividad._search(). -->
     <record id="action_actividad_catalogo" model="ir.actions.act_window">
         <field name="name">Catálogo General de Actividades</field>
         <field name="res_model">actividad.complementaria</field>
@@ -282,5 +282,6 @@
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'hide_catalogo': True}</field>
     </record>
+
 
 </odoo>
