@@ -31,6 +31,7 @@
     'assets': {
         'web.assets_backend': [
             'actividades_complementarias/static/src/scss/style.scss',
+
         ],
     },
     'demo': [
