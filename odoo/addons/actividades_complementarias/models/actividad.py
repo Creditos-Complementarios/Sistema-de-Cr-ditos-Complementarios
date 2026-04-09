@@ -227,31 +227,67 @@ class Actividad(models.Model):
             [('user_id', '=', self.env.user.id)], limit=1
         )
 
+    def _get_jefe_departamento_personal(self):
+        """Devuelve el ID del JD del departamento del Personal en sesion.
+
+        Estrategia 1: busca en EmpleadoPermiso si ya existe el registro.
+        Estrategia 2 (fallback): detecta el departamento por el grupo de
+        seguridad al que pertenece el usuario y busca el JD en
+        actividad.departamento. No depende de que exista EmpleadoPermiso.
+        """
+        # Estrategia 1: rapida si el JD ya sincronizo el personal
+        permiso = self._get_permiso_personal()
+        if permiso and permiso.departamento_id and permiso.departamento_id.jefe_id:
+            return permiso.departamento_id.jefe_id.id
+
+        # Estrategia 2: por grupo de seguridad del usuario (siempre disponible)
+        from odoo.addons.actividades_complementarias.models.empleado_permiso import (
+            DEPT_MAP,
+        )
+        for keyword, _rama, xmlid in DEPT_MAP:
+            if self.env.user.has_group(xmlid):
+                dept = self.env['actividad.departamento'].sudo().search(
+                    [('name', 'ilike', keyword)], limit=1
+                )
+                if dept and dept.jefe_id:
+                    return dept.jefe_id.id
+        return None
+
     # ────────────────────────────────────────────────────────────────────────
     # ORM override: _search() -- filtrado automatico para Personal
     # ────────────────────────────────────────────────────────────────────────
 
     @api.model
     def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
-        """Restringe la busqueda del Personal al departamento propio + catalogo."""
+        """Restringe 'Mis Actividades' del Personal a su propio departamento.
+
+        El filtro se aplica cuando el contexto 'personal_mis_actividades' esta
+        activo (puesto por action_actividad_personal). El Personal ve exactamente
+        las mismas actividades que el JD de su departamento, sin importar los
+        permisos delegados que tenga asignados.
+
+        En el Catalogo y cualquier otra vista ese flag no esta presente, por
+        lo que Personal ve el mismo contenido que el resto de actores.
+        """
         is_admin = self.env.user.has_group(
             'actividades_complementarias.group_admin_actividades'
         )
         is_jd = self.env.user.has_group(
             'actividades_complementarias.group_jefe_departamento'
         )
-        if not is_admin and not is_jd and self._es_personal():
-            permiso = self._get_permiso_personal()
-            if permiso and permiso.departamento_id:
-                dept_id = permiso.departamento_id.id
-                dept_domain = [
-                    '|',
-                    ('departamento_id', '=', dept_id),
-                    ('en_catalogo', '=', True),
-                ]
+        if (
+            not is_admin
+            and not is_jd
+            and self._es_personal()
+            and self.env.context.get('personal_mis_actividades')
+        ):
+            jefe_id = self._get_jefe_departamento_personal()
+            if jefe_id:
+                # Mismas actividades que el JD del departamento
+                domain = [('jefe_departamento_id', '=', jefe_id)] + list(domain)
             else:
-                dept_domain = [('en_catalogo', '=', True)]
-            domain = dept_domain + list(domain)
+                # Departamento no configurado: lista vacia
+                domain = [('id', '=', False)] + list(domain)
         return super()._search(
             domain, offset=offset, limit=limit, order=order, **kwargs
         )
