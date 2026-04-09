@@ -74,4 +74,3 @@ class WizardConfirmarEnvio(models.TransientModel):
         if self.tipo_envio == 'comite':
             return self.actividad_id.action_enviar_comite()
         return self.actividad_id.action_enviar_catalogo()
-    
