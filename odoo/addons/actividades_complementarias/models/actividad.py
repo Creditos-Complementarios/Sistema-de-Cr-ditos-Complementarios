@@ -727,7 +727,7 @@ class Actividad(models.Model):
             'target': 'new',
             'context': {'default_actividad_id': self.id},
         }
-    
+
     def action_abrir_confirmacion_comite(self):
         self.ensure_one()
         wizard = self.env['actividad.wizard.confirmar.envio'].create({
@@ -757,6 +757,7 @@ class Actividad(models.Model):
             'view_mode': 'form',
             'target': 'new',
         }
+
     def action_enviar_comite(self):
         """Envia la actividad como propuesta al Comite Academico.
         Permite reenvio cuando la propuesta fue rechazada previamente."""

@@ -54,9 +54,14 @@ class WizardConfirmarEnvio(models.TransientModel):
                 row('Descripción', a.descripcion),
             ])
 
+            div_style = (
+                'background:#eaf4fb;border-left:4px solid #2980b9;'
+                'padding:10px 16px;margin-bottom:12px;border-radius:4px;'
+            )
+
             rec.resumen_html = f'''
 <div style="font-family:sans-serif;">
-    <div style="background:#eaf4fb;border-left:4px solid #2980b9;padding:10px 16px;margin-bottom:12px;border-radius:4px;">
+    <div style="{div_style}">
         <strong>Destino:</strong> {destino}
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
