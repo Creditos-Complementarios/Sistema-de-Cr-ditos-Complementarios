@@ -29,23 +29,20 @@
         <field name="name">actividad.complementaria.list</field>
         <field name="model">actividad.complementaria</field>
         <field name="arch" type="xml">
-            <list string="Actividades Complementarias">
+            <list string="Actividades Complementarias" create="0"
+                  decoration-success="estado_code=='en_curso'"
+                  decoration-info="estado_code=='pendiente_inicio'"
+                  decoration-muted="estado_code=='finalizada'"
+                  decoration-danger="estado_code=='rechazada'">
                 <field name="name"/>
                 <field name="tipo_actividad_id"/>
                 <field name="periodo"/>
-                <field name="fecha_inicio" string="Fecha Inicio" width="100px"/>
-                <field name="fecha_fin" string="Fecha Fin" width="100px"/>
-                <field name="estado_id" widget="badge"
-                         decoration-warning="estado_code == 'en_revision'"
-                         decoration-success="estado_code in ['aprobada', 'en_curso']"
-                         decoration-info="estado_code == 'pendiente_inicio'"
-                         decoration-danger="estado_code == 'rechazada'"
-                         decoration-muted="estado_code == 'finalizada'"/>
-                <field name="en_catalogo" widget="boolean" readonly="1"
-                    column_invisible="context.get('hide_catalogo', False)"/>
+                <field name="fecha_inicio"/>
+                <field name="fecha_fin"/>
+                <field name="estado_id"/>
+                <field name="en_catalogo" widget="boolean_toggle" readonly="1"/>
                 <field name="alumno_count" string="Alumnos"/>
                 <field name="estado_code" column_invisible="1"/>
-
             </list>
         </field>
     </record>
@@ -68,15 +65,7 @@
                             invisible="not actividad_predefinida or en_catalogo or estado_code in ['rechazada','finalizada']"
                             groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"
                             confirm="Esta actividad es predefinida y se enviará directo al catálogo. ¿Confirma?"/>
-                    <!-- Statusbar SIN rechazda (cuando es Nueva Propuesta) -->
-                    <field name="estado_id" widget="statusbar"
-                        statusbar_visible="en_revision,aprobada,pendiente_inicio,en_curso,finalizada"
-                        invisible="not tipo_es_nueva"/>
-
-                    <!-- Statusbar CON rechazada (cuando es otro tipo) -->
-                    <field name="estado_id" widget="statusbar"
-                        statusbar_visible="en_revision,aprobada,rechazada,pendiente_inicio,en_curso,finalizada"
-                        invisible="tipo_es_nueva"/>
+                    <field name="estado_id" widget="statusbar"/>
                     <button name="action_enviar_catalogo" string="Enviar al Catálogo"
                             type="object" class="btn-primary"
                             invisible="estado_code not in ['aprobada','pendiente_inicio'] or en_catalogo"
@@ -92,7 +81,7 @@
                     <field name="tipo_es_nueva" invisible="1"/>
                     <field name="dominio_responsable" invisible="1"/>
                     <field name="dominio_alumnos" invisible="1"/>
-                     <!-- Flags de permisos de edición (calculados por rol y estado) -->
+                    <!-- Flags de permisos de edición (calculados por rol y estado) -->
                     <field name="permisos_actividad_finalizada" invisible="1"/>
                     <field name="permisos_actividad_en_curso" invisible="1"/>
 
@@ -170,8 +159,7 @@
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                             <field name="horario"
                                    placeholder="Ej: Lunes 10:00-12:00, Miércoles 10:00-12:00"
-                                   readonly="estado_code in ['en_curso','finalizada','en_revision']"
-                                   help="Opcional - especifica si la actividad tiene días y horas fijas"/>
+                                   readonly="estado_code in ['en_curso','finalizada','en_revision']"/>
                         </group>
                     </group>
                     <!-- Cupos: editables en aprobada/pendiente, readonly el resto -->
@@ -272,15 +260,27 @@
         <field name="search_view_id" ref="view_actividad_search"/>
     </record>
 
+    <!-- Mis Actividades para Personal de Departamento.
+         El contexto 'personal_mis_actividades' activa el filtro de
+         departamento en Actividad._search(), mostrando las mismas
+         actividades que ve el Jefe de Departamento del mismo depto. -->
+    <record id="action_actividad_personal" model="ir.actions.act_window">
+        <field name="name">Mis Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[]</field>
+        <field name="context">{'personal_mis_actividades': True}</field>
+        <field name="search_view_id" ref="view_actividad_search"/>
+    </record>
+
     <!-- Catalogo global: todas las actividades en catalogo.
          El filtrado adicional para JD y Personal se aplica en Actividad._search(). -->
     <record id="action_actividad_catalogo" model="ir.actions.act_window">
-        <field name="name">Catálogo General de Actividades</field>
+        <field name="name">Catálogo de Actividades</field>
         <field name="res_model">actividad.complementaria</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="domain">[('en_catalogo', '=', True), ('jefe_departamento_id', '=', uid)]</field>
+        <field name="domain">[('en_catalogo', '=', True)]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
-        <field name="context">{'hide_catalogo': True}</field>
     </record>
 
 
