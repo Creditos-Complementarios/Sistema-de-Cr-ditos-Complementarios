@@ -245,24 +245,15 @@ body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
     
 }
 /* ── Ícono de ayuda personalizado ── */
-body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
-
-    .o_field_info {
-        /* Oculta el ícono FontAwesome original */
-        font-size: 0 !important;
-
-        /* Muestra tu imagen como reemplazo */
-        &::after {
-            content: "";
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            background-image: url('/actividades_complementarias/static/src/img/HelpIcon.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            vertical-align: middle;
-            cursor: pointer;
-        }
-    }
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) sup.d-print-none[data-tooltip-template="web.FieldTooltip"] {
+    font-size: 0 !important;
+    display: inline-block !important;
+    width: 14px !important;
+    height: 14px !important;
+    background-image: url('/actividades_complementarias/static/src/img/HelpIcon.png') !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    vertical-align: middle !important;
+    cursor: pointer !important;
 }
