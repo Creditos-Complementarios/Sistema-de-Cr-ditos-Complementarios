@@ -1020,7 +1020,7 @@ class Actividad(models.Model):
         # Si es predefinida y aún no está en un estado válido, la aprobamos automáticamente
         if self.actividad_predefinida and self.estado_code not in ('aprobada', 'pendiente_inicio', 'en_curso'):
             estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
-            self.write({'estado_id': estado_pendiente.id})
+            self.with_context(bypass_edit_protection=True).write({'estado_id': estado_pendiente.id})
             self.message_post(
                 body='Actividad predefinida (%s) aprobada automáticamente.' % self.actividad_predefinida
             )
