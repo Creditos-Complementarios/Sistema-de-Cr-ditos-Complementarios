@@ -45,7 +45,6 @@
                     column_invisible="context.get('hide_catalogo', False)"/>
                 <field name="alumno_count" string="Alumnos"/>
                 <field name="estado_code" column_invisible="1"/>
-
             </list>
         </field>
     </record>
@@ -68,11 +67,10 @@
                             invisible="not actividad_predefinida or en_catalogo or estado_code in ['rechazada','finalizada']"
                             groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"
                             confirm="Esta actividad es predefinida y se enviará directo al catálogo. ¿Confirma?"/>
-                    <!-- Statusbar SIN rechazda (cuando es Nueva Propuesta) -->
+                    <!-- Statusbar SIN rechazada (cuando es Nueva Propuesta) -->
                     <field name="estado_id" widget="statusbar"
                         statusbar_visible="en_revision,aprobada,pendiente_inicio,en_curso,finalizada"
                         invisible="not tipo_es_nueva"/>
-
                     <!-- Statusbar CON rechazada (cuando es otro tipo) -->
                     <field name="estado_id" widget="statusbar"
                         statusbar_visible="en_revision,aprobada,rechazada,pendiente_inicio,en_curso,finalizada"
@@ -92,7 +90,7 @@
                     <field name="tipo_es_nueva" invisible="1"/>
                     <field name="dominio_responsable" invisible="1"/>
                     <field name="dominio_alumnos" invisible="1"/>
-                     <!-- Flags de permisos de edición (calculados por rol y estado) -->
+                    <!-- Flags de permisos de edición (calculados por rol y estado) -->
                     <field name="permisos_actividad_finalizada" invisible="1"/>
                     <field name="permisos_actividad_en_curso" invisible="1"/>
 
@@ -101,7 +99,7 @@
                         Aparece cuando el formulario está bloqueado para el usuario actual.
                     -->
                     <div class="alert alert-warning mb-2"
-                         invisible="not permisos_actividad_finalizada and not permisos_actividad_pendiente_inicio 
+                         invisible="not permisos_actividad_finalizada and not permisos_actividad_pendiente_inicio
                          and not permisos_actividad_en_curso"
                          role="alert">
                         <span invisible="estado_code == 'finalizada'">
@@ -110,7 +108,7 @@
                                 Esta actividad no puede modificarse en su estado actual.
                             </b>
                             <b invisible="not permisos_actividad_pendiente_inicio">
-                                Solo puede modificar los campos <i>Responsable de Actividad</i>, <i>Fecha de Inicio</i>, <i>Fecha de Finalización</i>, y 
+                                Solo puede modificar los campos <i>Responsable de Actividad</i>, <i>Fecha de Inicio</i>, <i>Fecha de Finalización</i>, y
                                 <i>Horario por Día</i> en este estado.
                             </b>
                             <b invisible="not permisos_actividad_en_curso">
@@ -133,15 +131,17 @@
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                         </h1>
                     </div>
-                    <group col="1">
+                    <group>
                         <group string="Información General">
                             <field name="tipo_actividad_id"
+                                   string="* Tipo de Actividad"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                             <field name="actividad_predefinida"
                                    invisible="tipo_es_nueva"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"
                                    help="Seleccione si la actividad es predefinida (aprobación automática). Deje en blanco para quitar la selección."/>
                             <field name="periodo"
+                                   string="* Periodo Escolar"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                             <field name="jefe_departamento_id" readonly="1"/>
                             <field name="departamento_id" readonly="1"/>
@@ -161,29 +161,19 @@
                         </group>
                         <group string="Fechas y Duración">
                             <field name="fecha_inicio"
+                                   string="* Fecha de Inicio"
                                    readonly="estado_code in ['en_curso','finalizada','en_revision']"/>
                             <field name="fecha_fin"
+                                   string="* Fecha de Finalización"
                                    readonly="estado_code in ['en_curso','finalizada','en_revision']"/>
                             <field name="cantidad_horas"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                             <field name="creditos"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                             <field name="horario"
-                                   placeholder="Ej:&#10;Lunes 10:00-12:00&#10;Miércoles 10:00-12:00"
+                                   placeholder="Ej: Lunes 10:00-12:00, Miércoles 10:00-12:00"
                                    readonly="estado_code in ['en_curso','finalizada','en_revision']"
-                                   help="Un horario por línea con el formato: Día HH:MM-HH:MM"/>
-                            <div class="alert alert-warning mb-0" role="alert"
-                                 invisible="horario_valido or not horario">
-                                <strong>&#9888; Formato incorrecto.</strong>
-                                Use una línea por horario:
-                                <code>Día HH:MM-HH:MM</code><br/>
-                                Ejemplo: <code>Lunes 10:00-12:00</code>
-                            </div>
-                            <field name="horario_sanitizado"
-                                   string="Vista Normalizada"
-                                   readonly="1"
-                                   invisible="not horario_valido or not horario"
-                                   help="Versión normalizada del horario ingresado."/>
+                                   help="Opcional - especifica si la actividad tiene días y horas fijas"/>
                         </group>
                     </group>
                     <!-- Cupos: editables en aprobada/pendiente, readonly el resto -->
@@ -284,7 +274,7 @@
         <field name="search_view_id" ref="view_actividad_search"/>
     </record>
 
-    <!-- Catalogo global: todas las actividades en catalogo.
+    <!-- Catálogo global: todas las actividades en catálogo.
          El filtrado adicional para JD y Personal se aplica en Actividad._search(). -->
     <record id="action_actividad_catalogo" model="ir.actions.act_window">
         <field name="name">Catálogo General de Actividades</field>
@@ -294,6 +284,5 @@
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'hide_catalogo': True}</field>
     </record>
-
 
 </odoo>
