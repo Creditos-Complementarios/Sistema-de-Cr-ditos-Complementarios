@@ -32,7 +32,7 @@ class WizardEliminarAlumnos(models.TransientModel):
     def action_confirmar(self):
         self.ensure_one()
         eliminar_ids = self.linea_ids.filtered(
-            lambda l: l.a_eliminar
+            lambda linea: linea.a_eliminar
         ).mapped('alumno_id').ids
         self.actividad_id.with_context(
             bypass_edit_protection=True
