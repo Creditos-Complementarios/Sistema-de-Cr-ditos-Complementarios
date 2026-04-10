@@ -892,6 +892,36 @@ class Actividad(models.Model):
             'context': {'default_actividad_id': self.id},
         }
 
+    def action_abrir_confirmacion_comite(self):
+        self.ensure_one()
+        wizard = self.env['actividad.wizard.confirmar.envio'].create({
+            'actividad_id': self.id,
+            'tipo_envio': 'comite',
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Confirmar envío al Comité Académico',
+            'res_model': 'actividad.wizard.confirmar.envio',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    def action_abrir_confirmacion_catalogo(self):
+        self.ensure_one()
+        wizard = self.env['actividad.wizard.confirmar.envio'].create({
+            'actividad_id': self.id,
+            'tipo_envio': 'catalogo',
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Confirmar envío al Catálogo',
+            'res_model': 'actividad.wizard.confirmar.envio',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
     def action_enviar_comite(self):
         """Envia la actividad como propuesta al Comite Academico.
         Permite reenvio cuando la propuesta fue rechazada previamente."""
