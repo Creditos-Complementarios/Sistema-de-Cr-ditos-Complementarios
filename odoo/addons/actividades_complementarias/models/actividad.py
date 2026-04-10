@@ -729,7 +729,7 @@ class Actividad(models.Model):
                 campos_permitidos = {
                     'responsable_actividad_id', 'fecha_inicio',
                     'fecha_fin', 'horario', 'horario_valido',
-                    'horario_sanitizado',
+                    'horario_sanitizado', 'alumno_ids',
                 }
                 campos_no_permitidos = set(vals.keys()) - campos_permitidos
                 if campos_no_permitidos:
@@ -737,7 +737,7 @@ class Actividad(models.Model):
                         _('La actividad "%s" está en aprobada o pendiente de inicio. '
                           'En este estado únicamente puede modificar'
                           '"Responsable de Actividad", "Fecha de Inicio", "Fecha de Finalización", '
-                          'y "Horario por Día".')
+                          '"alumnos" y "Horario por Día".')
                         % rec.name
                     )
 
