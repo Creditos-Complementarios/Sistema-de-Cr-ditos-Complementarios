@@ -257,3 +257,16 @@ body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) sup.d-pr
     vertical-align: middle !important;
     cursor: pointer !important;
 }
+
+// Remarcar campos editables en formularios
+.o_field_widget .o_input,
+.o_field_many2one .o_input,
+.o_field_many2one_selection .o_input,
+.o_field_float .o_input,
+.o_field_date .o_input,
+.o_field_integer .o_input,
+.o_field_selection select,
+.o_field_selection .o_select_menu {
+    border-bottom: 1px solid #aaa !important;
+    border-radius: 0;
+}
