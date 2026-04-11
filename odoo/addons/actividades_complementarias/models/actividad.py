@@ -2,6 +2,15 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
 from datetime import date, timedelta
+import base64
+import io
+import zipfile
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
 
 
 def _n_dias_habiles(n, desde=None):
@@ -1070,15 +1079,230 @@ class Actividad(models.Model):
         })
         self.message_post(body='Actividad finalizada. Removida del catálogo automáticamente.')
 
+    def _generar_pdf_constancia(self, alumno, fecha_firma, nombre_jd):
+        """Genera el PDF de constancia para un alumno. Devuelve bytes del PDF."""
+        # Obtener datos del estudiante vinculado al usuario
+        estudiante = self.env['sii.estudiante'].sudo().search(
+            [('no_control', '=', alumno.login)], limit=1
+        )
+        if estudiante:
+            nombre_alumno = ' '.join(filter(None, [
+                estudiante.nombre,
+                estudiante.apellido_paterno,
+                estudiante.apellido_materno,
+            ]))
+            no_control = estudiante.no_control
+        else:
+            nombre_alumno = alumno.name
+            no_control = alumno.login
+
+        # Datos de la actividad
+        nombre_actividad = self.name
+        creditos_map = dict(self._fields['creditos'].selection)
+        creditos_label = creditos_map.get(self.creditos, self.creditos or '—')
+        horas = f'{self.cantidad_horas:g}' if self.cantidad_horas else '—'
+        fecha_str = fecha_firma.strftime('%d de %B de %Y') if fecha_firma else '—'
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buf,
+            pagesize=letter,
+            rightMargin=2.5 * cm,
+            leftMargin=2.5 * cm,
+            topMargin=3 * cm,
+            bottomMargin=3 * cm,
+        )
+
+        styles = getSampleStyleSheet()
+
+        style_titulo = ParagraphStyle(
+            'Titulo',
+            parent=styles['Normal'],
+            fontSize=18,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#1a3a5c'),
+            alignment=TA_CENTER,
+            spaceAfter=6,
+        )
+        style_subtitulo = ParagraphStyle(
+            'Subtitulo',
+            parent=styles['Normal'],
+            fontSize=11,
+            fontName='Helvetica',
+            textColor=colors.HexColor('#555555'),
+            alignment=TA_CENTER,
+            spaceAfter=4,
+        )
+        style_cuerpo = ParagraphStyle(
+            'Cuerpo',
+            parent=styles['Normal'],
+            fontSize=12,
+            fontName='Helvetica',
+            leading=20,
+            alignment=TA_JUSTIFY,
+            spaceAfter=14,
+        )
+        style_campo_label = ParagraphStyle(
+            'CampoLabel',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#1a3a5c'),
+            spaceAfter=2,
+        )
+        style_campo_valor = ParagraphStyle(
+            'CampoValor',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            textColor=colors.HexColor('#333333'),
+            spaceAfter=10,
+        )
+        style_firma = ParagraphStyle(
+            'Firma',
+            parent=styles['Normal'],
+            fontSize=11,
+            fontName='Helvetica',
+            alignment=TA_CENTER,
+            spaceAfter=4,
+        )
+        style_firma_nombre = ParagraphStyle(
+            'FirmaNombre',
+            parent=styles['Normal'],
+            fontSize=12,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#1a3a5c'),
+            alignment=TA_CENTER,
+        )
+
+        story = []
+
+        # ── Encabezado ──────────────────────────────────────────────────────
+        story.append(Paragraph('CONSTANCIA DE ACTIVIDAD COMPLEMENTARIA', style_titulo))
+        story.append(Paragraph('Instituto Tecnológico de Chetumal', style_subtitulo))
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(HRFlowable(width='100%', thickness=2, color=colors.HexColor('#1a3a5c')))
+        story.append(Spacer(1, 0.6 * cm))
+
+        # ── Cuerpo principal ────────────────────────────────────────────────
+        texto_constancia = (
+            f'La siguiente constancia respalda que el estudiante <b>{nombre_alumno}</b> '
+            f'con número de control <b>{no_control}</b> ha completado satisfactoriamente '
+            f'la actividad complementaria <b>{nombre_actividad}</b> con un valor de '
+            f'<b>{creditos_label}</b> y una duración de <b>{horas} horas</b>.'
+        )
+        story.append(Paragraph(texto_constancia, style_cuerpo))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # ── Tabla de datos ──────────────────────────────────────────────────
+        datos_tabla = [
+            ['Estudiante', nombre_alumno],
+            ['Número de Control', no_control],
+            ['Actividad Complementaria', nombre_actividad],
+            ['Valor en Créditos', creditos_label],
+            ['Duración', f'{horas} horas'],
+        ]
+        tabla = Table(datos_tabla, colWidths=[5 * cm, 11.5 * cm])
+        tabla.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#e8f0f7')),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#1a3a5c')),
+            ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#333333')),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1),
+             [colors.HexColor('#f5f8fb'), colors.white]),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(tabla)
+        story.append(Spacer(1, 1.2 * cm))
+
+        # ── Sección de firma ────────────────────────────────────────────────
+        story.append(HRFlowable(width='100%', thickness=1, color=colors.HexColor('#cccccc')))
+        story.append(Spacer(1, 0.5 * cm))
+
+        datos_firma = [
+            ['Fecha de expedición de la constancia:', fecha_str],
+            ['Firma del Jefe de Departamento:', nombre_jd],
+        ]
+        tabla_firma = Table(datos_firma, colWidths=[7.5 * cm, 9 * cm])
+        tabla_firma.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#1a3a5c')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LINEBELOW', (0, -1), (-1, -1), 0, colors.white),
+        ]))
+        story.append(tabla_firma)
+
+        doc.build(story)
+        return buf.getvalue()
+
     def action_firmar_constancias(self):
-        """El JD firma su parte. Las constancias solo se liberan cuando ambos firmen."""
+        """El JD firma su parte, genera un PDF por alumno y los entrega en un ZIP descargable."""
         self.ensure_one()
         if self.estado_code != 'finalizada':
             raise ValidationError('Solo se pueden firmar constancias de actividades finalizadas.')
         if self.jd_firmo:
             raise ValidationError('El Jefe de Departamento ya firmó las constancias de esta actividad.')
-        # La firma es una acción de negocio válida sobre una actividad finalizada
+
+        if not self.alumno_ids:
+            raise ValidationError('Esta actividad no tiene alumnos inscritos. No hay constancias que generar.')
+
+        # Registrar la firma
         self.with_context(bypass_edit_protection=True).write({'jd_firmo': True})
+
+        fecha_firma = date.today()
+        nombre_jd = self.env.user.name
+
+        # Generar un PDF por alumno y empaquetar en ZIP
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
+            for alumno in self.alumno_ids:
+                pdf_bytes = self._generar_pdf_constancia(alumno, fecha_firma, nombre_jd)
+                # Nombre de archivo: nombre_alumno - no_control.pdf (sanitizado)
+                estudiante = self.env['sii.estudiante'].sudo().search(
+                    [('no_control', '=', alumno.login)], limit=1
+                )
+                if estudiante:
+                    nombre_archivo = ' '.join(filter(None, [
+                        estudiante.nombre,
+                        estudiante.apellido_paterno,
+                        estudiante.apellido_materno,
+                    ]))
+                    nc = estudiante.no_control
+                else:
+                    nombre_archivo = alumno.name
+                    nc = alumno.login
+                # Sanitizar nombre de archivo
+                safe_name = ''.join(c if c.isalnum() or c in ' _-' else '_' for c in nombre_archivo)
+                filename = f'{safe_name} - {nc}.pdf'
+                zf.writestr(filename, pdf_bytes)
+
+        zip_bytes = zip_buf.getvalue()
+
+        # Guardar el ZIP como adjunto descargable
+        actividad_safe = ''.join(c if c.isalnum() or c in ' _-' else '_' for c in self.name)
+        zip_name = f'Constancias_{actividad_safe}_{fecha_firma.strftime("%Y%m%d")}.zip'
+
+        attachment = self.env['ir.attachment'].sudo().create({
+            'name': zip_name,
+            'type': 'binary',
+            'datas': base64.b64encode(zip_bytes).decode(),
+            'mimetype': 'application/zip',
+            'res_model': self._name,
+            'res_id': self.id,
+        })
+
+        # Mensaje en el chatter
         if self.constancias_firmadas:
             self.message_post(
                 body='Constancias firmadas por el Jefe de Departamento. '
@@ -1089,6 +1313,13 @@ class Actividad(models.Model):
                 body='Constancias firmadas por el Jefe de Departamento. '
                      'Pendiente firma del Responsable de Actividad.'
             )
+
+        # Devolver descarga directa del ZIP
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'self',
+        }
 
     def action_firmar_constancias_responsable(self):
         """El Responsable de Actividad firma su parte. Las constancias solo se liberan cuando ambos firmen."""
