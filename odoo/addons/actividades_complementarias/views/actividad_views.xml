@@ -261,15 +261,13 @@
     </record>
 
     <!-- Mis Actividades para Personal de Departamento.
-         El contexto 'personal_mis_actividades' activa el filtro de
-         departamento en Actividad._search(), mostrando las mismas
-         actividades que ve el Jefe de Departamento del mismo depto. -->
+         domain=[] porque la record rule de cada grupo de Personal ya restringe
+         la lectura a las actividades del departamento correspondiente,
+         produciendo exactamente el mismo conjunto que ve el Jefe de Departamento. -->
     <record id="action_actividad_personal" model="ir.actions.act_window">
         <field name="name">Mis Actividades</field>
         <field name="res_model">actividad.complementaria</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="domain">[]</field>
-        <field name="context">{'personal_mis_actividades': True}</field>
         <field name="search_view_id" ref="view_actividad_search"/>
     </record>
 
