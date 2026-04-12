@@ -120,8 +120,30 @@ class Actividad(models.Model):
         ('1.0', '1 crédito'),
         ('1.5', '1.5 créditos'),
         ('2.0', '2 créditos'),
-    ], string='Cantidad de Créditos')
-    horario = fields.Text(string='Horario por Día (si aplica)')
+    ], string='Cantidad de Créditos', required=True)
+    horario = fields.Text(
+        string='Horario por Día (si aplica)',
+        help=(
+            'Ingrese un horario por línea con el formato:\n'
+            'Día HH:MM-HH:MM\n\n'
+            'Días válidos: Lunes, Martes, Miércoles, Jueves, Viernes, Sábado, Domingo\n'
+            'Ejemplo:\n'
+            '  Lunes 10:00-12:00\n'
+            '  Miércoles 10:00-12:00'
+        ),
+    )
+    horario_valido = fields.Boolean(
+        string='Horario con Formato Válido',
+        compute='_compute_horario_valido',
+        store=True,
+        help='True si el horario cumple con el formato Día HH:MM-HH:MM.',
+    )
+    horario_sanitizado = fields.Text(
+        string='Horario Normalizado',
+        compute='_compute_horario_sanitizado',
+        store=True,
+        help='Versión normalizada y limpia del horario ingresado.',
+    )
 
     # ── Cupos ────────────────────────────────────────────────────────────────
     cupo_min = fields.Integer(string='Cupo Mínimo', default=1)
@@ -142,6 +164,21 @@ class Actividad(models.Model):
         string='Código de Estado',
         store=True,
         readonly=True,
+    )
+    # Campo Selection nativo para el widget statusbar en vistas
+    # (los campos related no permiten filtrar statusbar_visible correctamente)
+    estado_barra = fields.Selection(
+        selection=[
+            ('en_revision',      'En Revisión'),
+            ('rechazada',        'Rechazada'),
+            ('aprobada',         'Aprobada'),
+            ('pendiente_inicio', 'Pendiente de Inicio'),
+            ('en_curso',         'En Curso'),
+            ('finalizada',       'Finalizada'),
+        ],
+        string='Estado (barra)',
+        compute='_compute_estado_barra',
+        store=True,
     )
 
     # ── Alumnos asignados ────────────────────────────────────────────────────
@@ -230,6 +267,144 @@ class Actividad(models.Model):
     # ────────────────────────────────────────────────────────────────────────
     # Computes
     # ────────────────────────────────────────────────────────────────────────
+
+    # ── Helpers de horario ───────────────────────────────────────────────────
+
+    _DIAS_VALIDOS = {
+        'lunes': 'Lunes', 'martes': 'Martes',
+        'miércoles': 'Miércoles', 'miercoles': 'Miércoles',
+        'jueves': 'Jueves', 'viernes': 'Viernes',
+        'sábado': 'Sábado', 'sabado': 'Sábado',
+        'domingo': 'Domingo',
+    }
+
+    @staticmethod
+    def _parsear_linea_horario(linea):
+        """
+        Parsea una línea con el formato: Día HH:MM-HH:MM
+        Retorna dict con keys: dia, inicio, fin  o  None si no es válida.
+        """
+        import re
+        linea = linea.strip()
+        if not linea:
+            return None
+        patron = re.compile(
+            r'^([A-Za-záéíóúüÁÉÍÓÚÜñÑ]+)'
+            r'\s+'
+            r'(\d{1,2}):(\d{2})'
+            r'\s*-\s*'
+            r'(\d{1,2}):(\d{2})'
+            r'$',
+            re.IGNORECASE,
+        )
+        m = patron.match(linea)
+        if not m:
+            return None
+        dia_raw, h1, m1, h2, m2 = m.groups()
+        return {
+            'dia': dia_raw,
+            'inicio': (int(h1), int(m1)),
+            'fin': (int(h2), int(m2)),
+        }
+
+    @api.depends('horario')
+    def _compute_horario_valido(self):
+        for rec in self:
+            if not rec.horario:
+                rec.horario_valido = True
+                continue
+            valido = True
+            for linea in rec.horario.splitlines():
+                if not linea.strip():
+                    continue
+                parsed = self._parsear_linea_horario(linea)
+                if parsed is None:
+                    valido = False
+                    break
+                dia_key = parsed['dia'].lower()
+                if dia_key not in self._DIAS_VALIDOS:
+                    valido = False
+                    break
+                h1, m1 = parsed['inicio']
+                h2, m2 = parsed['fin']
+                if not (0 <= h1 <= 23 and 0 <= m1 <= 59):
+                    valido = False
+                    break
+                if not (0 <= h2 <= 23 and 0 <= m2 <= 59):
+                    valido = False
+                    break
+                if (h1 * 60 + m1) >= (h2 * 60 + m2):
+                    valido = False
+                    break
+            rec.horario_valido = valido
+
+    @api.depends('horario')
+    def _compute_horario_sanitizado(self):
+        """Normaliza el horario: capitaliza días y unifica separadores."""
+        for rec in self:
+            if not rec.horario:
+                rec.horario_sanitizado = ''
+                continue
+            lineas_limpias = []
+            for linea in rec.horario.splitlines():
+                parsed = self._parsear_linea_horario(linea)
+                if parsed is None:
+                    lineas_limpias.append(linea.strip())
+                    continue
+                dia_norm = self._DIAS_VALIDOS.get(
+                    parsed['dia'].lower(), parsed['dia'].capitalize()
+                )
+                h1, m1 = parsed['inicio']
+                h2, m2 = parsed['fin']
+                lineas_limpias.append(
+                    f"{dia_norm} {h1:02d}:{m1:02d}-{h2:02d}:{m2:02d}"
+                )
+            rec.horario_sanitizado = '\n'.join(lineas_limpias)
+
+    @api.constrains('horario')
+    def _check_horario_formato(self):
+        """Valida que cada línea del horario cumpla el formato Día HH:MM-HH:MM."""
+        for rec in self:
+            if not rec.horario:
+                continue
+            errores = []
+            for i, linea in enumerate(rec.horario.splitlines(), start=1):
+                if not linea.strip():
+                    continue
+                parsed = self._parsear_linea_horario(linea)
+                if parsed is None:
+                    errores.append(
+                        f'Línea {i}: "{linea.strip()}" — '
+                        f'use el formato "Día HH:MM-HH:MM". '
+                        f'Ejemplo: "Lunes 10:00-12:00".'
+                    )
+                    continue
+                dia_key = parsed['dia'].lower()
+                if dia_key not in self._DIAS_VALIDOS:
+                    errores.append(
+                        f'Línea {i}: día "{parsed["dia"]}" no reconocido. '
+                        f'Válidos: Lunes, Martes, Miércoles, Jueves, Viernes, Sábado, Domingo.'
+                    )
+                h1, m1 = parsed['inicio']
+                h2, m2 = parsed['fin']
+                if not (0 <= h1 <= 23 and 0 <= m1 <= 59):
+                    errores.append(
+                        f'Línea {i}: hora de inicio "{h1:02d}:{m1:02d}" no válida.'
+                    )
+                if not (0 <= h2 <= 23 and 0 <= m2 <= 59):
+                    errores.append(
+                        f'Línea {i}: hora de fin "{h2:02d}:{m2:02d}" no válida.'
+                    )
+                elif (h1 * 60 + m1) >= (h2 * 60 + m2):
+                    errores.append(
+                        f'Línea {i}: la hora de fin ({h2:02d}:{m2:02d}) '
+                        f'debe ser posterior a la de inicio ({h1:02d}:{m1:02d}).'
+                    )
+            if errores:
+                raise ValidationError(
+                    'El horario contiene errores de formato:\n'
+                    + '\n'.join(errores)
+                )
 
     @api.depends('tipo_actividad_id')
     def _compute_tipo_es_nueva(self):
@@ -332,6 +507,15 @@ class Actividad(models.Model):
     def _compute_constancias_firmadas(self):
         for rec in self:
             rec.constancias_firmadas = rec.jd_firmo and rec.responsable_firmo
+
+    @api.depends('estado_code')
+    def _compute_estado_barra(self):
+        """Sincroniza estado_barra con estado_code para uso exclusivo
+        del widget statusbar en vistas (evita que related muestre
+        todos los valores del Selection de origen).
+        """
+        for rec in self:
+            rec.estado_barra = rec.estado_code or False
 
     @api.depends('alumno_ids')
     def _compute_alumno_count(self):
@@ -537,14 +721,18 @@ class Actividad(models.Model):
                 )
             # ── Regla 3: En catálogo / Pendiente de Inicio ──
             if rec.en_catalogo or rec.estado_code in ('aprobada', 'pendiente_inicio'):
-                campos_permitidos = {'responsable_actividad_id', 'fecha_inicio', 'fecha_fin', 'horario'}
+                campos_permitidos = {
+                    'responsable_actividad_id', 'fecha_inicio',
+                    'fecha_fin', 'horario', 'horario_valido',
+                    'horario_sanitizado', 'alumno_ids',
+                }
                 campos_no_permitidos = set(vals.keys()) - campos_permitidos
                 if campos_no_permitidos:
                     raise UserError(
                         _('La actividad "%s" está en aprobada o pendiente de inicio. '
                           'En este estado únicamente puede modificar'
                           '"Responsable de Actividad", "Fecha de Inicio", "Fecha de Finalización", '
-                          'y "Horario por Día".')
+                          '"alumnos" y "Horario por Día".')
                         % rec.name
                     )
 
@@ -699,6 +887,60 @@ class Actividad(models.Model):
             'context': {'default_actividad_id': self.id},
         }
 
+    def action_abrir_wizard_eliminar_alumnos(self):
+        self.ensure_one()
+        lineas = [(0, 0, {'alumno_id': uid}) for uid in self.alumno_ids.ids]
+        wizard = self.env['actividad.wizard.eliminar.alumnos'].create({
+            'actividad_id': self.id,
+            'linea_ids': lineas,
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Eliminar Alumnos',
+            'res_model': 'actividad.wizard.eliminar.alumnos',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    def action_abrir_confirmacion_comite(self):
+        self.ensure_one()
+        if not self.cantidad_horas or self.cantidad_horas <= 0:
+            raise ValidationError(
+                'La cantidad de horas debe ser mayor a 0 antes de enviar al Comité Académico.'
+            )
+        wizard = self.env['actividad.wizard.confirmar.envio'].create({
+            'actividad_id': self.id,
+            'tipo_envio': 'comite',
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Confirmar envío al Comité Académico',
+            'res_model': 'actividad.wizard.confirmar.envio',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    def action_abrir_confirmacion_catalogo(self):
+        self.ensure_one()
+        if not self.cantidad_horas or self.cantidad_horas <= 0:
+            raise ValidationError(
+                'La cantidad de horas debe ser mayor a 0 antes de enviar al Catálogo.'
+            )
+        wizard = self.env['actividad.wizard.confirmar.envio'].create({
+            'actividad_id': self.id,
+            'tipo_envio': 'catalogo',
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Confirmar envío al Catálogo',
+            'res_model': 'actividad.wizard.confirmar.envio',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
     def action_enviar_comite(self):
         """Envia la actividad como propuesta al Comite Academico.
         Permite reenvio cuando la propuesta fue rechazada previamente."""
@@ -714,16 +956,6 @@ class Actividad(models.Model):
             raise ValidationError(
                 'Esta actividad ya fue aprobada o está en curso/finalizada. '
                 'No puede ser reenviada al Comité Académico.'
-            )
-        # Validar cantidad de horas > 0
-        if not self.cantidad_horas or self.cantidad_horas <= 0:
-            raise ValidationError(
-                'La cantidad de horas debe ser mayor a 0 antes de enviar al Comité Académico.'
-            )
-        # Validar que tenga creditos asignados
-        if not self.creditos:
-            raise ValidationError(
-                'Debe asignar la cantidad de créditos antes de enviar al Comité Académico.'
             )
         # Verificar que no haya propuesta pendiente o aprobada ya
         propuesta_existente = self.env['actividad.propuesta'].search([
@@ -749,7 +981,7 @@ class Actividad(models.Model):
             raise_if_not_found=False,
         )
         if action:
-            result = action.read()[0]
+            result = action.sudo().read()[0]
             result['target'] = 'current'
             return result
         return {
@@ -779,16 +1011,6 @@ class Actividad(models.Model):
                 'Esta actividad ya fue finalizada y no puede ser enviada al catálogo. '
                 'Cree una nueva propuesta de actividad si desea volver a ofertarla.'
             )
-        # Validar horas > 0
-        if not self.cantidad_horas or self.cantidad_horas <= 0:
-            raise ValidationError(
-                'La cantidad de horas debe ser mayor a 0 antes de enviar al catálogo.'
-            )
-        # Validar créditos obligatorios
-        if not self.creditos:
-            raise ValidationError(
-                'Debe asignar la cantidad de créditos antes de enviar al catálogo.'
-            )
         # Validar responsable obligatorio
         if not self.responsable_actividad_id:
             raise ValidationError(
@@ -797,10 +1019,16 @@ class Actividad(models.Model):
         # Si es predefinida y aún no está en un estado válido, la aprobamos automáticamente
         if self.actividad_predefinida and self.estado_code not in ('aprobada', 'pendiente_inicio', 'en_curso'):
             estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
-            self.write({'estado_id': estado_pendiente.id})
+            self.with_context(bypass_edit_protection=True).write({'estado_id': estado_pendiente.id})
             self.message_post(
                 body='Actividad predefinida (%s) aprobada automáticamente.' % self.actividad_predefinida
             )
+        elif self.estado_code == 'aprobada':
+            estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
+            self.with_context(bypass_edit_protection=True).write(
+                {'estado_id': estado_pendiente.id}
+            )
+            self.message_post(body='Actividad enviada al catálogo. Estado actualizado a Pendiente de Inicio.')
         if self.estado_code not in ('aprobada', 'pendiente_inicio'):
             raise ValidationError('Solo se pueden enviar al catálogo actividades aprobadas o pendientes de inicio.')
         self.with_context(bypass_edit_protection=True).write({'en_catalogo': True})
@@ -811,7 +1039,7 @@ class Actividad(models.Model):
             raise_if_not_found=False,
         )
         if action:
-            result = action.read()[0]
+            result = action.sudo().read()[0]
             result['target'] = 'current'
             return result
         return {'type': 'ir.actions.act_window_close'}

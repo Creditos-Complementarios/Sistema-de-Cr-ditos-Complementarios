@@ -22,7 +22,7 @@ body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
         border-color: #71639E !important;
         color: white !important;
     }
-
+    
    /* Separador antes de Gestión de Personal */
     a[data-menu-xmlid="actividades_complementarias.menu_gestion_personal"] {
         border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
@@ -241,5 +241,41 @@ body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
         color: var(--color-text-secondary);
         text-align: center;
         margin-bottom: 2px;
+    }
+    
+}
+/* ── Ícono de ayuda personalizado ── */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) sup.d-print-none[data-tooltip-template="web.FieldTooltip"] {
+    font-size: 0 !important;
+    display: inline-block !important;
+    width: 14px !important;
+    height: 14px !important;
+    background-image: url('/actividades_complementarias/static/src/img/HelpIcon.png') !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    vertical-align: middle !important;
+    cursor: pointer !important;
+}
+
+// Remarcar campos editables en formularios
+.o_field_widget .o_input,
+.o_field_many2one .o_input,
+.o_field_many2one_selection .o_input,
+.o_field_float .o_input,
+.o_field_date .o_input,
+.o_field_integer .o_input,
+.o_field_selection select,
+.o_field_selection .o_select_menu {
+    border-bottom: 1px solid #aaa !important;
+    border-radius: 0;
+}
+
+/* Asterisco en campos requeridos */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+    .o_form_view .o_wrap_label:has(+ .o_wrap_input .o_required_modifier) .o_form_label::after {
+        content: " *";
+        color: #e74c3c;
+        font-weight: bold;
     }
 }
