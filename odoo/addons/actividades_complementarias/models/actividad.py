@@ -68,7 +68,7 @@ class Actividad(models.Model):
         tracking=True,
     )
     periodo = fields.Many2one(
-        'actividad.periodo',
+        'sii.periodo',
         string='Periodo Escolar',
         required=True,
     )
@@ -164,6 +164,21 @@ class Actividad(models.Model):
         string='Código de Estado',
         store=True,
         readonly=True,
+    )
+    # Campo Selection nativo para el widget statusbar en vistas
+    # (los campos related no permiten filtrar statusbar_visible correctamente)
+    estado_barra = fields.Selection(
+        selection=[
+            ('en_revision',      'En Revisión'),
+            ('rechazada',        'Rechazada'),
+            ('aprobada',         'Aprobada'),
+            ('pendiente_inicio', 'Pendiente de Inicio'),
+            ('en_curso',         'En Curso'),
+            ('finalizada',       'Finalizada'),
+        ],
+        string='Estado (barra)',
+        compute='_compute_estado_barra',
+        store=True,
     )
 
     # ── Alumnos asignados ────────────────────────────────────────────────────
@@ -500,27 +515,71 @@ class Actividad(models.Model):
 
     @api.depends('jefe_departamento_id')
     def _compute_departamento(self):
-        """Asigna automáticamente el departamento del JD buscando en actividad.departamento."""
+        """Asigna automáticamente el departamento del JD.
+        Orden de búsqueda:
+        1. actividad.departamento donde jefe_id = usuario (datos demo/manual).
+        2. actividad.empleado.permiso del usuario.
+        3. sii.empleado por correo del usuario -> sii.departamento ->
+           busca o crea el actividad.departamento equivalente (usuarios SII).
+        """
         for rec in self:
             if not rec.jefe_departamento_id:
                 rec.departamento_id = False
                 continue
-            # Primero buscar en el catálogo de departamentos (jefe_id)
+
+            # 1. Buscar en catálogo interno por jefe_id
             depto = self.env['actividad.departamento'].search(
                 [('jefe_id', '=', rec.jefe_departamento_id.id)], limit=1
             )
             if depto:
                 rec.departamento_id = depto
-            else:
-                emp = self.env['actividad.empleado.permiso'].search(
-                    [('user_id', '=', rec.jefe_departamento_id.id)], limit=1
+                continue
+
+            # 2. Buscar en permisos de personal delegado
+            emp_permiso = self.env['actividad.empleado.permiso'].search(
+                [('user_id', '=', rec.jefe_departamento_id.id)], limit=1
+            )
+            if emp_permiso and emp_permiso.departamento_id:
+                rec.departamento_id = emp_permiso.departamento_id
+                continue
+
+            # 3. Fallback SII: buscar sii.empleado por correo del usuario
+            login = rec.jefe_departamento_id.login or ''
+            sii_emp = self.env['sii.empleado'].sudo().search(
+                [('correo', '=', login)], limit=1
+            )
+            if sii_emp and sii_emp.id_departamento:
+                nombre_sii = sii_emp.id_departamento.nombre_departamento
+                # Buscar o crear el actividad.departamento con ese nombre
+                depto = self.env['actividad.departamento'].sudo().search(
+                    [('name', '=ilike', nombre_sii)], limit=1
                 )
-                rec.departamento_id = emp.departamento_id if emp else False
+                if not depto:
+                    depto = self.env['actividad.departamento'].sudo().create({
+                        'name': nombre_sii,
+                        'jefe_id': rec.jefe_departamento_id.id,
+                    })
+                else:
+                    # Asignar el jefe si aún no tiene uno
+                    if not depto.jefe_id:
+                        depto.sudo().write({'jefe_id': rec.jefe_departamento_id.id})
+                rec.departamento_id = depto
+            else:
+                rec.departamento_id = False
 
     @api.depends('jd_firmo', 'responsable_firmo')
     def _compute_constancias_firmadas(self):
         for rec in self:
             rec.constancias_firmadas = rec.jd_firmo and rec.responsable_firmo
+
+    @api.depends('estado_code')
+    def _compute_estado_barra(self):
+        """Sincroniza estado_barra con estado_code para uso exclusivo
+        del widget statusbar en vistas (evita que related muestre
+        todos los valores del Selection de origen).
+        """
+        for rec in self:
+            rec.estado_barra = rec.estado_code or False
 
     @api.depends('alumno_ids')
     def _compute_alumno_count(self):
@@ -729,7 +788,7 @@ class Actividad(models.Model):
                 campos_permitidos = {
                     'responsable_actividad_id', 'fecha_inicio',
                     'fecha_fin', 'horario', 'horario_valido',
-                    'horario_sanitizado',
+                    'horario_sanitizado', 'alumno_ids',
                 }
                 campos_no_permitidos = set(vals.keys()) - campos_permitidos
                 if campos_no_permitidos:
@@ -737,7 +796,7 @@ class Actividad(models.Model):
                         _('La actividad "%s" está en aprobada o pendiente de inicio. '
                           'En este estado únicamente puede modificar'
                           '"Responsable de Actividad", "Fecha de Inicio", "Fecha de Finalización", '
-                          'y "Horario por Día".')
+                          '"alumnos" y "Horario por Día".')
                         % rec.name
                     )
 
@@ -827,7 +886,7 @@ class Actividad(models.Model):
             ]
             if self.search_count(domain):
                 raise ValidationError(
-                    f'Ya existe una actividad activa con el nombre "{rec.name}" en el periodo {rec.periodo.name}.'
+                    f'Ya existe una actividad activa con el nombre "{rec.name}" en el periodo {rec.periodo.clave_periodo}.'
                 )
 
     @api.constrains('cupo_min', 'cupo_max', 'cupo_ilimitado')
@@ -892,6 +951,68 @@ class Actividad(models.Model):
             'context': {'default_actividad_id': self.id},
         }
 
+    def action_abrir_wizard_eliminar_alumnos(self):
+        self.ensure_one()
+        lineas = [(0, 0, {'alumno_id': uid}) for uid in self.alumno_ids.ids]
+        wizard = self.env['actividad.wizard.eliminar.alumnos'].create({
+            'actividad_id': self.id,
+            'linea_ids': lineas,
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Eliminar Alumnos',
+            'res_model': 'actividad.wizard.eliminar.alumnos',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    def action_abrir_confirmacion_comite(self):
+        self.ensure_one()
+        if not self.cantidad_horas or self.cantidad_horas <= 0:
+            raise ValidationError(
+                'La cantidad de horas debe ser mayor a 0 antes de enviar al Comité Académico.'
+            )
+        if not self.creditos:
+            raise ValidationError(
+                'Debe asignar la cantidad de créditos antes de enviar al Comité Académico.'
+            )
+        wizard = self.env['actividad.wizard.confirmar.envio'].create({
+            'actividad_id': self.id,
+            'tipo_envio': 'comite',
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Confirmar envío al Comité Académico',
+            'res_model': 'actividad.wizard.confirmar.envio',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    def action_abrir_confirmacion_catalogo(self):
+        self.ensure_one()
+        if not self.cantidad_horas or self.cantidad_horas <= 0:
+            raise ValidationError(
+                'La cantidad de horas debe ser mayor a 0 antes de enviar al Catálogo.'
+            )
+        if not self.creditos:
+            raise ValidationError(
+                'Debe asignar la cantidad de créditos antes de enviar al catálogo.'
+            )
+        wizard = self.env['actividad.wizard.confirmar.envio'].create({
+            'actividad_id': self.id,
+            'tipo_envio': 'catalogo',
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Confirmar envío al Catálogo',
+            'res_model': 'actividad.wizard.confirmar.envio',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
     def action_enviar_comite(self):
         """Envia la actividad como propuesta al Comite Academico.
         Permite reenvio cuando la propuesta fue rechazada previamente."""
@@ -903,20 +1024,20 @@ class Actividad(models.Model):
                     _('No tiene el permiso "Modificar Actividades Complementarias" '
                       'para enviar una propuesta al Comite Academico.')
                 )
-        if self.estado_code in ('aprobada', 'pendiente_inicio', 'en_curso', 'finalizada'):
-            raise ValidationError(
-                'Esta actividad ya fue aprobada o está en curso/finalizada. '
-                'No puede ser reenviada al Comité Académico.'
-            )
         # Validar cantidad de horas > 0
         if not self.cantidad_horas or self.cantidad_horas <= 0:
             raise ValidationError(
                 'La cantidad de horas debe ser mayor a 0 antes de enviar al Comité Académico.'
             )
-        # Validar que tenga creditos asignados
+        # Validar créditos
         if not self.creditos:
             raise ValidationError(
                 'Debe asignar la cantidad de créditos antes de enviar al Comité Académico.'
+            )
+        if self.estado_code in ('aprobada', 'pendiente_inicio', 'en_curso', 'finalizada'):
+            raise ValidationError(
+                'Esta actividad ya fue aprobada o está en curso/finalizada. '
+                'No puede ser reenviada al Comité Académico.'
             )
         # Verificar que no haya propuesta pendiente o aprobada ya
         propuesta_existente = self.env['actividad.propuesta'].search([
@@ -942,7 +1063,7 @@ class Actividad(models.Model):
             raise_if_not_found=False,
         )
         if action:
-            result = action.read()[0]
+            result = action.sudo().read()[0]
             result['target'] = 'current'
             return result
         return {
@@ -977,7 +1098,7 @@ class Actividad(models.Model):
             raise ValidationError(
                 'La cantidad de horas debe ser mayor a 0 antes de enviar al catálogo.'
             )
-        # Validar créditos obligatorios
+        # Validar créditos
         if not self.creditos:
             raise ValidationError(
                 'Debe asignar la cantidad de créditos antes de enviar al catálogo.'
@@ -990,10 +1111,16 @@ class Actividad(models.Model):
         # Si es predefinida y aún no está en un estado válido, la aprobamos automáticamente
         if self.actividad_predefinida and self.estado_code not in ('aprobada', 'pendiente_inicio', 'en_curso'):
             estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
-            self.write({'estado_id': estado_pendiente.id})
+            self.with_context(bypass_edit_protection=True).write({'estado_id': estado_pendiente.id})
             self.message_post(
                 body='Actividad predefinida (%s) aprobada automáticamente.' % self.actividad_predefinida
             )
+        elif self.estado_code == 'aprobada':
+            estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
+            self.with_context(bypass_edit_protection=True).write(
+                {'estado_id': estado_pendiente.id}
+            )
+            self.message_post(body='Actividad enviada al catálogo. Estado actualizado a Pendiente de Inicio.')
         if self.estado_code not in ('aprobada', 'pendiente_inicio'):
             raise ValidationError('Solo se pueden enviar al catálogo actividades aprobadas o pendientes de inicio.')
         self.with_context(bypass_edit_protection=True).write({'en_catalogo': True})
@@ -1004,7 +1131,7 @@ class Actividad(models.Model):
             raise_if_not_found=False,
         )
         if action:
-            result = action.read()[0]
+            result = action.sudo().read()[0]
             result['target'] = 'current'
             return result
         return {'type': 'ir.actions.act_window_close'}
