@@ -1222,11 +1222,24 @@ class Actividad(models.Model):
         if self.jd_firmo:
             raise ValidationError('El Jefe de Departamento ya firmó las constancias de esta actividad.')
 
-        if not self.alumno_ids:
-            raise ValidationError('Esta actividad no tiene alumnos inscritos. No hay constancias que generar.')
-
         # Registrar la firma
         self.with_context(bypass_edit_protection=True).write({'jd_firmo': True})
+
+        # Mensaje en el chatter
+        if self.constancias_firmadas:
+            self.message_post(
+                body='Constancias firmadas por el Jefe de Departamento. '
+                     'Ambas firmas completas — constancias liberadas a expedientes.'
+            )
+        else:
+            self.message_post(
+                body='Constancias firmadas por el Jefe de Departamento. '
+                     'Pendiente firma del Responsable de Actividad.'
+            )
+
+        # Si no hay alumnos no hay constancias que generar
+        if not self.alumno_ids:
+            return {'type': 'ir.actions.act_window_close'}
 
         fecha_firma = date.today()
         nombre_jd = self.env.user.name
@@ -1236,7 +1249,6 @@ class Actividad(models.Model):
         with zipfile.ZipFile(zip_buf, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
             for alumno in self.alumno_ids:
                 pdf_bytes = self._generar_pdf_constancia(alumno, fecha_firma, nombre_jd)
-                # Nombre de archivo usando datos de sii.estudiante si está disponible
                 nombre_archivo = alumno.name
                 nc = alumno.login
                 if 'sii.estudiante' in self.env:
@@ -1250,15 +1262,20 @@ class Actividad(models.Model):
                             estudiante.apellido_materno,
                         ]))
                         nc = estudiante.no_control
-                # Sanitizar nombre de archivo
-                safe_name = ''.join(c if c.isalnum() or c in ' _-' else '_' for c in nombre_archivo)
+                safe_name = ''.join(
+                    c if c.isalnum() or c in ' _-' else '_'
+                    for c in nombre_archivo
+                )
                 filename = f'{safe_name} - {nc}.pdf'
                 zf.writestr(filename, pdf_bytes)
 
         zip_bytes = zip_buf.getvalue()
 
         # Guardar el ZIP como adjunto descargable
-        actividad_safe = ''.join(c if c.isalnum() or c in ' _-' else '_' for c in self.name)
+        actividad_safe = ''.join(
+            c if c.isalnum() or c in ' _-' else '_'
+            for c in self.name
+        )
         zip_name = f'Constancias_{actividad_safe}_{fecha_firma.strftime("%Y%m%d")}.zip'
 
         attachment = self.env['ir.attachment'].sudo().create({
@@ -1269,18 +1286,6 @@ class Actividad(models.Model):
             'res_model': self._name,
             'res_id': self.id,
         })
-
-        # Mensaje en el chatter
-        if self.constancias_firmadas:
-            self.message_post(
-                body='Constancias firmadas por el Jefe de Departamento. '
-                     'Ambas firmas completas — constancias liberadas a expedientes.'
-            )
-        else:
-            self.message_post(
-                body='Constancias firmadas por el Jefe de Departamento. '
-                     'Pendiente firma del Responsable de Actividad.'
-            )
 
         # Devolver descarga directa del ZIP
         return {
