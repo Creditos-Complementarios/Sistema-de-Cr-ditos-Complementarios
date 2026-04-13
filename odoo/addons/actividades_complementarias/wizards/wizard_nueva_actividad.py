@@ -32,7 +32,7 @@ class WizardNuevaActividad(models.TransientModel):
     tipo_actividad_id = fields.Many2one(
         'actividad.tipo', string='Tipo de Actividad', required=True
     )
-    periodo = fields.Many2one('actividad.periodo', string='Periodo Escolar', required=True)
+    periodo = fields.Many2one('sii.periodo', string='Periodo Escolar', required=True)
     fecha_inicio = fields.Date(string='Fecha de Inicio', required=True)
     fecha_fin = fields.Date(string='Fecha de Finalización', required=True)
     cantidad_horas = fields.Float(string='Cantidad de Horas', required=True)
@@ -239,7 +239,7 @@ class WizardNuevaActividad(models.TransientModel):
                 raise_if_not_found=False,
             )
             if action:
-                result = action.read()[0]
+                result = action.sudo().read()[0]
                 result['target'] = 'current'
                 return result
         # Predefinida → abrir el registro para que el JD pueda enviarlo al catálogo
