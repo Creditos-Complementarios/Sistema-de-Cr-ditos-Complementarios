@@ -10,7 +10,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
 
 def _n_dias_habiles(n, desde=None):
@@ -1143,39 +1143,6 @@ class Actividad(models.Model):
             alignment=TA_JUSTIFY,
             spaceAfter=14,
         )
-        style_campo_label = ParagraphStyle(
-            'CampoLabel',
-            parent=styles['Normal'],
-            fontSize=10,
-            fontName='Helvetica-Bold',
-            textColor=colors.HexColor('#1a3a5c'),
-            spaceAfter=2,
-        )
-        style_campo_valor = ParagraphStyle(
-            'CampoValor',
-            parent=styles['Normal'],
-            fontSize=10,
-            fontName='Helvetica',
-            textColor=colors.HexColor('#333333'),
-            spaceAfter=10,
-        )
-        style_firma = ParagraphStyle(
-            'Firma',
-            parent=styles['Normal'],
-            fontSize=11,
-            fontName='Helvetica',
-            alignment=TA_CENTER,
-            spaceAfter=4,
-        )
-        style_firma_nombre = ParagraphStyle(
-            'FirmaNombre',
-            parent=styles['Normal'],
-            fontSize=12,
-            fontName='Helvetica-Bold',
-            textColor=colors.HexColor('#1a3a5c'),
-            alignment=TA_CENTER,
-        )
-
         story = []
 
         # ── Encabezado ──────────────────────────────────────────────────────
@@ -1352,7 +1319,7 @@ class Actividad(models.Model):
         _log = logging.getLogger(__name__)
         hoy = date.today()
 
-        estado_en_curso   = self.env.ref('actividades_complementarias.estado_en_curso',   raise_if_not_found=False)
+        estado_en_curso = self.env.ref('actividades_complementarias.estado_en_curso', raise_if_not_found=False)
         estado_finalizada = self.env.ref('actividades_complementarias.estado_finalizada', raise_if_not_found=False)
 
         # ── Iniciar actividades cuya fecha de inicio ya llegó ─────────────
