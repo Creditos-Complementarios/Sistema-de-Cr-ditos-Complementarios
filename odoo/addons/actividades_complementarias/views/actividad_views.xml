@@ -349,7 +349,7 @@
 
     <!-- Catálogo global: todas las actividades con en_catalogo=True -->
     <record id="action_actividad_catalogo" model="ir.actions.act_window">
-        <field name="name">Catálogo de Actividades</field>
+        <field name="name">Catálogo General de Actividades</field>
         <field name="res_model">actividad.complementaria</field>
         <field name="view_mode">list,kanban,form</field>
         <field name="domain">[('en_catalogo', '=', True)]</field>
