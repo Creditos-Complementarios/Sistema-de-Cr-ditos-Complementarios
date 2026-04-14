@@ -130,7 +130,7 @@
         <field name="model_id" ref="model_actividad_complementaria"/>
         <field name="domain_force">
             ['|',
-                ('departamento_id.name', 'ilike', 'sistem'),
+                ('departamento_id.nombre_departamento', 'ilike', 'sistem'),
                 ('en_catalogo', '=', True)
             ]
         </field>
@@ -146,7 +146,7 @@
         <field name="model_id" ref="model_actividad_complementaria"/>
         <field name="domain_force">
             ['|',
-                ('departamento_id.name', 'ilike', 'electr'),
+                ('departamento_id.nombre_departamento', 'ilike', 'electr'),
                 ('en_catalogo', '=', True)
             ]
         </field>
@@ -162,7 +162,7 @@
         <field name="model_id" ref="model_actividad_complementaria"/>
         <field name="domain_force">
             ['|',
-                ('departamento_id.name', 'ilike', 'biol'),
+                ('departamento_id.nombre_departamento', 'ilike', 'biol'),
                 ('en_catalogo', '=', True)
             ]
         </field>
@@ -183,7 +183,11 @@
     <record id="rule_empleado_permiso_jefe" model="ir.rule">
         <field name="name">JD: solo gestiona personal de su departamento</field>
         <field name="model_id" ref="model_actividad_empleado_permiso"/>
-        <field name="domain_force">[('departamento_id.jefe_id', '=', user.id)]</field>
+        <field name="domain_force">[('departamento_id', 'in', 
+        user.env['sii.empleado'].sudo().search(
+            [('correo', '=', user.login)]
+        ).mapped('id_departamento').ids
+    )]</field> 
         <field name="groups" eval="[(4, ref('actividades_complementarias.group_jefe_departamento'))]"/>
         <field name="perm_read" eval="True"/>
         <field name="perm_write" eval="True"/>

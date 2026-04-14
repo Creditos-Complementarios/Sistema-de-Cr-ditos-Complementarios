@@ -107,7 +107,7 @@ class Actividad(models.Model):
         string='Dominio Responsable',
     )
     departamento_id = fields.Many2one(
-        'actividad.departamento',
+        'sii.departamento',
         string='Departamento',
         compute='_compute_departamento',
         store=True,
@@ -524,54 +524,23 @@ class Actividad(models.Model):
 
     @api.depends('jefe_departamento_id')
     def _compute_departamento(self):
-        """Asigna automáticamente el departamento del JD.
-        Orden de búsqueda:
-        1. actividad.departamento donde jefe_id = usuario (datos demo/manual).
-        2. actividad.empleado.permiso del usuario.
-        3. sii.empleado por correo del usuario -> sii.departamento ->
-           busca o crea el actividad.departamento equivalente (usuarios SII).
-        """
+        directivos = self.env.ref('actividades_complementarias.departamento_directivos', raise_if_not_found=False)
         for rec in self:
             if not rec.jefe_departamento_id:
-                rec.departamento_id = False
+                rec.departamento_id = directivos.id if directivos else False
                 continue
-            # 1. Buscar en catálogo interno por jefe_id
-            depto = self.env['actividad.departamento'].search(
-                [('jefe_id', '=', rec.jefe_departamento_id.id)], limit=1
-            )
-            if depto:
-                rec.departamento_id = depto
-            # 2. Buscar en permisos de personal delegado
-            emp_permiso = self.env['actividad.empleado.permiso'].search(
-                [('user_id', '=', rec.jefe_departamento_id.id)], limit=1
-            )
-            if emp_permiso and emp_permiso.departamento_id:
-                rec.departamento_id = emp_permiso.departamento_id
-                continue
-
-            # 3. Fallback SII: buscar sii.empleado por correo del usuario
-            login = rec.jefe_departamento_id.login or ''
-            sii_emp = self.env['sii.empleado'].sudo().search(
-                [('correo', '=', login)], limit=1
-            )
-            if sii_emp and sii_emp.id_departamento:
-                nombre_sii = sii_emp.id_departamento.nombre_departamento
-                # Buscar o crear el actividad.departamento con ese nombre
-                depto = self.env['actividad.departamento'].sudo().search(
-                    [('name', '=ilike', nombre_sii)], limit=1
-                )
-                if not depto:
-                    depto = self.env['actividad.departamento'].sudo().create({
-                        'name': nombre_sii,
-                        'jefe_id': rec.jefe_departamento_id.id,
-                    })
-                else:
-                    # Asignar el jefe si aún no tiene uno
-                    if not depto.jefe_id:
-                        depto.sudo().write({'jefe_id': rec.jefe_departamento_id.id})
-                rec.departamento_id = depto
+            self.env.cr.execute("""
+                SELECT se.id_departamento
+                FROM sii_empleado se
+                INNER JOIN res_users ru ON ru.login = se.correo
+                WHERE ru.id = %s
+                LIMIT 1
+            """, (rec.jefe_departamento_id.id,))
+            row = self.env.cr.fetchone()  # (id_departamento,)
+            if row:
+                rec.departamento_id = row[0]
             else:
-                rec.departamento_id = False
+                rec.departamento_id = directivos.id if directivos else False
 
     @api.depends('jd_firmo', 'responsable_firmo')
     def _compute_constancias_firmadas(self):
@@ -1418,11 +1387,4 @@ class Actividad(models.Model):
                 )
 
 
-class ActividadDepartamento(models.Model):
-    """Catálogo simple de departamentos para asociar JD y personal."""
-    _name = 'actividad.departamento'
-    _description = 'Departamento'
-    _order = 'name'
 
-    name = fields.Char(string='Nombre', required=True)
-    jefe_id = fields.Many2one('res.users', string='Jefe de Departamento')

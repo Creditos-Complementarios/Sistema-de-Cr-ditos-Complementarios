@@ -28,9 +28,13 @@ class EmpleadoPermiso(models.Model):
         ondelete='cascade',
     )
     no_empleado = fields.Char(string='No. Empleado')
-    carrera = fields.Char(string='Carrera')
+    carrera = fields.Many2one(
+        'sii.carrera',
+        string='Carrera',
+    )
+
     departamento_id = fields.Many2one(
-        'actividad.departamento',
+        'sii.departamento',
         string='Departamento',
         required=True,
         ondelete='restrict',
@@ -103,15 +107,19 @@ class EmpleadoPermiso(models.Model):
             return []  # Admin ve todos los usuarios
 
         # 1. Buscar el departamento donde el usuario en sesión es Jefe
-        self.env.cr.execute(
-            "SELECT name FROM actividad_departamento WHERE jefe_id = %s LIMIT 1",
-            (self.env.user.id,)
-        )
+        self.env.cr.execute("""
+            SELECT sd.id, sd.nombre_departamento
+            FROM sii_departamento sd
+            INNER JOIN sii_empleado se ON se.id_departamento = sd.id
+            INNER JOIN res_users ru ON ru.login = se.correo
+            WHERE ru.id = %s
+            LIMIT 1
+        """, (self.env.user.id,))
         row = self.env.cr.fetchone()
 
         grupo_xmlid = None
         if row:
-            dept_name = row[0].lower()
+            dept_name = row[1].lower()
             for keyword, _rama, xmlid in DEPT_MAP:
                 if keyword in dept_name:
                     grupo_xmlid = xmlid
@@ -149,12 +157,28 @@ class EmpleadoPermiso(models.Model):
 
     @api.constrains('user_id', 'departamento_id')
     def _check_mismo_departamento(self):
+        # Buscamos el grupo de Jefe de Departamento usando su XML ID
+        grupo_jefe = self.env.ref('actividades_complementarias.group_jefe_departamento', raise_if_not_found=False)
+        
         for rec in self:
-            jefe = rec.departamento_id.jefe_id
-            if jefe and rec.user_id == jefe:
-                raise ValidationError(
-                    'El Jefe de Departamento no debe aparecer en la lista de personal.'
-                )
+            if not rec.departamento_id or not rec.user_id:
+                continue
+            
+            # 1. Comprobamos si el usuario pertenece al grupo de Jefe de Departamento
+            es_jefe = grupo_jefe and grupo_jefe in rec.user_id.group_ids
+            
+            if es_jefe:
+                # 2. Comprobamos si el empleado de este usuario está en el mismo departamento
+                # (Usa el ORM para buscar en el catálogo del SII)
+                empleado_sii = self.env['sii.empleado'].search([
+                    ('correo', '=', rec.user_id.login),
+                    ('id_departamento', '=', rec.departamento_id.id)
+                ], limit=1)
+                
+                if empleado_sii:
+                    raise ValidationError(
+                        'El Jefe de Departamento no debe aparecer en la lista de personal delegable.'
+                    )
 
     @api.constrains('user_id', 'departamento_grupo')
     def _check_jefe_solo_asigna_misma_rama(self):
@@ -162,15 +186,19 @@ class EmpleadoPermiso(models.Model):
         if self.env.user.has_group('actividades_complementarias.group_admin_actividades'):
             return
 
-        self.env.cr.execute(
-            "SELECT name FROM actividad_departamento WHERE jefe_id = %s LIMIT 1",
-            (self.env.user.id,)
-        )
+        self.env.cr.execute("""
+            SELECT sd.id, sd.nombre_departamento
+            FROM sii_departamento sd
+            INNER JOIN sii_empleado se ON se.id_departamento = sd.id
+            INNER JOIN res_users ru ON ru.login = se.correo
+            WHERE ru.id = %s
+            LIMIT 1
+        """, (self.env.user.id,))
         row_dept = self.env.cr.fetchone()
         rama_jefe = None
         if row_dept:
             for keyword, rama, _xmlid in DEPT_MAP:
-                if keyword in row_dept[0].lower():
+                if keyword in row_dept[1].lower():
                     rama_jefe = rama
                     break
         if not rama_jefe:
@@ -203,14 +231,18 @@ class EmpleadoPermiso(models.Model):
         """
         if not self.env.user.has_group('actividades_complementarias.group_admin_actividades'):
             grupo_xmlid = None
-            self.env.cr.execute(
-                "SELECT name FROM actividad_departamento WHERE jefe_id = %s LIMIT 1",
-                (self.env.user.id,)
-            )
+            self.env.cr.execute("""
+                SELECT sd.id, sd.nombre_departamento
+                FROM sii_departamento sd
+                INNER JOIN sii_empleado se ON se.id_departamento = sd.id
+                INNER JOIN res_users ru ON ru.login = se.correo
+                WHERE ru.id = %s
+                LIMIT 1
+            """, (self.env.user.id,))
             row_dept = self.env.cr.fetchone()
             if row_dept:
                 for keyword, _rama, xmlid in DEPT_MAP:
-                    if keyword in row_dept[0].lower():
+                    if keyword in row_dept[1].lower():
                         grupo_xmlid = xmlid
                         break
             if not grupo_xmlid:
@@ -249,10 +281,14 @@ class EmpleadoPermiso(models.Model):
             return  # El admin no necesita auto-sync
 
         # 1. Detectar departamento del JD en sesión
-        self.env.cr.execute(
-            "SELECT id, name FROM actividad_departamento WHERE jefe_id = %s LIMIT 1",
-            (self.env.user.id,)
-        )
+        self.env.cr.execute("""
+            SELECT sd.id, sd.nombre_departamento
+            FROM sii_departamento sd
+            INNER JOIN sii_empleado se ON se.id_departamento = sd.id
+            INNER JOIN res_users ru ON ru.login = se.correo
+            WHERE ru.id = %s
+            LIMIT 1
+        """, (self.env.user.id,))
         row_dept = self.env.cr.fetchone()
         if not row_dept:
             return

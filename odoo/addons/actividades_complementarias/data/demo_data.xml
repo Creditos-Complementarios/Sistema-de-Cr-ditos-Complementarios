@@ -178,38 +178,14 @@
     </record>
 
     <!-- ================================================================== -->
-    <!--  DEPARTAMENTOS                                                      -->
-    <!-- ================================================================== -->
-
-    <record id="depto_directivos" model="actividad.departamento">
-        <field name="name">Directivos</field>
-        <field name="jefe_id" ref="base.user_admin"/>
-    </record>
-
-    <record id="depto_sistemas" model="actividad.departamento">
-        <field name="name">Ingeniería en Sistemas Computacionales</field>
-        <field name="jefe_id" ref="user_jefe_sistemas"/>
-    </record>
-
-    <record id="depto_electronica" model="actividad.departamento">
-        <field name="name">Ingeniería Electrónica</field>
-        <field name="jefe_id" ref="user_jefe_electronica"/>
-    </record>
-
-    <record id="depto_biologia" model="actividad.departamento">
-        <field name="name">Ingeniería en Biología</field>
-        <field name="jefe_id" ref="user_jefe_biologia"/>
-    </record>
-
-    <!-- ================================================================== -->
     <!--  PERMISOS DELEGADOS                                                 -->
     <!-- ================================================================== -->
 
     <record id="permiso_personal_sistemas" model="actividad.empleado.permiso">
         <field name="user_id" ref="user_personal_sistemas"/>
         <field name="no_empleado">E-00142</field>
-        <field name="carrera">ISC</field>
-        <field name="departamento_id" ref="depto_sistemas"/>
+        <field name="carrera" ref="actividades_complementarias.car_isc"/>
+        <field name="departamento_id" ref="actividades_complementarias.dep_dsic"/>
         <field name="departamento_grupo">sistemas</field>
         <field name="perm_modificar_actividades">True</field>
         <field name="perm_difundir_actividades">True</field>
@@ -220,8 +196,8 @@
     <record id="permiso_personal_electrica" model="actividad.empleado.permiso">
         <field name="user_id" ref="user_personal_electrica"/>
         <field name="no_empleado">E-00215</field>
-        <field name="carrera">IEL</field>
-        <field name="departamento_id" ref="depto_electronica"/>
+        <field name="carrera" ref="actividades_complementarias.car_iee"/>
+        <field name="departamento_id" ref="actividades_complementarias.dep_dee"/>
         <field name="departamento_grupo">electrica</field>
         <field name="perm_modificar_actividades">True</field>
         <field name="perm_difundir_actividades">False</field>
@@ -246,7 +222,7 @@
         <field name="descripcion">Equipo representativo de fútbol del instituto. Entrenos semanales y participación en torneos regionales del TecNM.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_deportiva"/>
         <field name="periodo" ref="actividades_complementarias.per_2025A"/>
-        <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
+        <field name="jefe_departamento_id" ref="user_emp_000"/>
         <field name="responsable_actividad_id" ref="user_responsable_1"/>
         <field name="fecha_inicio">2026-06-09</field>
         <field name="fecha_fin">2026-07-01</field>
@@ -264,7 +240,7 @@ Jueves 16:00-18:00</field>
         <field name="descripcion">Diseño y construcción de robots para competencias nacionales e internacionales. Se trabaja con Arduino, ROS y visión artificial.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_academica"/>
         <field name="periodo" ref="actividades_complementarias.per_2025A"/>
-        <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
+        <field name="jefe_departamento_id" ref="user_emp_000"/>
         <field name="responsable_actividad_id" ref="user_responsable_1"/>
         <field name="fecha_inicio">2026-07-14</field>
         <field name="fecha_fin">2026-08-05</field>
@@ -284,7 +260,7 @@ Miércoles 15:00-17:00</field>
         <field name="descripcion">Curso en línea de Python orientado a aplicaciones de ingeniería. Módulos de análisis de datos, automatización y certificado al terminar.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_academica"/>
         <field name="periodo" ref="actividades_complementarias.per_2025A"/>
-        <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
+        <field name="jefe_departamento_id" ref="user_emp_000"/>
         <field name="responsable_actividad_id" ref="user_responsable_2"/>
         <field name="fecha_inicio">2026-06-01</field>
         <field name="fecha_fin">2026-06-30</field>
@@ -301,7 +277,7 @@ Miércoles 15:00-17:00</field>
         <field name="descripcion">Técnicas de fotografía aplicadas a la documentación de proyectos científicos e ingeniería. Uso de DSLR, iluminación y edición básica.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_cultural"/>
         <field name="periodo" ref="actividades_complementarias.per_2025A"/>
-        <field name="jefe_departamento_id" ref="user_jefe_biologia"/>
+        <field name="jefe_departamento_id" ref="user_emp_001"/>
         <field name="responsable_actividad_id" ref="user_responsable_3"/>
         <field name="fecha_inicio">2026-05-20</field>
         <field name="fecha_fin">2026-06-20</field>
@@ -319,7 +295,7 @@ Miércoles 15:00-17:00</field>
         <field name="descripcion">Taller de expresión oral y corporal orientado al desarrollo de habilidades de comunicación profesional y presentaciones en público.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_cultural"/>
         <field name="periodo" ref="actividades_complementarias.per_2025A"/>
-        <field name="jefe_departamento_id" ref="user_jefe_electronica"/>
+        <field name="jefe_departamento_id" ref="user_emp_001"/>
         <field name="responsable_actividad_id" ref="user_responsable_2"/>
         <field name="fecha_inicio">2026-05-01</field>
         <field name="fecha_fin">2026-06-30</field>
@@ -337,7 +313,7 @@ Miércoles 15:00-17:00</field>
         <field name="descripcion">Conjunto representativo de danza folclórica. Participación en eventos institucionales y competencias culturales del TecNM.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_cultural"/>
         <field name="periodo" ref="actividades_complementarias.per_2025A"/>
-        <field name="jefe_departamento_id" ref="user_jefe_biologia"/>
+        <field name="jefe_departamento_id" ref="user_emp_001"/>
         <field name="responsable_actividad_id" ref="user_responsable_3"/>
         <field name="fecha_inicio">2026-05-15</field>
         <field name="fecha_fin">2026-07-15</field>
@@ -357,7 +333,7 @@ Jueves 18:00-20:00</field>
         <field name="descripcion">Curso intensivo de inglés enfocado en vocabulario técnico para ingeniería. Preparación para TOEFL básico.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_academica"/>
         <field name="periodo" ref="actividades_complementarias.per_2025B"/>
-        <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
+        <field name="jefe_departamento_id" ref="user_emp_000"/>
         <field name="responsable_actividad_id" ref="user_responsable_1"/>
         <field name="fecha_inicio">2026-08-01</field>
         <field name="fecha_fin">2026-12-15</field>
@@ -377,7 +353,7 @@ Jueves 18:00-20:00</field>
         <field name="descripcion">Programa de servicio social en comunidades rurales de Quintana Roo. Talleres de alfabetización digital y mantenimiento de equipos de cómputo.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_servicio_social"/>
         <field name="periodo" ref="actividades_complementarias.per_2025B"/>
-        <field name="jefe_departamento_id" ref="user_jefe_electronica"/>
+        <field name="jefe_departamento_id" ref="user_emp_001"/>
         <field name="responsable_actividad_id" ref="user_responsable_2"/>
         <field name="fecha_inicio">2026-08-10</field>
         <field name="fecha_fin">2026-11-30</field>
@@ -396,7 +372,7 @@ Jueves 18:00-20:00</field>
         <field name="descripcion">Competencia de 48 horas para desarrollar soluciones con inteligencia artificial aplicada a problemáticas sociales reales del estado de Quintana Roo.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_nueva"/>
         <field name="periodo" ref="actividades_complementarias.per_2026A"/>
-        <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
+        <field name="jefe_departamento_id" ref="user_emp_000"/>
         <field name="responsable_actividad_id" ref="user_responsable_1"/>
         <field name="fecha_inicio">2026-05-10</field>
         <field name="fecha_fin">2026-05-12</field>
@@ -411,7 +387,7 @@ Jueves 18:00-20:00</field>
         <field name="descripcion">Torneo de ajedrez con participación de varios institutos de la región sureste del TecNM.</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_deportiva"/>
         <field name="periodo" ref="actividades_complementarias.per_2026A"/>
-        <field name="jefe_departamento_id" ref="user_jefe_electronica"/>
+        <field name="jefe_departamento_id" ref="user_emp_001"/>
         <field name="responsable_actividad_id" ref="user_responsable_2"/>
         <field name="fecha_inicio">2026-05-20</field>
         <field name="fecha_fin">2026-05-21</field>

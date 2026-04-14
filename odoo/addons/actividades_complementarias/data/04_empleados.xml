@@ -11,11 +11,11 @@
 </record>
 <record id="emp_001" model="sii.empleado">
   <field name="rfc_empleado">MIRV750001ABC</field>
-  <field name="id_departamento" ref="dep_dcea"/>
+  <field name="id_departamento" ref="dep_dee"/>
   <field name="nombre">Víctor</field>
   <field name="apellido_paterno">Miranda</field>
   <field name="apellido_materno">Rojas</field>
-  <field name="correo">víctor.miranda@chetumal.tecnm.mx</field>
+  <field name="correo">victor.miranda@chetumal.tecnm.mx</field>
 </record>
 <record id="emp_002" model="sii.empleado">
   <field name="rfc_empleado">ORCS750002ABC</field>

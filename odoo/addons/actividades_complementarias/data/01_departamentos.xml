@@ -13,5 +13,8 @@
 <record id="dep_dee" model="sii.departamento">
   <field name="nombre_departamento">Eléctrica y Electrónica</field>
 </record>
+<record id="departamento_directivos" model="sii.departamento">
+    <field name="nombre_departamento">Directivos</field>
+</record>
 </data>
 </odoo>

@@ -20,7 +20,7 @@
         <field name="login">victor.miranda@chetumal.tecnm.mx</field>
         <field name="password">Admin1234!</field>
         <field name="company_id" ref="base.main_company"/>
-        <field name="group_ids" eval="[(4, ref('actividades_complementarias.group_responsable_actividad'))]"/>
+        <field name="group_ids" eval="[(4, ref('actividades_complementarias.group_jefe_departamento'))]"/>
     </record>
     <record id="user_emp_002" model="res.users">
         <field name="name">Sergio Ortiz Cruz</field>
