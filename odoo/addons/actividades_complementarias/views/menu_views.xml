@@ -22,12 +22,15 @@
               sequence="10"
               groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
 
+    <!-- Jefe de Departamento -->
     <menuitem id="menu_catalogo"
-              name="Catálogo de Actividades"
-              parent="menu_jefe_depto"
-              action="action_actividad_catalogo"
-              sequence="20"
-              groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
+            name="Catálogo de Actividades"
+            parent="menu_jefe_depto"
+            action="action_actividad_catalogo"
+            sequence="20"
+            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
+
+
 
     <menuitem id="menu_mis_propuestas"
               name="Mis Propuestas al Comité"
@@ -85,12 +88,34 @@
               sequence="13"
               groups="actividades_complementarias.group_admin_actividades"/>
 
-    <menuitem id="menu_personal_catalogo"
-              name="Catálogo de Actividades"
-              parent="menu_personal_depto"
-              action="action_actividad_catalogo"
-              sequence="20"
-              groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_admin_actividades"/>
+   <!-- DESPUÉS: un menuitem por departamento -->
+    <menuitem id="menu_personal_catalogo_sistemas"
+            name="Catálogo de Actividades"
+            parent="menu_personal_depto"
+            action="action_catalogo_personal_sistemas"
+            sequence="20"
+            groups="actividades_complementarias.group_personal_departamento_sistemas"/>
+
+    <menuitem id="menu_personal_catalogo_electrica"
+            name="Catálogo de Actividades"
+            parent="menu_personal_depto"
+            action="action_catalogo_personal_electrica"
+            sequence="21"
+            groups="actividades_complementarias.group_personal_departamento_electrica"/>
+
+    <menuitem id="menu_personal_catalogo_biologia"
+            name="Catálogo de Actividades"
+            parent="menu_personal_depto"
+            action="action_catalogo_personal_biologia"
+            sequence="22"
+            groups="actividades_complementarias.group_personal_departamento_biologia"/>
+
+    <menuitem id="menu_personal_catalogo_admin"
+            name="Catálogo de Actividades"
+            parent="menu_personal_depto"
+            action="action_actividad_catalogo"
+            sequence="23"
+            groups="actividades_complementarias.group_admin_actividades"/>
 
     <!-- ── Comité Académico ───────────────────────────────────────────────── -->
     <menuitem id="menu_comite"
@@ -113,12 +138,13 @@
               sequence="20"
               groups="actividades_complementarias.group_comite_academico,actividades_complementarias.group_admin_actividades"/>
 
+    <!-- Comité Académico -->
     <menuitem id="menu_catalogo_comite"
-              name="Catálogo de Actividades"
-              parent="menu_comite"
-              action="action_actividad_catalogo"
-              sequence="30"
-              groups="actividades_complementarias.group_comite_academico,actividades_complementarias.group_admin_actividades"/>
+          name="Catálogo de Actividades"
+          parent="menu_comite"
+          action="action_actividad_catalogo_comite"   
+          sequence="30"
+          groups="actividades_complementarias.group_comite_academico,actividades_complementarias.group_admin_actividades"/>
 
     <!-- ── Configuración ─────────────────────────────────────────────────── -->
     <menuitem id="menu_configuracion"

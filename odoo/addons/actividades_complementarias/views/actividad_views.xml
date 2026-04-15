@@ -353,7 +353,47 @@
         <field name="name">Catálogo General de Actividades</field>
         <field name="res_model">actividad.complementaria</field>
         <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('en_catalogo', '=', True), ('jefe_departamento_id', '=', uid)]</field>
+        <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
+        <field name="context">{'hide_catalogo': True}</field>
+    </record>
+
+    <!-- Catálogo para Comité Académico: todas las actividades en catálogo -->
+    <record id="action_actividad_catalogo_comite" model="ir.actions.act_window">
+        <field name="name">Catálogo General de Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,kanban,form</field>
         <field name="domain">[('en_catalogo', '=', True)]</field>
+        <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
+        <field name="context">{'hide_catalogo': True}</field>
+    </record>
+
+    <!-- Catálogo para Personal de Sistemas -->
+    <record id="action_catalogo_personal_sistemas" model="ir.actions.act_window">
+        <field name="name">Catálogo de Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('en_catalogo', '=', True), ('departamento_id.name', 'ilike', 'sistem')]</field>
+        <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
+        <field name="context">{'hide_catalogo': True}</field>
+    </record>
+
+    <!-- Catálogo para Personal de Eléctrica -->
+    <record id="action_catalogo_personal_electrica" model="ir.actions.act_window">
+        <field name="name">Catálogo de Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('en_catalogo', '=', True), ('departamento_id.name', 'ilike', 'electr')]</field>
+        <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
+        <field name="context">{'hide_catalogo': True}</field>
+    </record>
+
+    <!-- Catálogo para Personal de Biología -->
+    <record id="action_catalogo_personal_biologia" model="ir.actions.act_window">
+        <field name="name">Catálogo de Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('en_catalogo', '=', True), ('departamento_id.name', 'ilike', 'biol')]</field>
         <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
         <field name="context">{'hide_catalogo': True}</field>
     </record>

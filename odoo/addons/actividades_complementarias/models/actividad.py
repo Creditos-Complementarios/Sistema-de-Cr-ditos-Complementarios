@@ -1394,6 +1394,41 @@ class Actividad(models.Model):
                     ', '.join(por_finalizar.mapped('name')),
                 )
 
+    def action_abrir_catalogo(self):
+        """Acción dinámica: devuelve el catálogo filtrado según el rol del usuario.
+        - Comité Académico  → todas las actividades en catálogo
+        - Personal          → solo las de su departamento
+        - Jefe / Admin      → solo las de su departamento (vía jefe_departamento_id)
+                    """
+        user = self.env.user
+        domain = [('en_catalogo', '=', True)]
+        es_comite = user.has_group(
+        'actividades_complementarias.group_comite_academico'
+        )
+        es_admin = user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+
+        if not es_comite and not es_admin:
+            # Buscar el departamento del usuario en empleado.permiso
+            permiso = self.env['actividad.empleado.permiso'].sudo().search(
+                [('user_id', '=', user.id)], limit=1
+            )
+        if permiso and permiso.departamento_id:
+            domain.append(('departamento_id', '=', permiso.departamento_id.id))
+
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Catálogo de Actividades',
+            'res_model': 'actividad.complementaria',
+            'view_mode': 'list,kanban,form',
+            'domain': domain,
+            'context': {'hide_catalogo': True},
+            'search_view_id': self.env.ref(
+            'actividades_complementarias.view_actividad_Catalogo_search'
+            ).id,
+        }
+
 
 class ActividadDepartamento(models.Model):
     """Catálogo simple de departamentos para asociar JD y personal."""
