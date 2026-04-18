@@ -729,7 +729,9 @@ class Actividad(models.Model):
         is_jd = self.env.user.has_group(
             'actividades_complementarias.group_jefe_departamento'
         )
-        is_personal = self._es_personal()
+        is_ra = self.env.user.has_group(
+            'actividades_complementarias.group_responsable_actividad'
+        )
 
         for rec in self:
             # Regla 1 (absoluta): finalizada → nadie edita
@@ -746,13 +748,13 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            if is_personal:
+            if is_ra and rec.responsable_actividad_id.id == self.env.user.id:
                 rec.permisos_actividad_finalizada = False
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            if not is_jd and not is_personal:
+            if not is_jd:
                 # Otros roles: formulario de solo lectura
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
@@ -819,6 +821,37 @@ class Actividad(models.Model):
         ).create(vals_list)
         return records.with_context(actividad_creating=False)
 
+    @api.model
+    def action_personal_mis_actividades(self):
+        """Mis Actividades para Personal: filtra por departamento del usuario
+        usando DEPT_MAP en lugar de dominios estáticos por rama.
+        Funciona tanto con usuarios SII como con datos demo."""
+        from .empleado_permiso import DEPT_MAP
+
+        domain = [('id', '=', False)]  # default: nada si no se detecta dept
+        for keyword, _rama, xmlid in DEPT_MAP:
+            if self.env.user.has_group(xmlid):
+                domain = [('departamento_id.name', 'ilike', keyword)]
+                break
+
+        list_view = self.env.ref('actividades_complementarias.view_actividad_list')
+        kanban_view = self.env.ref('actividades_complementarias.view_actividad_kanban')
+        form_view = self.env.ref('actividades_complementarias.view_actividad_form')
+        search_view = self.env.ref('actividades_complementarias.view_actividad_search')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Mis Actividades',
+            'res_model': 'actividad.complementaria',
+            'view_mode': 'list,kanban,form',
+            'domain': domain,
+            'views': [
+                (list_view.id, 'list'),
+                (kanban_view.id, 'kanban'),
+                (form_view.id, 'form'),
+            ],
+            'search_view_id': [search_view.id, search_view.name],
+        }
+
     # ────────────────────────────────────────────────────────────────────────
     # ORM override: write()
     # ────────────────────────────────────────────────────────────────────────
@@ -844,6 +877,9 @@ class Actividad(models.Model):
         is_jd = self.env.user.has_group(
             'actividades_complementarias.group_jefe_departamento'
         )
+        is_ra = self.env.user.has_group(
+            'actividades_complementarias.group_responsable_actividad'
+        )
 
         for rec in self:
             # ── Regla 1: Finalizada → nadie puede modificar (incluido admin) ──
@@ -856,6 +892,9 @@ class Actividad(models.Model):
 
             # Admin: sin restricciones de estado
             if is_admin:
+                continue
+
+            if is_ra and rec.responsable_actividad_id.id == self.env.user.id:
                 continue
 
             # ── Personal de Departamento ──────────────────────────────────────
