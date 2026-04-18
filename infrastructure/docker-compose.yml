@@ -39,7 +39,7 @@ services:
       - odoo_filestore:/var/lib/odoo
       - ./config/odoo.conf:/etc/odoo/odoo.conf
     restart: unless-stopped
-    command: odoo --dev=all
+    command: odoo --dev=xml
 
   odoo-worker:
     image: odoo:19.0
