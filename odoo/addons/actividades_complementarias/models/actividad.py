@@ -293,6 +293,27 @@ class Actividad(models.Model):
         compute='_compute_permisos_edicion',
         help='True cuando el usuario en sesión no puede editar ningún campo del formulario.',
     )
+    responsable_readonly = fields.Boolean(
+    string='Responsable Solo Lectura',
+    compute='_compute_responsable_readonly',
+)
+
+    @api.depends('estado_code')
+    def _compute_responsable_readonly(self):
+        is_jd = self.env.user.has_group(
+            'actividades_complementarias.group_jefe_departamento'
+        )
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+        # JD y admin pueden editar según estado; el resto siempre readonly
+        for rec in self:
+            if is_admin:
+                rec.responsable_readonly = False
+            elif is_jd:
+                rec.responsable_readonly = rec.estado_code in ('en_revision', 'finalizada')
+            else:
+                rec.responsable_readonly = True
 
     # Relaciones
     horario_ids = fields.One2many(
@@ -802,19 +823,22 @@ class Actividad(models.Model):
     def create(self, vals_list):
         """Estampa el flag actividad_creating=True en el contexto para que
         _check_fechas pueda distinguir una creación de una edición.
+
+        Para usuarios de Personal/RA (no JD, no admin), se auto-asigna
+        como responsable_actividad_id si no viene ya en los valores.
+
         El flag se elimina del recordset devuelto para que llamadas
         posteriores a write() sobre esos registros no lo hereden.
         """
-        # Auto-poblar tipo_actividad_id desde predefinida cuando personal
-        # no puede enviarlo por tener el campo readonly en la vista.
-        for vals in vals_list:
-            if not vals.get('tipo_actividad_id') and vals.get('actividad_predefinida'):
-                predefinida = self.env['actividad.tipo.predefinida'].browse(
-                    vals['actividad_predefinida']
-                )
-                if predefinida.tipo_actividad_id:
-                    vals['tipo_actividad_id'] = predefinida.tipo_actividad_id.id
-
+        is_jd = self.env.user.has_group(
+            'actividades_complementarias.group_jefe_departamento'
+        )
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+        if not is_jd and not is_admin:
+            for vals in vals_list:
+                vals.setdefault('responsable_actividad_id', self.env.user.id)
         records = super(
             Actividad,
             self.with_context(actividad_creating=True),

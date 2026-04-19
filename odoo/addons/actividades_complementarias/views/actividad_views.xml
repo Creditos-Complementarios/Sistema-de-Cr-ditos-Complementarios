@@ -182,7 +182,7 @@
                                    domain="dominio_responsable"
                                    options="{'no_create': True, 'no_quick_create': True}"
                                    invisible="not actividad_predefinida and estado_code not in ['aprobada','pendiente_inicio','en_curso','finalizada','rechazada']"
-                                   readonly="estado_code in ['en_revision','finalizada'] or es_personal"/>
+                                   readonly="responsable_readonly"/>
                             <button name="action_abrir_wizard_responsable"
                                     string="Asignar Responsable"
                                     type="object"
