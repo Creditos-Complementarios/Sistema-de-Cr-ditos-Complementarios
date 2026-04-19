@@ -1259,6 +1259,25 @@ class Actividad(models.Model):
             'target': 'new',
         }
 
+    def action_confirmar_actividad(self):
+        """Responsable/Personal: confirma la actividad pasándola directamente
+        a 'Pendiente de Inicio' sin intervención del comité ni del JD."""
+        self.ensure_one()
+        if self.estado_code:
+            raise ValidationError(
+                'Esta actividad ya fue confirmada o se encuentra en un estado avanzado.'
+            )
+        estado_pendiente = self.env.ref(
+            'actividades_complementarias.estado_pendiente_inicio'
+        )
+        self.with_context(bypass_edit_protection=True).write(
+            {'estado_id': estado_pendiente.id}
+        )
+        self.message_post(
+            body='Actividad confirmada por el Responsable de Actividad. '
+                'En espera de envío al catálogo por el Jefe de Departamento.'
+        )
+
     def action_enviar_comite(self):
         """Envia la actividad como propuesta al Comite Academico.
         Permite reenvio cuando la propuesta fue rechazada previamente."""
