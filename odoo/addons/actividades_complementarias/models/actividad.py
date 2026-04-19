@@ -381,6 +381,39 @@ class Actividad(models.Model):
 
         return user
 
+    def _default_jefe_departamento(self):
+        """Devuelve el JD correcto según el usuario en sesión:
+        - JD o Admin: él mismo (comportamiento original).
+        - Personal / RA: busca el jefe_id del actividad.departamento
+        cuyo nombre coincide con el sii.departamento del empleado.
+        """
+        user = self.env.user
+        is_jd = user.has_group('actividades_complementarias.group_jefe_departamento')
+        is_admin = user.has_group('actividades_complementarias.group_admin_actividades')
+        if is_jd or is_admin:
+            return user
+
+        # Buscar el sii.empleado por correo del usuario
+        sii_emp = self.env['sii.empleado'].sudo().search(
+            [('correo', '=', user.login)], limit=1
+        )
+        if sii_emp and sii_emp.id_departamento:
+            nombre_sii = sii_emp.id_departamento.nombre_departamento
+            depto = self.env['actividad.departamento'].sudo().search(
+                [('name', 'ilike', nombre_sii)], limit=1
+            )
+            if depto and depto.jefe_id:
+                return depto.jefe_id
+
+        # Fallback: buscar via empleado_permiso (usuarios demo)
+        permiso = self.env['actividad.empleado.permiso'].sudo().search(
+            [('user_id', '=', user.id)], limit=1
+        )
+        if permiso and permiso.departamento_id and permiso.departamento_id.jefe_id:
+            return permiso.departamento_id.jefe_id
+
+        return user  # último recurso
+
     def _es_personal(self):
         """True si el usuario en sesion pertenece a algun grupo de Personal."""
         return any(self.env.user.has_group(g) for g in self._GRUPOS_PERSONAL)
