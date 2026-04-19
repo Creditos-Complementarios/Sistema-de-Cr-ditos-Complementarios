@@ -130,7 +130,7 @@
         <field name="groups" eval="[(4, ref('actividades_complementarias.group_responsable_actividad'))]"/>
         <field name="perm_read" eval="False"/>
         <field name="perm_write" eval="True"/>
-        <field name="perm_create" eval="False"/>
+        <field name="perm_create" eval="True"/>
     </record>
 
     <!--
@@ -188,8 +188,8 @@
         <field name="model_id" ref="model_actividad_complementaria"/>
         <field name="domain_force">[('departamento_id.name', 'ilike', 'sistem')]</field>
         <field name="groups" eval="[(4, ref('actividades_complementarias.group_personal_departamento_sistemas'))]"/>
-        <field name="perm_read"   eval="False"/>
-        <field name="perm_write"  eval="True"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
         <field name="perm_create" eval="True"/>
         <field name="perm_unlink" eval="False"/>
     </record>
@@ -199,8 +199,8 @@
         <field name="model_id" ref="model_actividad_complementaria"/>
         <field name="domain_force">[('departamento_id.name', 'ilike', 'electr')]</field>
         <field name="groups" eval="[(4, ref('actividades_complementarias.group_personal_departamento_electrica'))]"/>
-        <field name="perm_read"   eval="False"/>
-        <field name="perm_write"  eval="True"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
         <field name="perm_create" eval="True"/>
         <field name="perm_unlink" eval="False"/>
     </record>
@@ -212,7 +212,7 @@
         <field name="groups" eval="[(4, ref('actividades_complementarias.group_personal_departamento_biologia'))]"/>
         <field name="perm_read" eval="False"/>
         <field name="perm_write" eval="True"/>
-        <field name="perm_create" eval="False"/>
+        <field name="perm_create" eval="True"/>
         <field name="perm_unlink" eval="False"/>
     </record>
 

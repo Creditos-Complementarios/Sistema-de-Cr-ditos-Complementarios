@@ -802,7 +802,7 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            if is_ra and rec.responsable_actividad_id.id == self.env.user.id:
+            if is_ra and (not rec.id or rec.responsable_actividad_id.id == self.env.user.id):
                 rec.permisos_actividad_finalizada = False
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
@@ -951,6 +951,7 @@ class Actividad(models.Model):
             if is_admin:
                 continue
 
+            # Reemplazar por ¿if is_ra and (not rec.id or rec.responsable_actividad_id.id == self.env.user.id):?
             if is_ra and rec.responsable_actividad_id.id == self.env.user.id:
                 continue
 
@@ -1257,6 +1258,25 @@ class Actividad(models.Model):
             'view_mode': 'form',
             'target': 'new',
         }
+
+    def action_confirmar_actividad(self):
+        """Responsable/Personal: confirma la actividad pasándola directamente
+        a 'Pendiente de Inicio' sin intervención del comité ni del JD."""
+        self.ensure_one()
+        if self.estado_code:
+            raise ValidationError(
+                'Esta actividad ya fue confirmada o se encuentra en un estado avanzado.'
+            )
+        estado_pendiente = self.env.ref(
+            'actividades_complementarias.estado_pendiente_inicio'
+        )
+        self.with_context(bypass_edit_protection=True).write(
+            {'estado_id': estado_pendiente.id}
+        )
+        self.message_post(
+            body='Actividad confirmada por el Responsable de Actividad. '
+                'En espera de envío al catálogo por el Jefe de Departamento.'
+        )
 
     def action_enviar_comite(self):
         """Envia la actividad como propuesta al Comite Academico.
