@@ -1267,6 +1267,25 @@ class Actividad(models.Model):
             raise ValidationError(
                 'Esta actividad ya fue confirmada o se encuentra en un estado avanzado.'
             )
+        if not self.cantidad_horas or self.cantidad_horas <= 0:
+            raise ValidationError(
+                'La cantidad de horas debe ser mayor a 0 antes de confirmar la actividad.'
+            )
+        if self.fecha_inicio and self.fecha_fin:
+            dias = (self.fecha_fin - self.fecha_inicio).days + 1
+            horas_maximas = dias * 12
+            if self.cantidad_horas > horas_maximas:
+                raise ValidationError(
+                    f'La cantidad de horas ({self.cantidad_horas} h) no puede ser mayor '
+                    f'al máximo permitido para el período seleccionado '
+                    f'({dias} día(s) × 12 h = {horas_maximas} h máximo).'
+                )
+        if not self.cupo_ilimitado:
+            if self.cupo_min < 1:
+                raise ValidationError('El cupo mínimo debe ser al menos 1.')
+            if self.cupo_max < self.cupo_min:
+                raise ValidationError('El cupo máximo debe ser mayor o igual al cupo mínimo.')
+        
         estado_pendiente = self.env.ref(
             'actividades_complementarias.estado_pendiente_inicio'
         )
