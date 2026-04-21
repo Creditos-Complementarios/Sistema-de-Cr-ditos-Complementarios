@@ -115,6 +115,7 @@
                             groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                 </header>
                 <sheet>
+                    <field name="tipo_actividad_readonly" invisible="1"/>
                     <field name="tiene_propuesta_activa" invisible="1"/>
                     <field name="tipo_actividad_predefinida" invisible="1"/>
                     <field name="tipo_es_nueva" invisible="1"/>

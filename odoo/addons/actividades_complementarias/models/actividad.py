@@ -295,9 +295,11 @@ class Actividad(models.Model):
     )
     responsable_readonly = fields.Boolean(
     string='Responsable Solo Lectura',
-    compute='_compute_responsable_readonly',
-)
-
+        compute='_compute_responsable_readonly',
+    )
+    tipo_actividad_readonly = fields.Boolean(
+        compute='_compute_responsable_readonly',
+    )
     @api.depends('estado_code')
     def _compute_responsable_readonly(self):
         is_jd = self.env.user.has_group(
@@ -310,10 +312,15 @@ class Actividad(models.Model):
         for rec in self:
             if is_admin:
                 rec.responsable_readonly = False
+                rec.tipo_actividad_readonly = False
             elif is_jd:
                 rec.responsable_readonly = rec.estado_code in ('en_revision', 'finalizada')
+                rec.tipo_actividad_readonly = rec.estado_code in (
+                    'aprobada', 'pendiente_inicio', 'en_curso', 'finalizada', 'en_revision'
+                )
             else:
                 rec.responsable_readonly = True
+                rec.tipo_actividad_readonly = True
 
     # Relaciones
     horario_ids = fields.One2many(
