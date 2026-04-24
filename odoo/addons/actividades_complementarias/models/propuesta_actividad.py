@@ -2,6 +2,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 from datetime import date, timedelta
+from markupsafe import Markup
 
 
 class PropuestaActividadComplementaria(models.Model):
@@ -97,6 +98,42 @@ class PropuestaActividadComplementaria(models.Model):
             else:
                 rec.fecha_limite_revision = False
 
+    def _partner_jd(self):
+        self.ensure_one()
+        jd = self.actividad_id.jefe_departamento_id
+        if jd and jd.partner_id:
+            return jd.partner_id
+        return self.env['res.partner']
+
+    def _notificar_jd(self, asunto, cuerpo_propuesta, cuerpo_actividad):
+        self.ensure_one()
+        partner_jd = self._partner_jd()
+
+        if partner_jd:
+            self.message_subscribe(partner_ids=partner_jd.ids)
+
+        self.message_post(
+            body=Markup(cuerpo_propuesta),
+            subject=asunto,
+            subtype_xmlid='mail.mt_comment',
+            partner_ids=partner_jd.ids if partner_jd else [],
+        )
+
+        if self.actividad_id:
+            self.actividad_id.sudo().message_post(
+                body=Markup(cuerpo_actividad),
+                subject=asunto,
+                subtype_xmlid='mail.mt_comment',
+            )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for rec in records:
+            partner_jd = rec._partner_jd()
+            if partner_jd:
+                rec.message_subscribe(partner_ids=partner_jd.ids)
+        return records
     # ────────────────────────────────────────────────────────────────────────
     # Business logic
     # ────────────────────────────────────────────────────────────────────────
@@ -124,7 +161,19 @@ class PropuestaActividadComplementaria(models.Model):
                     'is_comite': True,
                     'actividad_origen_id': actividad.id,
                 })
-        self.message_post(body='Propuesta aprobada por el Comité Académico.')
+        creditos = actividad.creditos or '—'
+        asunto = f' Propuesta aprobada: {actividad.name}'
+        cuerpo_propuesta = (
+            f'<p>El Comité Académico ha <strong>aprobado</strong> la propuesta '
+            f'<em>{actividad.name}</em>.</p>'
+            f'<p><strong>Créditos asignados:</strong> {creditos}</p>'
+            f'<p>La actividad ha cambiado a estado <strong>Aprobada</strong>.</p>'
+        )
+        cuerpo_actividad = (
+            f'<p>Propuesta <strong>aprobada</strong> por el Comité Académico.</p>'
+            f'<p><strong>Créditos asignados:</strong> {creditos}</p>'
+        )
+        self._notificar_jd(asunto, cuerpo_propuesta, cuerpo_actividad)
 
     def action_rechazar(self):
         self.ensure_one()
@@ -136,7 +185,18 @@ class PropuestaActividadComplementaria(models.Model):
         self.actividad_id.sudo().with_context(bypass_edit_protection=True).write(
             {'estado_id': estado_act_rechazada.id}
         )
-        self.message_post(body=f'Propuesta rechazada. Motivo: {self.motivo_rechazo}')
+        actividad = self.actividad_id
+        asunto = f'Propuesta rechazada: {actividad.name}'
+        cuerpo_propuesta = (
+            f'<p>El Comité Académico ha <strong>rechazado</strong> la propuesta '
+            f'<em>{actividad.name}</em>.</p>'
+            f'<p><strong>Motivo:</strong> {self.motivo_rechazo}</p>'
+        )
+        cuerpo_actividad = (
+            f'<p>Propuesta <strong>rechazada</strong> por el Comité Académico.</p>'
+            f'<p><strong>Motivo:</strong> {self.motivo_rechazo}</p>'
+        )
+        self._notificar_jd(asunto, cuerpo_propuesta, cuerpo_actividad)
 
     def action_abrir_wizard_rechazo(self):
         """Abre el wizard de rechazo para capturar el motivo."""
@@ -203,4 +263,3 @@ class PropuestaActividadComplementaria(models.Model):
         ])
         for propuesta in propuestas_vencidas:
             propuesta.action_aprobar()
-            propuesta.message_post(body='Aprobada automáticamente por vencimiento de plazo (5 días).')
