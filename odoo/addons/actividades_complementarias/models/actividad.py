@@ -462,21 +462,11 @@ class Actividad(models.Model):
             self.responsable_actividad_id = False
 
     def _compute_dominios(self):
-        """
-        Computa dominios para responsable y alumnos.
-        En Odoo 19 'groups_id' no es buscable en res.users via dominio ORM,
-        por lo que usamos SQL para obtener los user IDs del grupo.
-        """
         def _user_ids_en_grupo(xmlid):
             grupo = self.env.ref(xmlid, raise_if_not_found=False)
             if not grupo:
                 return []
-            self.env.cr.execute(
-                """SELECT uid FROM res_groups_users_rel WHERE gid = %s""",
-                (grupo.id,)
-            )
-            return [r[0] for r in self.env.cr.fetchall()]
-
+            return grupo.sudo().user_ids.ids
         ids_responsable = _user_ids_en_grupo('actividades_complementarias.group_responsable_actividad')
         ids_alumno = _user_ids_en_grupo('actividades_complementarias.group_alumno')
 
