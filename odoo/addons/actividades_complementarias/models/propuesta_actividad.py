@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 from datetime import date, timedelta
 
 
@@ -32,6 +32,7 @@ class PropuestaActividadComplementaria(models.Model):
         string='Fecha Límite de Revisión',
         compute='_compute_fecha_limite',
         store=True,
+        readonly=True,
         help='La propuesta se aprueba automáticamente si no hay respuesta en 5 días hábiles.',
     )
 
@@ -103,6 +104,12 @@ class PropuestaActividadComplementaria(models.Model):
 
     def action_aprobar(self):
         self.ensure_one()
+        if not (
+            self.env.user.has_group('actividades_complementarias.group_comite_academico')
+            or self.env.user.has_group('actividades_complementarias.group_admin_actividades')
+        ):
+            raise UserError(_('Solo el Comité Académico puede aprobar propuestas.'))
+        
         estado_aprobada = self.env.ref('actividades_complementarias.estado_solicitud_aprobada')
         estado_act_aprobada = self.env.ref('actividades_complementarias.estado_aprobada')
         self.sudo().write({'estado_solicitud_id': estado_aprobada.id})
@@ -128,8 +135,14 @@ class PropuestaActividadComplementaria(models.Model):
 
     def action_rechazar(self):
         self.ensure_one()
+        if not (
+            self.env.user.has_group('actividades_complementarias.group_comite_academico')
+            or self.env.user.has_group('actividades_complementarias.group_admin_actividades')
+        ):
+            raise UserError(_('Solo el Comité Académico puede rechazar propuestas.'))
         if not self.motivo_rechazo:
             raise ValidationError('Debe indicar el motivo de rechazo.')
+        
         estado_rechazada = self.env.ref('actividades_complementarias.estado_solicitud_rechazada')
         estado_act_rechazada = self.env.ref('actividades_complementarias.estado_rechazada')
         self.sudo().write({'estado_solicitud_id': estado_rechazada.id})
