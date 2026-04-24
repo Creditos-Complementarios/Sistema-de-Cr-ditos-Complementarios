@@ -724,7 +724,7 @@ class Actividad(models.Model):
                 continue
 
             # Otros roles sin gestion especial
-            if not is_jd and not is_admin:
+            if not is_jd:
                 raise UserError(
                     _('No tiene permiso para modificar actividades complementarias.')
                 )
