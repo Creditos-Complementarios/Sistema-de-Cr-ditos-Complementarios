@@ -108,8 +108,8 @@ class PropuestaActividadComplementaria(models.Model):
             self.env.user.has_group('actividades_complementarias.group_comite_academico')
             or self.env.user.has_group('actividades_complementarias.group_admin_actividades')
         ):
-            raise UserError(_('Solo el Comité Académico puede aprobar propuestas.'))
-        
+            raise UserError(('Solo el Comité Académico puede aprobar propuestas.'))
+
         estado_aprobada = self.env.ref('actividades_complementarias.estado_solicitud_aprobada')
         estado_act_aprobada = self.env.ref('actividades_complementarias.estado_aprobada')
         self.sudo().write({'estado_solicitud_id': estado_aprobada.id})
@@ -139,10 +139,10 @@ class PropuestaActividadComplementaria(models.Model):
             self.env.user.has_group('actividades_complementarias.group_comite_academico')
             or self.env.user.has_group('actividades_complementarias.group_admin_actividades')
         ):
-            raise UserError(_('Solo el Comité Académico puede rechazar propuestas.'))
+            raise UserError(('Solo el Comité Académico puede rechazar propuestas.'))
         if not self.motivo_rechazo:
             raise ValidationError('Debe indicar el motivo de rechazo.')
-        
+
         estado_rechazada = self.env.ref('actividades_complementarias.estado_solicitud_rechazada')
         estado_act_rechazada = self.env.ref('actividades_complementarias.estado_rechazada')
         self.sudo().write({'estado_solicitud_id': estado_rechazada.id})
