@@ -1,4 +1,6 @@
-from odoo import models, fields
+# -*- coding: utf-8 -*-
+from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 
 
 class SiiEmpleado(models.Model):
@@ -34,9 +36,18 @@ class SiiEmpleado(models.Model):
         string='Telefono'
     )
 
-    _sql_constraints = [
-        ('ru', 'UNIQUE(rfc_empleado)', 'RFC único.')
-    ]
+    @api.constrains('rfc_empleado')
+    def _check_rfc_unico(self):
+        for rec in self:
+            duplicado = self.search_count([
+                ('rfc_empleado', '=', rec.rfc_empleado),
+                ('id', '!=', rec.id),
+            ])
+            if duplicado:
+                raise ValidationError(
+                    f'El RFC "{rec.rfc_empleado}" ya está registrado. '
+                    f'RFCEmpleado debe ser único.'
+                )
 
     def sp_validar_empleado(self, rfc):
         e = self.search([('rfc_empleado', '=', rfc)], limit=1)

@@ -1,4 +1,6 @@
-from odoo import models, fields
+# -*- coding: utf-8 -*-
+from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 
 
 class SiiEstudiante(models.Model):
@@ -47,9 +49,18 @@ class SiiEstudiante(models.Model):
         string='Telefono'
     )
 
-    _sql_constraints = [
-        ('nu', 'UNIQUE(no_control)', 'NoControl único.')
-    ]
+    @api.constrains('no_control')
+    def _check_no_control_unico(self):
+        for rec in self:
+            duplicado = self.search_count([
+                ('no_control', '=', rec.no_control),
+                ('id', '!=', rec.id),
+            ])
+            if duplicado:
+                raise ValidationError(
+                    f'El número de control "{rec.no_control}" ya existe. '
+                    f'NoControl debe ser único.'
+                )
 
     def sp_validar_alumno(self, nc):
         e = self.search([('no_control', '=', nc)], limit=1)

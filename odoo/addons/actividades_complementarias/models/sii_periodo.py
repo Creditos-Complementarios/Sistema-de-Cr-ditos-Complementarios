@@ -1,4 +1,6 @@
-from odoo import models, fields
+# -*- coding: utf-8 -*-
+from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 
 
 class SiiPeriodo(models.Model):
@@ -21,6 +23,15 @@ class SiiPeriodo(models.Model):
         required=True
     )
 
-    _sql_constraints = [
-        ('cu', 'UNIQUE(clave_periodo)', 'ClavePeriodo única.')
-    ]
+    @api.constrains('clave_periodo')
+    def _check_clave_periodo_unica(self):
+        for rec in self:
+            duplicado = self.search_count([
+                ('clave_periodo', '=', rec.clave_periodo),
+                ('id', '!=', rec.id),
+            ])
+            if duplicado:
+                raise ValidationError(
+                    f'El periodo "{rec.clave_periodo}" ya existe. '
+                    f'ClavePeriodo debe ser única.'
+                )
