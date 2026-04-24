@@ -19,6 +19,9 @@ class TestPropuestaActividad(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
 
+        cls.env.user.groups_id |= cls.env.ref(
+            'actividades_complementarias.group_comite_academico'
+        )
         # Estados de solicitud — definidos en estado_solicitud_data.xml
         cls.estado_sol_en_revision = cls.env.ref(
             'actividades_complementarias.estado_solicitud_en_revision'
