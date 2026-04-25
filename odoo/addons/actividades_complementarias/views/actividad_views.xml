@@ -80,6 +80,12 @@
                         type="object" class="btn-warning"
                         invisible="not actividad_predefinida or en_catalogo or estado_code in ['rechazada','finalizada']"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
+                    <button name="action_confirmar_actividad"
+                        string="Crear Actividad"
+                        type="object"
+                        class="btn-primary"
+                        invisible="estado_code"
+                        groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
                     <!-- Statusbar: solo En Revisión -->
                     <field name="estado_barra" widget="statusbar"
                         statusbar_visible="en_revision"
