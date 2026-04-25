@@ -877,6 +877,8 @@ class Actividad(models.Model):
         if self.env.context.get('install_demo') or self.env.context.get('skip_horas_check'):
             return
         for rec in self:
+            if rec.cantidad_horas <= 0:
+                raise ValidationError('La cantidad de horas debe ser mayor a 0.')
             if rec.fecha_inicio and rec.fecha_fin and rec.cantidad_horas:
                 dias = (rec.fecha_fin - rec.fecha_inicio).days + 1
                 horas_maximas = dias * 12
@@ -886,8 +888,6 @@ class Actividad(models.Model):
                         f'al máximo permitido para el período seleccionado '
                         f'({dias} día(s) × 12 h = {horas_maximas} h máximo).'
                     )
-                if rec.cantidad_horas <= 0:
-                    raise ValidationError('La cantidad de horas debe ser mayor a 0.')
 
     @api.constrains('alumno_ids', 'cupo_max', 'cupo_ilimitado')
     def _check_cupo_alumnos(self):
