@@ -142,11 +142,11 @@ class PropuestaActividadComplementaria(models.Model):
     def action_aprobar(self):
         self.ensure_one()
         estado_en_revision = self.env.ref(
-        'actividades_complementarias.estado_solicitud_en_revision'
+            'actividades_complementarias.estado_solicitud_en_revision'
         )
         if self.estado_solicitud_id != estado_en_revision:
             raise ValidationError(
-            'Solo se pueden aprobar propuestas que están en revisión.'
+                'Solo se pueden aprobar propuestas que están en revisión.'
             )
         if not (
             self.env.user.has_group('actividades_complementarias.group_comite_academico')
