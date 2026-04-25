@@ -1312,11 +1312,12 @@ class Actividad(models.Model):
             'res_model': self._name,
             'res_id': self.id,
         })
+        access_token = attachment.sudo().generate_access_token()[0]
 
         # Devolver descarga directa del ZIP
         return {
             'type': 'ir.actions.act_url',
-            'url': f'/web/content/{attachment.id}?download=true',
+            'url': f'/web/content/{attachment.id}?access_token={access_token}&download=true',
             'target': 'self',
         }
 
