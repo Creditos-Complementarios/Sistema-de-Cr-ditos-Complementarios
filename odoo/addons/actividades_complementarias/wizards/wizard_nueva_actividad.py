@@ -225,7 +225,7 @@ class WizardNuevaActividad(models.TransientModel):
         if not es_predefinida:
             # Crear propuesta al comité en estado "en revisión"
             estado_revision = self.env.ref('actividades_complementarias.estado_solicitud_en_revision')
-            self.env['actividad.propuesta'].create({
+            self.env['actividad.propuesta'].sudo().create({
                 'actividad_id': actividad.id,
                 'estado_solicitud_id': estado_revision.id,
             })
