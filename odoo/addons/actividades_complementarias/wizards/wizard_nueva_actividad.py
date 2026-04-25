@@ -219,7 +219,9 @@ class WizardNuevaActividad(models.TransientModel):
             vals['en_catalogo'] = False
 
         actividad = self.env['actividad.complementaria'].with_context(
-            skip_fecha_check=True, skip_horas_check=True
+            skip_fecha_check=True, 
+            skip_horas_check=True, 
+            bypass_edit_protection=True,
         ).create(vals)
 
         if not es_predefinida:
