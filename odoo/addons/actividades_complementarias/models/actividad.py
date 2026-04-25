@@ -1001,7 +1001,7 @@ class Actividad(models.Model):
         estado_revision_solicitud = self.env.ref('actividades_complementarias.estado_solicitud_en_revision')
         estado_en_revision = self.env.ref('actividades_complementarias.estado_en_revision')
         self.with_context(bypass_edit_protection=True).write({'estado_id': estado_en_revision.id})
-        self.env['actividad.propuesta'].create({
+        self.env['actividad.propuesta'].sudo().create({
             'actividad_id': self.id,
             'estado_solicitud_id': estado_revision_solicitud.id,
         })
