@@ -180,10 +180,10 @@ class WizardNuevaActividad(models.TransientModel):
         estado = self._get_estado_inicial(es_predefinida)
         vals = self._prepare_activity_vals(estado, es_predefinida)
         actividad = self._create_activity(vals)
-        
+
         if not es_predefinida:
             self._create_propuesta(actividad)
-        
+
         self._post_activity_message(actividad, es_predefinida)
         return self._get_action_response(actividad, es_predefinida)
 
@@ -199,7 +199,7 @@ class WizardNuevaActividad(models.TransientModel):
 
         # Validaciones comunes
         self._validate_common_fields(errores)
-        
+
         # Validaciones específicas
         if self._is_predefinida():
             self._validate_predefinida_fields(errores)
@@ -224,12 +224,12 @@ class WizardNuevaActividad(models.TransientModel):
             errores.append('• Fecha de Inicio es obligatoria.')
         if not self.fecha_fin:
             errores.append('• Fecha de Finalización es obligatoria.')
-        
+
         self._validate_fechas_y_horas(errores)
-        
+
         if not self.cantidad_horas or self.cantidad_horas <= 0:
             errores.append('• La Cantidad de Horas debe ser mayor a 0.')
-        
+
         if not self.cupo_ilimitado:
             if self.cupo_min < 1:
                 errores.append('• El Cupo Mínimo debe ser al menos 1.')
@@ -245,7 +245,7 @@ class WizardNuevaActividad(models.TransientModel):
                 )
             if not self.env.context.get('install_demo') and self.fecha_inicio < date.today():
                 errores.append('• La Fecha de Inicio no puede ser anterior a hoy.')
-            
+
             dias = (self.fecha_fin - self.fecha_inicio).days + 1
             horas_max = dias * 12
             if self.cantidad_horas and self.cantidad_horas > horas_max:
@@ -312,7 +312,7 @@ class WizardNuevaActividad(models.TransientModel):
     def _create_activity(self, vals):
         """Crea la actividad complementaria con contexto especial."""
         return self.env['actividad.complementaria'].with_context(
-            skip_fecha_check=True,skip_horas_check=True,bypass_edit_protection=True,
+            skip_fecha_check=True, skip_horas_check=True, bypass_edit_protection=True,
         ).create(vals)
 
     def _create_propuesta(self, actividad):
@@ -355,7 +355,7 @@ class WizardNuevaActividad(models.TransientModel):
                 result = action.sudo().read()[0]
                 result['target'] = 'current'
                 return result
-        
+
         return {
             'type': 'ir.actions.act_window',
             'res_model': 'actividad.complementaria',
