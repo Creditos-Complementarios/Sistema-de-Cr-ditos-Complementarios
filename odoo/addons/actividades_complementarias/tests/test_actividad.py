@@ -38,6 +38,9 @@ class TestActividad(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
 
+        cls.env.user.group_ids |= cls.env.ref(
+            'actividades_complementarias.group_admin_actividades'
+        )
         # Estados — definidos en estado_actividad_data.xml
         cls.estado_aprobada = cls.env.ref('actividades_complementarias.estado_aprobada')
         cls.estado_finalizada = cls.env.ref('actividades_complementarias.estado_finalizada')
