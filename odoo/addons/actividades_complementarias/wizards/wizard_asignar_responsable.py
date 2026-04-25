@@ -27,7 +27,6 @@ class WizardAsignarResponsable(models.TransientModel):
         'res.users',
         string='Nuevo Responsable',
         required=True,
-        options="{'no_create': True, 'no_quick_create': True}",
     )
     dominio_responsable = fields.Binary(
         compute='_compute_dominio_responsable',
