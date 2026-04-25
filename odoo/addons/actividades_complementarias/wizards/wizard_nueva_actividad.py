@@ -312,9 +312,7 @@ class WizardNuevaActividad(models.TransientModel):
     def _create_activity(self, vals):
         """Crea la actividad complementaria con contexto especial."""
         return self.env['actividad.complementaria'].with_context(
-            skip_fecha_check=True,
-            skip_horas_check=True,
-            bypass_edit_protection=True,
+            skip_fecha_check=True,skip_horas_check=True,bypass_edit_protection=True,
         ).create(vals)
 
     def _create_propuesta(self, actividad):
