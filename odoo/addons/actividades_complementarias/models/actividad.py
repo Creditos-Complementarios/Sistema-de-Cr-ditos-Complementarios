@@ -906,6 +906,24 @@ class Actividad(models.Model):
                     f'{len(rec.alumno_ids)} inscrito(s).'
                 )
 
+    @api.constrains('tipo_actividad_id', 'actividad_predefinida')
+    def _check_coherencia_predefinida(self):
+        """Garantiza coherencia entre tipo_actividad_id y actividad_predefinida.
+
+        Una actividad de tipo 'Nueva (Propuesta)' nunca puede tener vinculada
+        una configuración predefinida. La violación de esta regla es el vector
+        principal del Hallazgo 2 (bypass del Comité Académico).
+        """
+        for rec in self:
+            if (rec.tipo_actividad_id
+                    and rec.tipo_actividad_id.name == 'Nueva (Propuesta)'
+                    and rec.actividad_predefinida):
+                raise ValidationError(
+                    "Una actividad de tipo 'Nueva' no puede estar vinculada "
+                    "a una configuración predefinida. "
+                    "Elimine el campo 'Actividades Predefinidas' o cambie "
+                    "el tipo de actividad antes de continuar."
+                )
     # ────────────────────────────────────────────────────────────────────────
     # Business Logic
     # Todas las acciones de negocio que escriben campos auto-gestionados
