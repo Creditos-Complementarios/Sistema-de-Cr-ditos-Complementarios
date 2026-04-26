@@ -77,7 +77,7 @@
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                     <!-- Botón para actividades predefinidas (sin pasar por el Comité) -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
-                        type="object" class="btn-warning"
+                        type="object" class="btn-primary"
                         invisible="not actividad_predefinida or en_catalogo or estado_code in ['rechazada','finalizada']"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                     <button name="action_confirmar_actividad"
@@ -102,10 +102,6 @@
                         statusbar_visible="aprobada,pendiente_inicio,en_curso,finalizada"
                         invisible="estado_code not in ['aprobada','pendiente_inicio','en_curso','finalizada']"
                         readonly="1"/>
-                    <button name="action_enviar_catalogo" string="Enviar al Catálogo"
-                            type="object" class="btn-primary"
-                            invisible="estado_code not in ['aprobada','pendiente_inicio'] or en_catalogo"
-                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                     <button name="action_firmar_constancias" string="Firmar Constancias"
                             type="object" class="btn-primary"
                             invisible="estado_code != 'finalizada' or constancias_firmadas"
@@ -161,7 +157,10 @@
                     <group col="1">
                         <group string="Información General">
                             <field name="tipo_actividad_id"
-                                   readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
+                                readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision'] or not context.get('default_es_jd', True)"
+                                groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
+                            <field name="tipo_actividad_id" readonly="1"
+                                groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
                             <field name="actividad_predefinida"
                                    invisible="tipo_es_nueva"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"
@@ -177,7 +176,7 @@
                                    domain="dominio_responsable"
                                    options="{'no_create': True, 'no_quick_create': True}"
                                    invisible="not actividad_predefinida and estado_code not in ['aprobada','pendiente_inicio','en_curso','finalizada','rechazada']"
-                                   readonly="estado_code in ['en_revision','finalizada']"/>
+                                   readonly="estado_code in ['en_revision','finalizada'] or context.get('es_personal', False)"/>
                             <button name="action_abrir_wizard_responsable"
                                     string="Asignar Responsable"
                                     type="object"
