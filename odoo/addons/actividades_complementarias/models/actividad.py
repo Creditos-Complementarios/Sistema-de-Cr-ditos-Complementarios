@@ -93,6 +93,7 @@ class Actividad(models.Model):
     responsable_actividad_id = fields.Many2one(
         'res.users',
         string='Responsable de Actividad',
+        default=lambda self: self.env.user if self._es_personal() else False,
         tracking=True,
         help='Solo usuarios del grupo Responsable de Actividad.',
     )
@@ -296,6 +297,16 @@ class Actividad(models.Model):
     def _es_personal(self):
         """True si el usuario en sesion pertenece a algun grupo de Personal."""
         return any(self.env.user.has_group(g) for g in self._GRUPOS_PERSONAL)
+
+    es_personal = fields.Boolean(
+        compute='_compute_es_personal_field',
+        store=False,
+    )
+
+    def _compute_es_personal_field(self):
+        is_personal = self._es_personal()
+        for rec in self:
+            rec.es_personal = is_personal
 
     def _get_permiso_personal(self):
         """Devuelve el registro EmpleadoPermiso del usuario en sesion o vacio."""
