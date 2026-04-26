@@ -78,7 +78,7 @@
                     <!-- Botón para actividades predefinidas (sin pasar por el Comité) -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
                         type="object" class="btn-primary"
-                        invisible="not actividad_predefinida or en_catalogo or estado_code in ['rechazada','finalizada'] or es_personal"
+                        invisible="not actividad_predefinida or en_catalogo or estado_code not in ['pendiente_inicio','aprobada']"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
                     <button name="action_confirmar_actividad"
                         string="Crear Actividad"
@@ -160,6 +160,8 @@
                             <field name="tipo_actividad_id"
                                 readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision'] or es_personal"
                                 groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
+                            <field name="tipo_actividad_id" readonly="1"
+                                groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
                             <field name="actividad_predefinida"
                                    invisible="tipo_es_nueva"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"

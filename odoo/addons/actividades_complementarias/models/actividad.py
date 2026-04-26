@@ -502,6 +502,12 @@ class Actividad(models.Model):
         if not self.actividad_predefinida and not self.estado_code:
             self.responsable_actividad_id = False
 
+    @api.onchange('actividad_predefinida')
+    def _onchange_actividad_predefinida_responsable(self):
+        """Para personal: auto-asignar responsable al seleccionar predefinida."""
+        if self.actividad_predefinida and self._es_personal():
+            self.responsable_actividad_id = self.env.user
+
     def _compute_dominios(self):
         def _user_ids_en_grupo(xmlid):
             grupo = self.env.ref(xmlid, raise_if_not_found=False)
@@ -694,10 +700,19 @@ class Actividad(models.Model):
     def create(self, vals_list):
         """Estampa el flag actividad_creating=True en el contexto para que
         _check_fechas pueda distinguir una creación de una edición.
-
         El flag se elimina del recordset devuelto para que llamadas
         posteriores a write() sobre esos registros no lo hereden.
         """
+        # Auto-poblar tipo_actividad_id desde predefinida cuando personal
+        # no puede enviarlo por tener el campo readonly en la vista.
+        for vals in vals_list:
+            if not vals.get('tipo_actividad_id') and vals.get('actividad_predefinida'):
+                predefinida = self.env['actividad.tipo.predefinida'].browse(
+                    vals['actividad_predefinida']
+                )
+                if predefinida.tipo_actividad_id:
+                    vals['tipo_actividad_id'] = predefinida.tipo_actividad_id.id
+
         records = super(
             Actividad,
             self.with_context(actividad_creating=True),
