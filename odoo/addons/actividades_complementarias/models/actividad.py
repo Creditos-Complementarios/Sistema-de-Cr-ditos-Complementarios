@@ -905,7 +905,7 @@ class Actividad(models.Model):
                     f'{rec.cupo_max} alumno(s) y actualmente hay '
                     f'{len(rec.alumno_ids)} inscrito(s).'
                 )
-      
+
     @api.constrains('tipo_actividad_id', 'actividad_predefinida')
     def _check_coherencia_predefinida(self):
         """Garantiza coherencia entre tipo_actividad_id y actividad_predefinida.
