@@ -147,7 +147,10 @@
         <field name="name">Historial de decisiones</field>
         <field name="res_model">actividad.propuesta</field>
         <field name="view_mode">list,form</field>
-        <field name="context">{"origen_propuesta": "todas"}</field>
+        <field name="context">{
+            "origen_propuesta": "todas",
+            "search_default_group_periodo": 1
+        }</field>
         <field name="domain">[('estado_code', 'in', ['aprobada', 'rechazada'])]</field>
         <field name="search_view_id" ref="view_propuesta_historial_search"/>
         <field name="help" type="html">
