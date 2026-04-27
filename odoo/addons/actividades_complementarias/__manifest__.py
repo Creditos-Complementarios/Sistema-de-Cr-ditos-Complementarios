@@ -48,8 +48,7 @@
             'actividades_complementarias/static/src/scss/style.scss',
             'actividades_complementarias/static/src/xml/dark_mode_switch.xml',
             'actividades_complementarias/static/src/js/dark_mode_switch.js',
-            'actividades_complementarias/static/src/js/navbar_chevron.js', 
-
+            'actividades_complementarias/static/src/js/navbar_chevron.js',
         ],
     },
     'demo': [
