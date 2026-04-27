@@ -65,6 +65,11 @@ class EmpleadoPermiso(models.Model):
         default=False,
         tracking=True,
     )
+    orig_perm_modificar_actividades = fields.Boolean(default=False)
+    orig_perm_difundir_actividades = fields.Boolean(default=False)
+    orig_perm_asignar_alumnos = fields.Boolean(default=False)
+    orig_perm_enviar_catalogo = fields.Boolean(default=False)
+
     # NOTA: perm_gestionar_personal NO es delegable
 
     # ── Control de vencimiento ───────────────────────────────────────────────
@@ -82,6 +87,17 @@ class EmpleadoPermiso(models.Model):
     # ────────────────────────────────────────────────────────────────────────
     # Computes
     # ────────────────────────────────────────────────────────────────────────
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Inicializa orig_perm_* con los mismos valores que perm_* al crear."""
+        for vals in vals_list:
+            for fname in ('modificar_actividades', 'difundir_actividades',
+                        'asignar_alumnos', 'enviar_catalogo'):
+                orig_key = f'orig_perm_{fname}'
+                if orig_key not in vals:
+                    vals[orig_key] = vals.get(f'perm_{fname}', False)
+        return super().create(vals_list)
 
     def _compute_dominio_user(self):
         """
@@ -321,14 +337,18 @@ class EmpleadoPermiso(models.Model):
     # ────────────────────────────────────────────────────────────────────────
 
     def action_guardar_permisos(self):
-        """Guarda el registro actual y regresa a la lista."""
+        """Abre el wizard de confirmación mostrando el diff de permisos."""
         self.ensure_one()
+        wizard = self.env['actividad.wizard.guardar.permisos'].create(
+            {'permiso_id': self.id}
+        )
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Gestion de Personal',
-            'res_model': 'actividad.empleado.permiso',
-            'view_mode': 'list,kanban,form',
-            'target': 'current',
+            'name': 'Confirmar cambios de permisos',
+            'res_model': 'actividad.wizard.guardar.permisos',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
         }
 
     def action_regresar_lista(self):
