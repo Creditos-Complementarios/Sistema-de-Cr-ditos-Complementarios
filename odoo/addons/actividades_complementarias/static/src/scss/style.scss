@@ -451,8 +451,8 @@ body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementaria
     }
 
     .o_control_panel .btn-primary {
-        background-color: #f06702 !important;
-        border-color: #f06702 !important;
+        background-color: #2E75B6 !important;
+        border-color: #2E75B6 !important;
     }
 
     .o_field_widget,
@@ -515,14 +515,14 @@ body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementaria
 
     .o_notebook .nav-link.active {
         background-color: #1e1e1e !important;
-        color: #f06702 !important;
+        color: #2E75B6 !important;
         border-color: #444 !important;
     }
 
     .o_boolean_toggle.o_field_widget button.active,
     .o_field_boolean_toggle button.active {
-        background-color: #f06702 !important;
-        border-color: #f06702 !important;
+        background-color: #2E75B6 !important;
+        border-color: #2E75B6 !important;
     }
 
     .o_searchview_dropdown_toggler,
@@ -546,4 +546,7 @@ body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementaria
         background-color: #28a745 !important;
         border-color: #28a745 !important;
     }
+
+    
+
 }
