@@ -87,12 +87,13 @@ class Actividad(models.Model):
         'res.users',
         string='Jefe de Departamento',
         required=True,
-        default=lambda self: self.env.user,
+        default=lambda self: self._default_jefe_departamento(),
         tracking=True,
     )
     responsable_actividad_id = fields.Many2one(
         'res.users',
         string='Responsable de Actividad',
+        default=lambda self: self.env.user if self._es_personal() else False,
         tracking=True,
         help='Solo usuarios del grupo Responsable de Actividad.',
     )
@@ -262,10 +263,50 @@ class Actividad(models.Model):
     # ────────────────────────────────────────────────────────────────────────
     # Helpers de rol
     # ────────────────────────────────────────────────────────────────────────
+    @api.model
+    def _default_jefe_departamento(self):
+        """Devuelve el JD correcto según el usuario en sesión:
+        - JD o Admin: él mismo.
+        - Personal: busca el jefe_id del departamento vía sii.empleado o empleado_permiso.
+        """
+        user = self.env.user
+        if (user.has_group('actividades_complementarias.group_jefe_departamento')
+                or user.has_group('actividades_complementarias.group_admin_actividades')):
+            return user
+
+        # Buscar por correo en sii.empleado → departamento → JD
+        sii_emp = self.env['sii.empleado'].sudo().search(
+            [('correo', '=', user.login)], limit=1
+        )
+        if sii_emp and sii_emp.id_departamento:
+            depto = self.env['actividad.departamento'].sudo().search(
+                [('name', 'ilike', sii_emp.id_departamento.nombre_departamento)], limit=1
+            )
+            if depto and depto.jefe_id:
+                return depto.jefe_id
+
+        # Fallback: empleado_permiso (usuarios demo)
+        permiso = self.env['actividad.empleado.permiso'].sudo().search(
+            [('user_id', '=', user.id)], limit=1
+        )
+        if permiso and permiso.departamento_id and permiso.departamento_id.jefe_id:
+            return permiso.departamento_id.jefe_id
+
+        return user
 
     def _es_personal(self):
         """True si el usuario en sesion pertenece a algun grupo de Personal."""
         return any(self.env.user.has_group(g) for g in self._GRUPOS_PERSONAL)
+
+    es_personal = fields.Boolean(
+        compute='_compute_es_personal_field',
+        store=False,
+    )
+
+    def _compute_es_personal_field(self):
+        is_personal = self._es_personal()
+        for rec in self:
+            rec.es_personal = is_personal
 
     def _get_permiso_personal(self):
         """Devuelve el registro EmpleadoPermiso del usuario en sesion o vacio."""
@@ -461,6 +502,12 @@ class Actividad(models.Model):
         if not self.actividad_predefinida and not self.estado_code:
             self.responsable_actividad_id = False
 
+    @api.onchange('actividad_predefinida')
+    def _onchange_actividad_predefinida_responsable(self):
+        """Para personal: auto-asignar responsable al seleccionar predefinida."""
+        if self.actividad_predefinida and self._es_personal():
+            self.responsable_actividad_id = self.env.user
+
     def _compute_dominios(self):
         def _user_ids_en_grupo(xmlid):
             grupo = self.env.ref(xmlid, raise_if_not_found=False)
@@ -504,6 +551,7 @@ class Actividad(models.Model):
             )
             if depto:
                 rec.departamento_id = depto
+                continue
             # 2. Buscar en permisos de personal delegado
             emp_permiso = self.env['actividad.empleado.permiso'].search(
                 [('user_id', '=', rec.jefe_departamento_id.id)], limit=1
@@ -581,6 +629,7 @@ class Actividad(models.Model):
         is_jd = self.env.user.has_group(
             'actividades_complementarias.group_jefe_departamento'
         )
+        is_personal = self._es_personal()
 
         for rec in self:
             # Regla 1 (absoluta): finalizada → nadie edita
@@ -597,7 +646,13 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            if not is_jd:
+            if is_personal:
+                rec.permisos_actividad_finalizada = False
+                rec.permisos_actividad_pendiente_inicio = False
+                rec.permisos_actividad_en_curso = False
+                continue
+
+            if not is_jd and not is_personal:
                 # Otros roles: formulario de solo lectura
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
@@ -645,10 +700,19 @@ class Actividad(models.Model):
     def create(self, vals_list):
         """Estampa el flag actividad_creating=True en el contexto para que
         _check_fechas pueda distinguir una creación de una edición.
-
         El flag se elimina del recordset devuelto para que llamadas
         posteriores a write() sobre esos registros no lo hereden.
         """
+        # Auto-poblar tipo_actividad_id desde predefinida cuando personal
+        # no puede enviarlo por tener el campo readonly en la vista.
+        for vals in vals_list:
+            if not vals.get('tipo_actividad_id') and vals.get('actividad_predefinida'):
+                predefinida = self.env['actividad.tipo.predefinida'].browse(
+                    vals['actividad_predefinida']
+                )
+                if predefinida.tipo_actividad_id:
+                    vals['tipo_actividad_id'] = predefinida.tipo_actividad_id.id
+
         records = super(
             Actividad,
             self.with_context(actividad_creating=True),
@@ -1409,6 +1473,26 @@ class Actividad(models.Model):
                     len(por_finalizar),
                     ', '.join(por_finalizar.mapped('name')),
                 )
+
+    def action_confirmar_actividad(self):
+        """Personal: confirma la actividad pasándola a 'Pendiente de Inicio'."""
+        self.ensure_one()
+        if self.estado_code:
+            raise ValidationError(
+                'Esta actividad ya fue confirmada o se encuentra en un estado avanzado.'
+            )
+        if not self.cantidad_horas or self.cantidad_horas <= 0:
+            raise ValidationError('La cantidad de horas debe ser mayor a 0.')
+        if not self.cupo_ilimitado:
+            if self.cupo_min < 1:
+                raise ValidationError('El cupo mínimo debe ser al menos 1.')
+            if self.cupo_max < self.cupo_min:
+                raise ValidationError('El cupo máximo debe ser mayor o igual al cupo mínimo.')
+        estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
+        self.with_context(bypass_edit_protection=True).write(
+            {'estado_id': estado_pendiente.id}
+        )
+        self.message_post(body='Actividad confirmada. En espera de envío al catálogo.')
 
 
 class ActividadDepartamento(models.Model):

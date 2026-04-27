@@ -95,6 +95,28 @@
         <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
     </record>
 
+    <record id="access_sii_periodo_personal_sistemas" model="ir.model.access">
+        <field name="name">sii_periodo_personal_sistemas</field>
+        <field name="model_id" ref="model_sii_periodo"/>
+        <field name="group_id" ref="actividades_complementarias.group_personal_departamento_sistemas"/>
+        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
+    </record>
+    <record id="access_sii_periodo_personal_electrica" model="ir.model.access">
+        <field name="name">sii_periodo_personal_electrica</field>
+        <field name="model_id" ref="model_sii_periodo"/>
+        <field name="group_id" ref="actividades_complementarias.group_personal_departamento_electrica"/>
+        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
+    </record>
+    <record id="access_sii_periodo_personal_biologia" model="ir.model.access">
+        <field name="name">sii_periodo_personal_biologia</field>
+        <field name="model_id" ref="model_sii_periodo"/>
+        <field name="group_id" ref="actividades_complementarias.group_personal_departamento_biologia"/>
+        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
+    </record>
+
     <!-- sii.empleado -->
     <record id="access_sii_empleado_admin" model="ir.model.access">
         <field name="name">sii_empleado_admin</field>
