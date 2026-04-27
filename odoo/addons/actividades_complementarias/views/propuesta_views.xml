@@ -92,6 +92,14 @@
                             <field name="estado_solicitud_id" readonly="1"/>
                         </group>
                         <group string="Resolucion">
+                            <div invisible="estado_code != 'en_revision'">
+                                En espera de decisión del Comité Académico.<br/>
+                                Límite de revisión:
+                                <field name="fecha_limite_revision" readonly="1" nolabel="1"/>
+                            </div>
+                            <div invisible="estado_code != 'aprobada'">
+                                Propuesta aprobada por el Comité Académico.
+                            </div>
                             <field name="motivo_rechazo" invisible="estado_code != 'rechazada'" readonly="1"/>
                         </group>
                     </group>
