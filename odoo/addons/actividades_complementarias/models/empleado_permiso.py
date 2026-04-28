@@ -92,8 +92,7 @@ class EmpleadoPermiso(models.Model):
     def create(self, vals_list):
         """Inicializa orig_perm_* con los mismos valores que perm_* al crear."""
         for vals in vals_list:
-            for fname in ('modificar_actividades', 'difundir_actividades',
-                    'asignar_alumnos', 'enviar_catalogo'):
+            for fname in ('modificar_actividades', 'difundir_actividades', 'asignar_alumnos', 'enviar_catalogo'):
                 orig_key = f'orig_perm_{fname}'
                 if orig_key not in vals:
                     vals[orig_key] = vals.get(f'perm_{fname}', False)
