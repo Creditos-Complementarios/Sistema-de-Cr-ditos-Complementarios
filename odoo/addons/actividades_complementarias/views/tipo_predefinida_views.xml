@@ -34,7 +34,7 @@
                         <field name="is_comite" readonly="1"/>
                         <field name="actividad_origen_id" readonly="1"
                                invisible="not is_comite"/>
-                        <field name="active"/>
+                        <field name="active" string="Activo"/>
                     </group>
                 </sheet>
             </form>

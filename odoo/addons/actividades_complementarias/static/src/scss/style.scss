@@ -546,7 +546,27 @@ body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementaria
         background-color: #28a745 !important;
         border-color: #28a745 !important;
     }
-
     
+}
+/* Indicador ▾/▴ en navbar — span inyectado por navbar_chevron.js */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
 
+    .ac_nav_chevron {
+        display: inline-block;
+        font-size: 11px;
+        opacity: 0.75;
+        margin-left: 4px;
+        vertical-align: middle;
+        pointer-events: none;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+
+        &::before {
+            content: "▾";
+        }
+    }
+
+    button.show .ac_nav_chevron {
+        transform: rotate(180deg);
+        opacity: 1;
+    }
 }

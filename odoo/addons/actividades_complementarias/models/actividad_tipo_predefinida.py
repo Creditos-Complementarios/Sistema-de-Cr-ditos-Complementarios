@@ -47,7 +47,7 @@ class ActividadTipoPredefinida(models.Model):
     is_comite = fields.Boolean(
         string='Aprobado por Comité',
         default=False,
-        help='True cuando fue generado por la aprobación de una propuesta al Comité Académico.',
+        help='Es verdadero cuando fue generado por la aprobación de una propuesta al Comité Académico.',
     )
     actividad_origen_id = fields.Many2one(
         'actividad.complementaria',

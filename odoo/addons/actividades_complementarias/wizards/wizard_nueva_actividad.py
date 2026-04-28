@@ -36,7 +36,7 @@ class WizardNuevaActividad(models.TransientModel):
     fecha_inicio = fields.Date(string='Fecha de Inicio', required=True)
     fecha_fin = fields.Date(string='Fecha de Finalización', required=True)
     cantidad_horas = fields.Float(string='Cantidad de Horas', required=True)
-    horario = fields.Text(string='Horario por Día (si aplica)')
+    horario = fields.Text(string='Horario por Día')
     cupo_ilimitado = fields.Boolean(string='Cupo Ilimitado', default=False)
     cupo_min = fields.Integer(string='Cupo Mínimo', default=1)
     cupo_max = fields.Integer(string='Cupo Máximo', default=30)
