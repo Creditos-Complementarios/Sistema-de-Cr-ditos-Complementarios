@@ -101,8 +101,7 @@
                 <sheet>
                     <div class="mb-3 d-flex gap-2">
                         <button string="Guardar" type="object" name="action_guardar_permisos"
-                                class="btn btn-primary"
-                                confirm="¿Quieres guardar los cambios?"/>
+                                class="btn btn-primary"/>
                         <button string="Regresar" type="object" name="action_regresar_lista"
                                 class="btn btn-secondary"/>
                     </div>
