@@ -14,9 +14,9 @@
                 <field name="fecha" string="Enviada"/>
                 <field name="fecha_limite_revision" string="Limite"/>
                 <field name="estado_solicitud_id" string="Estado" widget="badge"
-                       decoration-warning="estado_code == 'en_revision'"
-                       decoration-success="estado_code == 'aprobada'"
-                       decoration-danger="estado_code == 'rechazada'"/>
+                    decoration-warning="estado_code == 'en_revision'"
+                    decoration-success="estado_code == 'aprobada'"
+                    decoration-danger="estado_code == 'rechazada'"/>
                 <field name="estado_code" column_invisible="1"/>
             </list>
         </field>
