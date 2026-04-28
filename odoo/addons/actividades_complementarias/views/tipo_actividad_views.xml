@@ -8,7 +8,7 @@
         <field name="arch" type="xml">
             <list string="Tipos de Actividad">
                 <field name="name"/>
-                <field name="es_predefinida"/>
+                <field name="es_predefinida" invisible="1" readonly="1"/>
             </list>
         </field>
     </record>
@@ -22,7 +22,7 @@
                 <sheet>
                     <group>
                         <field name="name"/>
-                        <field name="es_predefinida"/>
+                        <field name="es_predefinida" invisible="1" readonly="1"/>
                     </group>
                 </sheet>
             </form>

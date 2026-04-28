@@ -13,8 +13,8 @@ class TipoActividad(models.Model):
         size=200,
     )
     es_predefinida = fields.Boolean(
-        string='Es predefinida',
+        string='Actividad Predefinida',
         default=False,
-        help='Las actividades predefinidas no requieren aprobación del Comité Académico.',
+        help='Las actividades no predefinidas crean una propuesta y requieren aprobación del Comité Académico.',
     )
     active = fields.Boolean(default=True)
