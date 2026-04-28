@@ -132,7 +132,7 @@ class Actividad(models.Model):
         ('2.0', '2 créditos'),
     ], string='Cantidad de Créditos', required=True)
     horario = fields.Text(
-        string='Horario por Día (si aplica)',
+        string='Horario por Día',
         help=(
             'Ingrese un horario por línea con el formato:\n'
             'Día HH:MM-HH:MM\n\n'
