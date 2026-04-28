@@ -45,7 +45,6 @@ class PropuestaActividadComplementaria(models.Model):
         compute='_compute_urgencia_limite',
         store=False,
         )
-    
     # ── Estado ───────────────────────────────────────────────────────────────
     estado_solicitud_id = fields.Many2one(
         'actividad.estado.solicitud',
