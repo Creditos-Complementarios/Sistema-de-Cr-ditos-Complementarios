@@ -37,6 +37,14 @@ class PropuestaActividadComplementaria(models.Model):
         help='La propuesta se aprueba automáticamente si no hay respuesta en 5 días hábiles.',
     )
 
+    urgencia_limite = fields.Selection([
+         ('verde',   'Verde'),
+         ('naranja', 'Naranja'),
+         ('rojo',    'Rojo'),
+        ], string='Urgencia Límite',
+        compute='_compute_urgencia_limite',
+        store=False,
+        )
     # ── Estado ───────────────────────────────────────────────────────────────
     estado_solicitud_id = fields.Many2one(
         'actividad.estado.solicitud',
@@ -98,6 +106,21 @@ class PropuestaActividadComplementaria(models.Model):
                 rec.fecha_limite_revision = rec.fecha + timedelta(days=5)
             else:
                 rec.fecha_limite_revision = False
+
+    @api.depends('fecha_limite_revision', 'estado_code')
+    def _compute_urgencia_limite(self):
+        hoy = date.today()
+        for rec in self:
+            if rec.estado_code != 'en_revision' or not rec.fecha_limite_revision:
+                rec.urgencia_limite = 'verde'
+                continue
+        dias = (rec.fecha_limite_revision - hoy).days
+        if dias > 3:
+            rec.urgencia_limite = 'verde'
+        elif 1 <= dias <= 3:
+            rec.urgencia_limite = 'naranja'
+        else:
+            rec.urgencia_limite = 'rojo'
 
     def _partner_jd(self):
         self.ensure_one()
