@@ -45,9 +45,7 @@ class PropuestaActividadComplementaria(models.Model):
         compute='_compute_urgencia_limite',
         store=False,
         )
-
     
-
     # ── Estado ───────────────────────────────────────────────────────────────
     estado_solicitud_id = fields.Many2one(
         'actividad.estado.solicitud',
@@ -114,9 +112,9 @@ class PropuestaActividadComplementaria(models.Model):
     def _compute_urgencia_limite(self):
         hoy = date.today()
         for rec in self:
-         if rec.estado_code != 'en_revision' or not rec.fecha_limite_revision:
-            rec.urgencia_limite = 'verde'
-            continue
+            if rec.estado_code != 'en_revision' or not rec.fecha_limite_revision:
+                rec.urgencia_limite = 'verde'
+                continue
         dias = (rec.fecha_limite_revision - hoy).days
         if dias > 3:
             rec.urgencia_limite = 'verde'
@@ -124,7 +122,6 @@ class PropuestaActividadComplementaria(models.Model):
             rec.urgencia_limite = 'naranja'
         else:
             rec.urgencia_limite = 'rojo'
-
 
     def _partner_jd(self):
         self.ensure_one()
