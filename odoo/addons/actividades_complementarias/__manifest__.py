@@ -11,7 +11,7 @@
     ),
     'author': 'Desarrollo Institucional',
     'category': 'Education',
-    'depends': ['base', 'mail', 'hr'],
+    'depends': ['base', 'mail', 'hr', 'queue_job'],
     'data': [
         # 1. Grupos de seguridad (primero siempre)
         'security/actividades_security.xml',
