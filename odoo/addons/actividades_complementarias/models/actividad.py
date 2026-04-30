@@ -13,8 +13,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable,
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
 
-
-
 def _n_dias_habiles(n, desde=None):
     """Avanza *n* días hábiles (lunes a viernes) desde *desde*.
 
@@ -1432,8 +1430,6 @@ class Actividad(models.Model):
                 body='Constancias firmadas por el Responsable de Actividad. '
                      'Pendiente firma del Jefe de Departamento.'
             )
-
-
 
     def _actualizar_estado_por_fecha(self):
         import logging
