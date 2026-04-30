@@ -44,7 +44,7 @@
         <field name="name">actividad.complementaria.list</field>
         <field name="model">actividad.complementaria</field>
         <field name="arch" type="xml">
-            <list string="Actividades Complementarias">
+            <list string="Actividades Complementarias" create="0">
                 <field name="name"/>
                 <field name="tipo_actividad_id"/>
                 <field name="periodo"/>
@@ -78,7 +78,7 @@
                     <!-- Botón para actividades predefinidas (sin pasar por el Comité) -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
                         type="object" class="btn-primary"
-                        invisible="not actividad_predefinida or en_catalogo or estado_code not in ['pendiente_inicio','aprobada']"
+                        invisible="not actividad_predefinida or en_catalogo or (estado_code and estado_code not in ['pendiente_inicio','aprobada'])"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
                     <button name="action_confirmar_actividad"
                         string="Crear Actividad"
