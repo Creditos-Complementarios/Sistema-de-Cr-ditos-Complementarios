@@ -63,27 +63,22 @@
                             type="object" class="btn-danger"
                             invisible="estado_code != 'en_revision'"
                             groups="actividades_complementarias.group_comite_academico,actividades_complementarias.group_admin_actividades"/>
+                    <button name="action_regresar_lista" string="Regresar"
+                            type="object" class="btn-secondary"/>
                     <field name="estado_code" widget="statusbar"
                            statusbar_visible="en_revision"
-                           invisible = "estado_code != 'en_revision'"
+                           invisible="estado_code != 'en_revision'"
                            readonly="1"/>
                     <field name="estado_code" widget="statusbar"
                         statusbar_visible="rechazada"
                         invisible="estado_code != 'rechazada'"
                         readonly="1"/>
-                          <!-- Statusbar: flujo Aprobada → Finalizada -->
                     <field name="estado_code" widget="statusbar"
                         statusbar_visible="aprobada"
                         invisible="estado_code not in ['aprobada','pendiente_inicio','en_curso','finalizada']"
                         readonly="1"/>
                 </header>
                 <sheet>
-                    <!-- Boton Regresar -->
-                    <div class="o_form_buttons_view mb-3">
-                        <button string="Regresar" type="object"
-                                name="action_regresar_lista"
-                                class="btn btn-secondary"/>
-                    </div>
                     <group>
                         <group string="Datos de la Propuesta">
                             <field name="actividad_id" readonly="1"/>
