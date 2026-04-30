@@ -733,11 +733,6 @@ class Actividad(models.Model):
         """
         # Las acciones internas del sistema omiten la protección
         if self.env.context.get('bypass_edit_protection'):
-            is_admin = self.env.user.has_group(
-                'actividades_complementarias.group_admin_actividades'
-            )
-            if not (self.env.su or is_admin):
-                raise UserError(_('Operacion no permitida.'))
             return super().write(vals)
 
         is_admin = self.env.user.has_group(
