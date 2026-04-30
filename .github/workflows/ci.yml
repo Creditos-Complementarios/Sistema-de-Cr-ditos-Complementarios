@@ -34,7 +34,7 @@ jobs:
         run: |
           flake8 odoo/addons/ \
             --max-line-length=120 \
-            --exclude=__pycache__,*.pyc,.git \
+            --exclude=__pycache__,*.pyc,.git,odoo/addons/queue_job \
             --per-file-ignores="__init__.py:F401" \
             --statistics
 

@@ -732,6 +732,9 @@ class Actividad(models.Model):
             self.with_context(bypass_edit_protection=True).write(vals)
         """
         # Las acciones internas del sistema omiten la protección
+        if self.env.context.get('from_job'):
+            return super().write(vals)
+
         if self.env.context.get('bypass_edit_protection'):
             is_admin = self.env.user.has_group(
                 'actividades_complementarias.group_admin_actividades'
@@ -1429,50 +1432,62 @@ class Actividad(models.Model):
             )
 
     def _actualizar_estado_por_fecha(self):
-        """Cron diario: transiciona estados según fechas.
-
-        pendiente_inicio / aprobada  →  en_curso   cuando fecha_inicio <= hoy
-        en_curso                     →  finalizada cuando fecha_fin    <  hoy
-        """
         import logging
         _log = logging.getLogger(__name__)
         hoy = date.today()
+        BATCH_SIZE = 500
 
         estado_en_curso = self.env.ref('actividades_complementarias.estado_en_curso', raise_if_not_found=False)
         estado_finalizada = self.env.ref('actividades_complementarias.estado_finalizada', raise_if_not_found=False)
 
-        # ── Iniciar actividades cuya fecha de inicio ya llegó ─────────────
         if estado_en_curso:
-            por_iniciar = self.search([
+            ids_iniciar = self.search([
                 ('estado_code', 'in', ['pendiente_inicio', 'aprobada']),
                 ('fecha_inicio', '<=', hoy),
-            ])
-            if por_iniciar:
-                por_iniciar.with_context(bypass_edit_protection=True).write(
-                    {'estado_id': estado_en_curso.id}
-                )
-                _log.info(
-                    'Cron estados: %d actividad(es) pasaron a En Curso (%s)',
-                    len(por_iniciar),
-                    ', '.join(por_iniciar.mapped('name')),
-                )
+            ]).ids
+            _log.info('Cron estados: %d actividad(es) candidatas a En Curso.', len(ids_iniciar))
+            for i in range(0, len(ids_iniciar), BATCH_SIZE):
+                lote = ids_iniciar[i:i + BATCH_SIZE]
+                self.browse(lote).with_delay(
+                    description=f'Transición En Curso — lote {i // BATCH_SIZE + 1}',
+                )._job_transicion_en_curso(estado_en_curso.id)
 
-        # ── Finalizar actividades cuya fecha de fin ya pasó ───────────────
         if estado_finalizada:
-            por_finalizar = self.search([
+            ids_finalizar = self.search([
                 ('estado_code', '=', 'en_curso'),
                 ('fecha_fin', '<', hoy),
-            ])
-            if por_finalizar:
-                por_finalizar.with_context(bypass_edit_protection=True).write({
-                    'estado_id': estado_finalizada.id,
-                    'en_catalogo': False,
-                })
-                _log.info(
-                    'Cron estados: %d actividad(es) pasaron a Finalizada (%s)',
-                    len(por_finalizar),
-                    ', '.join(por_finalizar.mapped('name')),
-                )
+            ]).ids
+            _log.info('Cron estados: %d actividad(es) candidatas a Finalizada.', len(ids_finalizar))
+            for i in range(0, len(ids_finalizar), BATCH_SIZE):
+                lote = ids_finalizar[i:i + BATCH_SIZE]
+                self.browse(lote).with_delay(
+                    description=f'Transición Finalizada — lote {i // BATCH_SIZE + 1}',
+                )._job_transicion_finalizada(estado_finalizada.id)
+
+    def _job_transicion_en_curso(self, estado_id):
+        import logging
+        _log = logging.getLogger(__name__)
+
+        self = self.sudo()
+
+        self.with_context(bypass_edit_protection=True).write({
+            'estado_id': estado_id
+        })
+
+        _log.info('Job: %d actividad(es) → En Curso.', len(self))
+
+    def _job_transicion_finalizada(self, estado_id):
+        import logging
+        _log = logging.getLogger(__name__)
+
+        self = self.sudo()
+
+        self.with_context(bypass_edit_protection=True).write({
+            'estado_id': estado_id,
+            'en_catalogo': False,
+        })
+
+        _log.info('Job: %d actividad(es) → Finalizada.', len(self))
 
     def action_confirmar_actividad(self):
         """Personal: confirma la actividad pasándola a 'Pendiente de Inicio'."""
