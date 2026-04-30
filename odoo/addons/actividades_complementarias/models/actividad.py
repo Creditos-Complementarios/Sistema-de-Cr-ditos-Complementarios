@@ -736,11 +736,6 @@ class Actividad(models.Model):
             return super().write(vals)
 
         if self.env.context.get('bypass_edit_protection'):
-            is_admin = self.env.user.has_group(
-                'actividades_complementarias.group_admin_actividades'
-            )
-            if not (self.env.su or is_admin):
-                raise UserError(_('Operacion no permitida.'))
             return super().write(vals)
 
         is_admin = self.env.user.has_group(
