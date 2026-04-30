@@ -734,6 +734,9 @@ class Actividad(models.Model):
             self.with_context(bypass_edit_protection=True).write(vals)
         """
         # Las acciones internas del sistema omiten la protección
+        if self.env.context.get('from_job'):
+            return super().write(vals)
+
         if self.env.context.get('bypass_edit_protection'):
             is_admin = self.env.user.has_group(
                 'actividades_complementarias.group_admin_actividades'
@@ -1451,7 +1454,6 @@ class Actividad(models.Model):
                 lote = ids_iniciar[i:i + BATCH_SIZE]
                 self.browse(lote).with_delay(
                     description=f'Transición En Curso — lote {i // BATCH_SIZE + 1}',
-                    channel='root.actividades',
                 )._job_transicion_en_curso(estado_en_curso.id)
 
         if estado_finalizada:
@@ -1464,22 +1466,31 @@ class Actividad(models.Model):
                 lote = ids_finalizar[i:i + BATCH_SIZE]
                 self.browse(lote).with_delay(
                     description=f'Transición Finalizada — lote {i // BATCH_SIZE + 1}',
-                    channel='root.actividades',
                 )._job_transicion_finalizada(estado_finalizada.id)
 
     def _job_transicion_en_curso(self, estado_id):
         import logging
         _log = logging.getLogger(__name__)
-        self.sudo().with_context(bypass_edit_protection=True).write({'estado_id': estado_id})
+
+        self = self.sudo()
+
+        self.with_context(bypass_edit_protection=True).write({
+            'estado_id': estado_id
+        })
+
         _log.info('Job: %d actividad(es) → En Curso.', len(self))
 
     def _job_transicion_finalizada(self, estado_id):
         import logging
         _log = logging.getLogger(__name__)
-        self.sudo().with_context(bypass_edit_protection=True).write({
+
+        self = self.sudo()
+
+        self.with_context(bypass_edit_protection=True).write({
             'estado_id': estado_id,
             'en_catalogo': False,
         })
+
         _log.info('Job: %d actividad(es) → Finalizada.', len(self))
 
     def action_confirmar_actividad(self):
