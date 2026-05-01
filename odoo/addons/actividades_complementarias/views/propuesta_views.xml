@@ -55,14 +55,6 @@
         <field name="arch" type="xml">
             <form string="Propuesta al Comite Academico">
                 <header>
-                    <button name="action_abrir_wizard_aprobacion" string="Aprobar"
-                            type="object" class="btn-success"
-                            invisible="estado_code != 'en_revision'"
-                            groups="actividades_complementarias.group_comite_academico,actividades_complementarias.group_admin_actividades"/>
-                    <button name="action_abrir_wizard_rechazo" string="Rechazar"
-                            type="object" class="btn-danger"
-                            invisible="estado_code != 'en_revision'"
-                            groups="actividades_complementarias.group_comite_academico,actividades_complementarias.group_admin_actividades"/>
                     <button name="action_regresar_lista" string="Regresar"
                             type="object" class="btn-secondary"/>
                     <field name="estado_code" widget="statusbar"
@@ -115,6 +107,16 @@
                         </group>
                         <field name="actividad_descripcion" readonly="1" string="Descripcion" colspan="2"/>
                     </group>
+                        <!-- Botones al final -->
+                    <div class="d-flex justify-content-end gap-2 mt-3"
+                        invisible="estado_code != 'en_revision'">
+                        <button name="action_abrir_wizard_aprobacion" string="Aprobar"
+                                type="object" class="btn-success"
+                                groups="actividades_complementarias.group_comite_academico,actividades_complementarias.group_admin_actividades"/>
+                        <button name="action_abrir_wizard_rechazo" string="Rechazar"
+                                type="object" class="btn-danger"
+                                groups="actividades_complementarias.group_comite_academico,actividades_complementarias.group_admin_actividades"/>
+                    </div>
                 </sheet>
                 <chatter/>
             </form>
