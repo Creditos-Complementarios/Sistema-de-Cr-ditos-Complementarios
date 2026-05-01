@@ -69,7 +69,7 @@
         <field name="name">actividad.complementaria.form</field>
         <field name="model">actividad.complementaria</field>
         <field name="arch" type="xml">
-            <form string="Actividad Complementaria">
+            <form string="Actividad Complementaria" create="0">
                 <header>
                     <button name="action_abrir_confirmacion_comite" string="Enviar al Comité Académico"
                         type="object" class="btn-warning"

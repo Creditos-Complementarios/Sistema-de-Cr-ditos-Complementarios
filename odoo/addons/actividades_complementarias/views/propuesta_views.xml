@@ -53,7 +53,7 @@
         <field name="name">actividad.propuesta.form</field>
         <field name="model">actividad.propuesta</field>
         <field name="arch" type="xml">
-            <form string="Propuesta al Comite Academico">
+            <form string="Propuesta al Comite Academico" create="0">
                 <header>
                     <button name="action_abrir_wizard_aprobacion" string="Aprobar"
                             type="object" class="btn-success"
