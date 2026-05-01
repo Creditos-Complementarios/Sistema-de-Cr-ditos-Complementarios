@@ -24,17 +24,25 @@
         </field>
     </record>
 
-        <!-- ── Search ───────────────────────────────────────────────────────── -->
+           <!-- ── Search Catálogo ──────────────────────────────────────────────── -->
     <record id="view_actividad_Catalogo_search" model="ir.ui.view">
-        <field name="name">actividad.complementaria.search</field>
+        <field name="name">actividad.complementaria.catalogo.search</field>
         <field name="model">actividad.complementaria</field>
         <field name="arch" type="xml">
             <search string="Buscar Actividades">
                 <field name="name" string="Actividad"/>
+                <field name="tipo_actividad_id" string="Tipo"/>
                 <field name="periodo"/>
-                <field name="jefe_departamento_id"/>
-                <filter name="group_tipo" string="Por Tipo" context="{'group_by':'tipo_actividad_id'}"/>
-                <filter name="group_periodo" string="Por Periodo" context="{'group_by':'periodo'}"/>
+                <separator/>
+                <filter name="filter_en_curso" string="En Curso"
+                        domain="[('estado_code','=','en_curso')]"/>
+                <filter name="filter_proximas" string="Próximas"
+                        domain="[('estado_code','=','pendiente_inicio')]"/>
+                <separator/>
+                <filter name="group_tipo" string="Por Tipo"
+                        context="{'group_by':'tipo_actividad_id'}"/>
+                <filter name="group_periodo" string="Por Periodo"
+                        context="{'group_by':'periodo'}"/>
             </search>
         </field>
     </record>
@@ -361,7 +369,7 @@
         <field name="view_mode">list,kanban,form</field>
         <field name="domain">[('en_catalogo', '=', True)]</field>
         <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
-        <field name="context">{'hide_catalogo': True}</field>
+        <field name="context">{'hide_catalogo': True, 'search_default_filter_proximas': 1}</field>
     </record>
 
 </odoo>
