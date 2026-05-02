@@ -239,11 +239,11 @@
                                 string="Eliminar alumnos"
                                 type="object"
                                 class="btn btn-danger btn-sm mb-2"
-                                invisible="estado_code in ['finalizada'] or not alumno_ids"
+                                invisible="en_catalogo or estado_code not in ['aprobada','pendiente_inicio'] or not alumno_ids"
                                 groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                             <field name="alumno_ids"
                                    domain="dominio_alumnos"
-                                   readonly="estado_code in ['finalizada']"
+                                   readonly="en_catalogo or estado_code not in ['aprobada','pendiente_inicio']"
                                    options="{'no_create': True, 'no_quick_create': True}">
                                 <list>
                                     <field name="name"/>
@@ -333,7 +333,7 @@
                 <button name="action_toggle_evidence"
                         type="object"
                         class="btn-secondary"
-                        invisible="estado_code not in ['pendiente_inicio','en_curso']"
+                        invisible="estado_code not in ['finalizada']"
                         groups="actividades_complementarias.group_responsable_actividad,
                                 actividades_complementarias.group_responsable_actividad_extraescolar">
                     <span invisible="evidence_enabled">Habilitar Evidencias</span>
@@ -348,7 +348,7 @@
                         string="Generar Constancias"
                         type="object"
                         class="btn-primary"
-                        invisible="estado_code != 'finalizada' or certificates_generated"
+                        invisible="estado_code not in ['finalizada'] or certificates_generated"
                         groups="actividades_complementarias.group_responsable_actividad,
                                 actividades_complementarias.group_responsable_actividad_extraescolar"/>
 

@@ -864,8 +864,10 @@ class Actividad(models.Model):
         """Estampa el flag actividad_creating=True en el contexto para que
         _check_fechas pueda distinguir una creación de una edición.
 
-        Para usuarios de Personal/RA (no JD, no admin), se auto-asigna
-        como responsable_actividad_id si no viene ya en los valores.
+        Si tipo_actividad_id no llega en vals (readonly en vista para RA/Personal)
+        pero sí viene actividad_predefinida, lo toma del predefinido en el servidor.
+
+        Para usuarios RA/Personal no JD/admin, auto-asigna responsable_actividad_id.
 
         El flag se elimina del recordset devuelto para que llamadas
         posteriores a write() sobre esos registros no lo hereden.
@@ -876,8 +878,17 @@ class Actividad(models.Model):
         is_admin = self.env.user.has_group(
             'actividades_complementarias.group_admin_actividades'
         )
-        if not is_jd and not is_admin:
-            for vals in vals_list:
+        for vals in vals_list:
+            # Recuperar tipo_actividad_id desde el predefinido cuando el campo
+            # llega vacío (campo readonly no enviado por el cliente)
+            if not vals.get('tipo_actividad_id') and vals.get('actividad_predefinida'):
+                predefinida = self.env['actividad.tipo.predefinida'].browse(
+                    vals['actividad_predefinida']
+                )
+                if predefinida.tipo_actividad_id:
+                    vals['tipo_actividad_id'] = predefinida.tipo_actividad_id.id
+            # Auto-asignar responsable para RA/Personal
+            if not is_jd and not is_admin:
                 vals.setdefault('responsable_actividad_id', self.env.user.id)
         records = super(
             Actividad,
@@ -1069,6 +1080,7 @@ class Actividad(models.Model):
         bypass = (
             self.env.context.get('install_demo')
             or self.env.context.get('skip_fecha_check')
+            or self.env.context.get('noupdate')
         )
         manana = date.today() + timedelta(days=1)
         for rec in self:
@@ -1399,7 +1411,25 @@ class Actividad(models.Model):
         if self.estado_code not in ('aprobada', 'pendiente_inicio'):
             raise ValidationError('Solo se pueden enviar al catálogo actividades aprobadas o pendientes de inicio.')
         self.with_context(bypass_edit_protection=True).write({'en_catalogo': True})
-        self.message_post(body='Actividad enviada al catálogo.')
+
+        # Notificaciones: determinar destinatarios según quién envía
+        sender = self.env.user
+        responsable = self.responsable_actividad_id
+        jd = self.jefe_departamento_id
+
+        notify_partners = []
+        # Siempre notificar al RA si no es quien está enviando
+        if responsable and responsable != sender and responsable.partner_id:
+            notify_partners.append(responsable.partner_id.id)
+        # Si quien envía es RA/Personal (tiene permiso delegado), notificar también al JD
+        if self._es_personal() and jd and jd != sender and jd.partner_id:
+            notify_partners.append(jd.partner_id.id)
+
+        self.message_post(
+            body='La actividad <b>%s</b> ha sido registrada en el catálogo.' % self.name,
+            partner_ids=notify_partners,
+            subtype_xmlid='mail.mt_comment',
+        )
         # Redirigir al catálogo de actividades (no quedar en vista superpuesta)
         action = self.env.ref(
             'actividades_complementarias.action_actividad_catalogo',
