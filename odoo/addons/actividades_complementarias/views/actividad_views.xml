@@ -135,7 +135,7 @@
                          and not permisos_actividad_en_curso"
                          role="alert">
                         <span invisible="estado_code == 'finalizada'">
-                            <i class="fa fa-lock me-1"/>
+                            <i class="fa fa-lock me-1" title="Bloqueado"/>
                             <b invisible="permisos_actividad_en_curso">
                                 Esta actividad no puede modificarse en su estado actual.
                             </b>
@@ -148,7 +148,7 @@
                             </b>
                         </span>
                         <span invisible="estado_code != 'finalizada'">
-                            <i class="fa fa-lock me-1"/>
+                            <i class="fa fa-lock me-1" title="Bloqueado"/>
                             <b>Esta actividad está finalizada y no puede ser modificada.</b>
                         </span>
                     </div>
@@ -162,10 +162,7 @@
                                 class="oe_stat_button"
                                 icon="fa-calendar-check-o"
                                 invisible="estado_code not in ['en_curso','finalizada'] or certificates_generated"
-                                groups="actividades_complementarias.group_responsable_actividad,
-                                        actividades_complementarias.group_responsable_actividad_extraescolar,
-                                        actividades_complementarias.group_jefe_departamento,
-                                        actividades_complementarias.group_admin_actividades">
+                                groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades">
                             <field name="asistencia_count" widget="statinfo" string="Sesiones"/>
                         </button>
                         <!-- Evaluación: solo finalizada -->
@@ -174,10 +171,7 @@
                                 class="oe_stat_button"
                                 icon="fa-star"
                                 invisible="estado_code != 'finalizada'"
-                                groups="actividades_complementarias.group_responsable_actividad,
-                                        actividades_complementarias.group_responsable_actividad_extraescolar,
-                                        actividades_complementarias.group_jefe_departamento,
-                                        actividades_complementarias.group_admin_actividades">
+                                groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades">
                             <field name="inscripcion_count" widget="statinfo" string="Estudiantes"/>
                         </button>
                     </div>
@@ -187,10 +181,7 @@
                             type="object"
                             class="btn-secondary"
                             invisible="estado_code not in ['en_curso'] or certificates_generated"
-                            groups="actividades_complementarias.group_responsable_actividad,
-                                    actividades_complementarias.group_responsable_actividad_extraescolar,
-                                    actividades_complementarias.group_jefe_departamento,
-                                    actividades_complementarias.group_admin_actividades"/>
+                            groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                     <field name="asistencia_count" invisible="1"/>
                     <field name="ruta_imagen" widget="image" class="oe_avatar"
                            readonly="estado_code in ['aprobada','en_curso','finalizada','en_revision']"/>
@@ -316,11 +307,11 @@
                                 <field name="tipo_actividad_id"/>
                             </div>
                             <div>
-                                <i class="fa fa-calendar"/> <field name="fecha_inicio"/> — <field name="fecha_fin"/>
+                                <i class="fa fa-calendar" title="Fecha"/> <field name="fecha_inicio"/> — <field name="fecha_fin"/>
                             </div>
                             <div class="mt-2">
                                 <span class="badge bg-info" t-if="record.en_catalogo.raw_value">En Catálogo</span>
-                                <span><i class="fa fa-users"/> <field name="alumno_count"/> alumnos</span>
+                                <span><i class="fa fa-users" title="Alumnos"/> <field name="alumno_count"/> alumnos</span>
                             </div>
                         </div>
                     </t>
@@ -371,8 +362,7 @@
                         type="object"
                         class="btn-secondary"
                         invisible="estado_code not in ['finalizada']"
-                        groups="actividades_complementarias.group_responsable_actividad,
-                                actividades_complementarias.group_responsable_actividad_extraescolar">
+                        groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar">
                     <span invisible="evidence_enabled">Habilitar Evidencias</span>
                     <span invisible="not evidence_enabled">Deshabilitar Evidencias</span>
                 </button>
@@ -386,8 +376,7 @@
                         type="object"
                         class="btn-primary"
                         invisible="estado_code not in ['finalizada'] or certificates_generated"
-                        groups="actividades_complementarias.group_responsable_actividad,
-                                actividades_complementarias.group_responsable_actividad_extraescolar"/>
+                        groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar"/>
 
                 <!--
                     RA-02SC paso 13: firmar constancias (solo RA, no RAE).
