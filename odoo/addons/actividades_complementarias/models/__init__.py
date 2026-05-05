@@ -9,7 +9,7 @@ from . import sii_estudiante
 # Modelos del módulo
 from . import actividad_horario
 from . import actividad_inscripcion
-from . import actividad_asistencia 
+from . import actividad_asistencia
 from . import tipo_actividad
 from . import actividad_tipo_predefinida
 from . import estado_actividad

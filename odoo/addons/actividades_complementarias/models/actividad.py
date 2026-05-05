@@ -294,12 +294,13 @@ class Actividad(models.Model):
         help='True cuando el usuario en sesión no puede editar ningún campo del formulario.',
     )
     responsable_readonly = fields.Boolean(
-    string='Responsable Solo Lectura',
+        string='Responsable Solo Lectura',
         compute='_compute_responsable_readonly',
     )
     tipo_actividad_readonly = fields.Boolean(
         compute='_compute_responsable_readonly',
     )
+
     @api.depends('estado_code')
     def _compute_responsable_readonly(self):
         is_jd = self.env.user.has_group(
@@ -358,6 +359,7 @@ class Actividad(models.Model):
         string='Sesiones',
         compute='_compute_asistencia_count',
     )
+
     @api.depends('asistencia_ids')
     def _compute_asistencia_count(self):
         for rec in self:
@@ -369,36 +371,6 @@ class Actividad(models.Model):
     # Helpers de rol
     # ────────────────────────────────────────────────────────────────────────
     @api.model
-    def _default_jefe_departamento(self):
-        """Devuelve el JD correcto según el usuario en sesión:
-        - JD o Admin: él mismo.
-        - Personal: busca el jefe_id del departamento vía sii.empleado o empleado_permiso.
-        """
-        user = self.env.user
-        if (user.has_group('actividades_complementarias.group_jefe_departamento')
-                or user.has_group('actividades_complementarias.group_admin_actividades')):
-            return user
-
-        # Buscar por correo en sii.empleado → departamento → JD
-        sii_emp = self.env['sii.empleado'].sudo().search(
-            [('correo', '=', user.login)], limit=1
-        )
-        if sii_emp and sii_emp.id_departamento:
-            depto = self.env['actividad.departamento'].sudo().search(
-                [('name', 'ilike', sii_emp.id_departamento.nombre_departamento)], limit=1
-            )
-            if depto and depto.jefe_id:
-                return depto.jefe_id
-
-        # Fallback: empleado_permiso (usuarios demo)
-        permiso = self.env['actividad.empleado.permiso'].sudo().search(
-            [('user_id', '=', user.id)], limit=1
-        )
-        if permiso and permiso.departamento_id and permiso.departamento_id.jefe_id:
-            return permiso.departamento_id.jefe_id
-
-        return user
-
     def _default_jefe_departamento(self):
         """Devuelve el JD correcto según el usuario en sesión:
         - JD o Admin: él mismo (comportamiento original).
@@ -1291,7 +1263,7 @@ class Actividad(models.Model):
             'context': {
                 'default_actividad_id': self.id,
                 'actividad_readonly': self.estado_code == 'finalizada'
-                                    or self.certificates_generated,
+                or self.certificates_generated,
                 # Botón "Nueva Sesión" en el panel de control mediante acción auxiliar
                 'search_panel_default_action': wizard_action.id,
             },
@@ -1377,7 +1349,7 @@ class Actividad(models.Model):
                 raise ValidationError('El cupo mínimo debe ser al menos 1.')
             if self.cupo_max < self.cupo_min:
                 raise ValidationError('El cupo máximo debe ser mayor o igual al cupo mínimo.')
-        
+
         estado_pendiente = self.env.ref(
             'actividades_complementarias.estado_pendiente_inicio'
         )
@@ -1386,7 +1358,7 @@ class Actividad(models.Model):
         )
         self.message_post(
             body='Actividad confirmada por el Responsable de Actividad. '
-                'En espera de envío al catálogo por el Jefe de Departamento.'
+            'En espera de envío al catálogo por el Jefe de Departamento.'
         )
 
     def action_enviar_comite(self):
@@ -1911,27 +1883,6 @@ class Actividad(models.Model):
         })
 
         _log.info('Job: %d actividad(es) → Finalizada.', len(self))
-
-    def action_confirmar_actividad(self):
-        """Personal: confirma la actividad pasándola a 'Pendiente de Inicio'."""
-        self.ensure_one()
-        if self.estado_code:
-            raise ValidationError(
-                'Esta actividad ya fue confirmada o se encuentra en un estado avanzado.'
-            )
-        if not self.cantidad_horas or self.cantidad_horas <= 0:
-            raise ValidationError('La cantidad de horas debe ser mayor a 0.')
-        if not self.cupo_ilimitado:
-            if self.cupo_min < 1:
-                raise ValidationError('El cupo mínimo debe ser al menos 1.')
-            if self.cupo_max < self.cupo_min:
-                raise ValidationError('El cupo máximo debe ser mayor o igual al cupo mínimo.')
-        estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
-        self.with_context(bypass_edit_protection=True).write(
-            {'estado_id': estado_pendiente.id}
-        )
-        self.message_post(body='Actividad confirmada. En espera de envío al catálogo.')
-
 
 class ActividadDepartamento(models.Model):
     """Catálogo simple de departamentos para asociar JD y personal."""
