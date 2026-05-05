@@ -1060,7 +1060,7 @@ class Actividad(models.Model):
         bypass = (
             self.env.context.get('install_demo')
             or self.env.context.get('skip_fecha_check')
-            or self.env.su
+            or self.env.registry._init
         )
         manana = date.today() + timedelta(days=1)
         for rec in self:
@@ -1139,7 +1139,7 @@ class Actividad(models.Model):
         en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo."""
         if (self.env.context.get('install_demo')
                 or self.env.context.get('skip_horas_check')
-                or self.env.su):
+                or self.env.registry._init):
             return
         for rec in self:
             if rec.cantidad_horas <= 0:
@@ -1778,10 +1778,6 @@ class Actividad(models.Model):
     def action_firmar_constancias_responsable(self):
         """El Responsable de Actividad firma su parte. Las constancias solo se liberan cuando ambos firmen."""
         self.ensure_one()
-        if not self.certificates_generated:
-            raise UserError(
-                _("Las constancias aún no han sido generadas.")
-            )
         if self.estado_code != 'finalizada':
             raise ValidationError('Solo se pueden firmar constancias de actividades finalizadas.')
         if self.responsable_firmo:
