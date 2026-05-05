@@ -329,6 +329,7 @@ Miércoles 15:00-17:00</field>
         <field name="cupo_min">8</field>
         <field name="cupo_max">25</field>
         <field name="estado_id" ref="actividades_complementarias.estado_en_curso"/>
+        <field name="en_catalogo">True</field>
         <field name="alumno_ids" eval="[(4, ref('user_alumno_1')), (4, ref('user_alumno_4')), (4, ref('user_alumno_8'))]"/>
     </record>
 
