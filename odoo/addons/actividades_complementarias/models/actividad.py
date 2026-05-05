@@ -354,6 +354,17 @@ class Actividad(models.Model):
         help="Número de estudiantes inscritos sin nivel de desempeño asignado.",
     )
 
+    asistencia_count = fields.Integer(
+        string='Sesiones',
+        compute='_compute_asistencia_count',
+    )
+    @api.depends('asistencia_ids')
+    def _compute_asistencia_count(self):
+        for rec in self:
+            rec.asistencia_count = len(
+                set(rec.asistencia_ids.mapped('fecha'))
+            )
+
     # ────────────────────────────────────────────────────────────────────────
     # Helpers de rol
     # ────────────────────────────────────────────────────────────────────────
@@ -1080,7 +1091,7 @@ class Actividad(models.Model):
         bypass = (
             self.env.context.get('install_demo')
             or self.env.context.get('skip_fecha_check')
-            or self.env.context.get('noupdate')
+            or self.env.su
         )
         manana = date.today() + timedelta(days=1)
         for rec in self:
@@ -1157,7 +1168,9 @@ class Actividad(models.Model):
     def _check_horas_vs_dias(self):
         """La cantidad de horas no puede exceder el total de horas disponibles
         en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo."""
-        if self.env.context.get('install_demo') or self.env.context.get('skip_horas_check'):
+        if (self.env.context.get('install_demo')
+                or self.env.context.get('skip_horas_check')
+                or self.env.su):
             return
         for rec in self:
             if rec.cantidad_horas <= 0:
@@ -1238,6 +1251,66 @@ class Actividad(models.Model):
             'res_id': wizard.id,
             'view_mode': 'form',
             'target': 'new',
+        }
+
+    def action_abrir_wizard_nueva_sesion(self):
+        """Abre el wizard para generar una nueva sesión de pase de lista."""
+        self.ensure_one()
+        if self.estado_code not in ('en_curso', 'finalizada'):
+            raise ValidationError(
+                _('El pase de lista solo está disponible para actividades en curso.')
+            )
+        if self.certificates_generated:
+            raise ValidationError(
+                _('No se puede modificar el pase de lista una vez generadas las constancias.')
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Nueva Sesión',
+            'res_model': 'actividad.wizard.nueva.sesion',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_actividad_id': self.id},
+        }
+
+    # En action_abrir_pase_lista — añadir la acción del wizard al contexto
+    def action_abrir_pase_lista(self):
+        self.ensure_one()
+        wizard_action = self.env.ref(
+            'actividades_complementarias.action_wizard_nueva_sesion'
+        )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Pase de Lista — %s' % self.name,
+            'res_model': 'actividad.asistencia',
+            'view_mode': 'list',
+            'views': [(self.env.ref(
+                'actividades_complementarias.view_asistencia_list_standalone'
+            ).id, 'list')],
+            'domain': [('actividad_id', '=', self.id)],
+            'context': {
+                'default_actividad_id': self.id,
+                'actividad_readonly': self.estado_code == 'finalizada'
+                                    or self.certificates_generated,
+                # Botón "Nueva Sesión" en el panel de control mediante acción auxiliar
+                'search_panel_default_action': wizard_action.id,
+            },
+        }
+
+    def action_abrir_evaluacion(self):
+        """Abre la vista de evaluación de desempeño separada."""
+        self.ensure_one()
+        if self.estado_code != 'finalizada':
+            raise ValidationError(
+                _('La evaluación de desempeño solo está disponible para actividades finalizadas.')
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Evaluación de Desempeño — %s' % self.name,
+            'res_model': 'actividad.inscripcion',
+            'view_mode': 'list',
+            'domain': [('actividad_id', '=', self.id)],
+            'context': {'default_actividad_id': self.id},
         }
 
     def action_abrir_confirmacion_comite(self):

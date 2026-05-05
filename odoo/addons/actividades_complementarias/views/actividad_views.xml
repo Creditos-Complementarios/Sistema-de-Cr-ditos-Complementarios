@@ -125,7 +125,7 @@
                     <!-- Flags de permisos de edición (calculados por rol y estado) -->
                     <field name="permisos_actividad_finalizada" invisible="1"/>
                     <field name="permisos_actividad_en_curso" invisible="1"/>
-
+                    <field name="certificates_generated" invisible="1"/>
                     <!--
                         Banner informativo de solo lectura.
                         Aparece cuando el formulario está bloqueado para el usuario actual.
@@ -155,6 +155,43 @@
 
                     <field name="responsable_bloqueado" invisible="1"/>
                     <field name="horas_maximas" invisible="1"/>
+                    <div name="button_box" class="oe_button_box">
+                        <!-- Pase de lista: en_curso y finalizada sin constancias -->
+                        <button name="action_abrir_pase_lista"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-calendar-check-o"
+                                invisible="estado_code not in ['en_curso','finalizada'] or certificates_generated"
+                                groups="actividades_complementarias.group_responsable_actividad,
+                                        actividades_complementarias.group_responsable_actividad_extraescolar,
+                                        actividades_complementarias.group_jefe_departamento,
+                                        actividades_complementarias.group_admin_actividades">
+                            <field name="asistencia_count" widget="statinfo" string="Sesiones"/>
+                        </button>
+                        <!-- Evaluación: solo finalizada -->
+                        <button name="action_abrir_evaluacion"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-star"
+                                invisible="estado_code != 'finalizada'"
+                                groups="actividades_complementarias.group_responsable_actividad,
+                                        actividades_complementarias.group_responsable_actividad_extraescolar,
+                                        actividades_complementarias.group_jefe_departamento,
+                                        actividades_complementarias.group_admin_actividades">
+                            <field name="inscripcion_count" widget="statinfo" string="Estudiantes"/>
+                        </button>
+                    </div>
+                    <!-- Botón acción directa: Nueva Sesión (en header del form) -->
+                    <button name="action_abrir_wizard_nueva_sesion"
+                            string="Nueva Sesión"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="estado_code not in ['en_curso'] or certificates_generated"
+                            groups="actividades_complementarias.group_responsable_actividad,
+                                    actividades_complementarias.group_responsable_actividad_extraescolar,
+                                    actividades_complementarias.group_jefe_departamento,
+                                    actividades_complementarias.group_admin_actividades"/>
+                    <field name="asistencia_count" invisible="1"/>
                     <field name="ruta_imagen" widget="image" class="oe_avatar"
                            readonly="estado_code in ['aprobada','en_curso','finalizada','en_revision']"/>
                     <div class="oe_title">
@@ -371,78 +408,6 @@
                 <field name="certificates_generated" invisible="1"/>
                 <field name="responsable_firmo" invisible="1"/>
             </xpath>
-
-            <!-- ── Pestañas de evaluación y asistencia ────────────────── -->
-            <!--
-                Se agregan dentro del notebook existente.
-                Solo visibles cuando la actividad está en un estado operativo.
-            -->
-            <xpath expr="//notebook" position="inside">
-
-                <!--
-                    Pestaña de evaluación: lista de inscripciones con nivel de
-                    desempeño por alumno (RA-02SC pasos 4-9 / RAE-01SC pasos 4-9).
-                -->
-                <page string="Evaluación de Estudiantes"
-                      name="inscripciones"
-                      invisible="estado_code not in ['pendiente_inicio','en_curso','finalizada']"
-                      groups="actividades_complementarias.group_responsable_actividad,
-                              actividades_complementarias.group_responsable_actividad_extraescolar,
-                              actividades_complementarias.group_jefe_departamento,
-                              actividades_complementarias.group_admin_actividades">
-                    <field name="inscripcion_ids">
-                        <list editable="bottom"
-                              decoration-success="certificate_generated"
-                              decoration-muted="performance_level == '0'">
-                            <field name="partner_id" string="Estudiante"/>
-                            <field name="performance_level"
-                                   widget="badge"
-                                   readonly="estado_id != 'finalizada'"
-                                   decoration-danger="performance_level == '0'"
-                                   decoration-warning="performance_level == '1'"
-                                   decoration-info="performance_level == '2'"
-                                   decoration-success="performance_level in ('3','4')"/>
-                            <field name="observations"
-                                   readonly="estado_id != 'finalizada'"
-                                   optional="show"/>
-                            <field name="certificate_generated" readonly="1" optional="show"/>
-                            <field name="certificate_signed" readonly="1" optional="show"/>
-                            <!--
-                                Campo auxiliar para el readonly condicional de performance_level.
-                                Se expone como invisible para que el ORM lo incluya en el contexto.
-                            -->
-                            <field name="estado_id" column_invisible="1"/>
-                        </list>
-                    </field>
-                </page>
-
-                <!--
-                    Pestaña de pase de lista: asistencia por fecha
-                    (RA-02SC pasos 6-8 / RAE-01SC pasos 6-8).
-                    Solo disponible mientras la actividad está en curso.
-                -->
-                <page string="Pase de Lista"
-                      name="asistencia"
-                      invisible="estado_code not in ['en_curso','finalizada']"
-                      groups="actividades_complementarias.group_responsable_actividad,
-                              actividades_complementarias.group_responsable_actividad_extraescolar,
-                              actividades_complementarias.group_jefe_departamento,
-                              actividades_complementarias.group_admin_actividades">
-                    <field name="asistencia_ids"
-                           readonly="estado_code == 'finalizada'">
-                        <list editable="bottom"
-                              decoration-success="presente"
-                              decoration-muted="not presente">
-                            <field name="fecha"/>
-                            <field name="inscripcion_id" string="Inscripción"/>
-                            <field name="partner_id" string="Estudiante" readonly="1"/>
-                            <field name="presente" widget="boolean_toggle"/>
-                        </list>
-                    </field>
-                </page>
-
-            </xpath>
-
         </field>
     </record>
 
@@ -534,6 +499,74 @@
         <field name="domain">[('responsable_extraescolar_id', '=', uid)]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'search_default_filter_pendiente': 0}</field>
+    </record>
+
+    <!-- Wizard: nueva sesión de pase de lista -->
+    <record id="view_wizard_nueva_sesion_form" model="ir.ui.view">
+        <field name="name">actividad.wizard.nueva.sesion.form</field>
+        <field name="model">actividad.wizard.nueva.sesion</field>
+        <field name="arch" type="xml">
+            <form string="Nueva Sesión de Pase de Lista">
+                <sheet>
+                    <group>
+                        <field name="actividad_id" readonly="1"/>
+                        <field name="fecha"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_generar" string="Generar Sesión"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <!-- Vista standalone de pase de lista -->
+    <record id="view_asistencia_list_standalone" model="ir.ui.view">
+        <field name="name">actividad.asistencia.list.standalone</field>
+        <field name="model">actividad.asistencia</field>
+        <field name="arch" type="xml">
+            <list string="Pase de Lista"
+                default_group_by="fecha"
+                editable="bottom"
+                decoration-success="presente"
+                decoration-muted="not presente"
+                create="0">
+                <control>
+                    <create string="Nueva Sesión"
+                            context="{'open_wizard_sesion': True}"/>
+                </control>
+                <field name="fecha" readonly="1"/>
+                <field name="partner_id" string="Estudiante" readonly="1"/>
+                <field name="presente" widget="boolean_toggle"
+                    readonly="context.get('actividad_readonly', False)"/>
+            </list>
+        </field>
+    </record>
+    <!-- Vista standalone de evaluación de desempeño -->
+    <record id="view_inscripcion_list_evaluacion" model="ir.ui.view">
+        <field name="name">actividad.inscripcion.list.evaluacion</field>
+        <field name="model">actividad.inscripcion</field>
+        <field name="arch" type="xml">
+            <list string="Evaluación de Desempeño" editable="bottom" create="0" delete="0">
+                <field name="partner_id" string="Estudiante" readonly="1"/>
+                <field name="performance_level"
+                    widget="badge"
+                    decoration-danger="performance_level == '0'"
+                    decoration-warning="performance_level == '1'"
+                    decoration-info="performance_level == '2'"
+                    decoration-success="performance_level in ('3','4')"/>
+                <field name="observations"/>
+                <field name="certificate_generated" readonly="1"/>
+            </list>
+        </field>
+    </record>
+    <!-- Botón "Nueva Sesión" visible en la vista de pase de lista -->
+    <record id="action_wizard_nueva_sesion" model="ir.actions.act_window">
+        <field name="name">Nueva Sesión</field>
+        <field name="res_model">actividad.wizard.nueva.sesion</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
     </record>
 
 </odoo>
