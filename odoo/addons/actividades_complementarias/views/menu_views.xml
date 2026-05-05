@@ -54,7 +54,12 @@
               sequence="30"
               groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_admin_actividades"/>
 
-
+    <!--
+        Cada grupo de Personal tiene su propia acción con el domain del
+        departamento correspondiente. Así "Mis Actividades" muestra solo las
+        actividades de ese departamento, mientras que "Catálogo de Actividades"
+        (acción compartida con domain en_catalogo=True) muestra todo el catálogo.
+    -->
     <menuitem id="menu_personal_mis_actividades_sistemas"
               name="Mis Actividades"
               parent="menu_personal_depto"

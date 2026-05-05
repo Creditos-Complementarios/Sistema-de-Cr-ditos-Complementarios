@@ -1850,6 +1850,11 @@ class Actividad(models.Model):
         )
 
     def _actualizar_estado_por_fecha(self):
+        """Cron diario: transiciona estados según fechas.
+
+        pendiente_inicio / aprobada  →  en_curso   cuando fecha_inicio <= hoy
+        en_curso                     →  finalizada cuando fecha_fin    <  hoy
+        """
         import logging
         _log = logging.getLogger(__name__)
         hoy = date.today()

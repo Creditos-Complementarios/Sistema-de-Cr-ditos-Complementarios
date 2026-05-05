@@ -470,7 +470,7 @@
         <field name="view_mode">list,kanban,form</field>
         <field name="domain">[('en_catalogo', '=', True)]</field>
         <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
-        <field name="context">{'hide_catalogo': True, 'search_default_filter_proximas': 1}</field>
+        <field name="context">{'hide_catalogo': True}</field>
     </record>
 
     <!--
@@ -499,74 +499,6 @@
         <field name="domain">[('responsable_extraescolar_id', '=', uid)]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'search_default_filter_pendiente': 0}</field>
-    </record>
-
-    <!-- Wizard: nueva sesión de pase de lista -->
-    <record id="view_wizard_nueva_sesion_form" model="ir.ui.view">
-        <field name="name">actividad.wizard.nueva.sesion.form</field>
-        <field name="model">actividad.wizard.nueva.sesion</field>
-        <field name="arch" type="xml">
-            <form string="Nueva Sesión de Pase de Lista">
-                <sheet>
-                    <group>
-                        <field name="actividad_id" readonly="1"/>
-                        <field name="fecha"/>
-                    </group>
-                </sheet>
-                <footer>
-                    <button name="action_generar" string="Generar Sesión"
-                            type="object" class="btn-primary"/>
-                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
-                </footer>
-            </form>
-        </field>
-    </record>
-    <!-- Vista standalone de pase de lista -->
-    <record id="view_asistencia_list_standalone" model="ir.ui.view">
-        <field name="name">actividad.asistencia.list.standalone</field>
-        <field name="model">actividad.asistencia</field>
-        <field name="arch" type="xml">
-            <list string="Pase de Lista"
-                default_group_by="fecha"
-                editable="bottom"
-                decoration-success="presente"
-                decoration-muted="not presente"
-                create="0">
-                <control>
-                    <create string="Nueva Sesión"
-                            context="{'open_wizard_sesion': True}"/>
-                </control>
-                <field name="fecha" readonly="1"/>
-                <field name="partner_id" string="Estudiante" readonly="1"/>
-                <field name="presente" widget="boolean_toggle"
-                    readonly="context.get('actividad_readonly', False)"/>
-            </list>
-        </field>
-    </record>
-    <!-- Vista standalone de evaluación de desempeño -->
-    <record id="view_inscripcion_list_evaluacion" model="ir.ui.view">
-        <field name="name">actividad.inscripcion.list.evaluacion</field>
-        <field name="model">actividad.inscripcion</field>
-        <field name="arch" type="xml">
-            <list string="Evaluación de Desempeño" editable="bottom" create="0" delete="0">
-                <field name="partner_id" string="Estudiante" readonly="1"/>
-                <field name="performance_level"
-                    widget="badge"
-                    decoration-danger="performance_level == '0'"
-                    decoration-warning="performance_level == '1'"
-                    decoration-info="performance_level == '2'"
-                    decoration-success="performance_level in ('3','4')"/>
-                <field name="observations"/>
-                <field name="certificate_generated" readonly="1"/>
-            </list>
-        </field>
-    </record>
-    <!-- Botón "Nueva Sesión" visible en la vista de pase de lista -->
-    <record id="action_wizard_nueva_sesion" model="ir.actions.act_window">
-        <field name="name">Nueva Sesión</field>
-        <field name="res_model">actividad.wizard.nueva.sesion</field>
-        <field name="view_mode">form</field>
-        <field name="target">new</field>
     </record>
 
 </odoo>

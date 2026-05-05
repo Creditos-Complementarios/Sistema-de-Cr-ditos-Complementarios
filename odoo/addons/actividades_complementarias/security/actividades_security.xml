@@ -279,4 +279,34 @@
         <field name="perm_unlink" eval="False"/>
     </record>
 
+    <!-- ════════════════════════════════════════════════════════════════════
+         Record rules — actividad.asistencia
+    ════════════════════════════════════════════════════════════════════ -->
+
+    <record id="rule_asistencia_responsable" model="ir.rule">
+        <field name="name">RA: asistencia de sus actividades asignadas</field>
+        <field name="model_id" ref="model_actividad_asistencia"/>
+        <field name="domain_force">
+            [('actividad_id.responsable_actividad_id', '=', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_responsable_actividad'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <record id="rule_asistencia_responsable_extraescolar" model="ir.rule">
+        <field name="name">RAE: asistencia de sus actividades asignadas</field>
+        <field name="model_id" ref="model_actividad_asistencia"/>
+        <field name="domain_force">
+            [('actividad_id.responsable_extraescolar_id', '=', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_responsable_actividad_extraescolar'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
 </odoo>
