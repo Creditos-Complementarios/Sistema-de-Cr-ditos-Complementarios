@@ -1881,6 +1881,7 @@ class Actividad(models.Model):
 
         _log.info('Job: %d actividad(es) → Finalizada.', len(self))
 
+
 class ActividadDepartamento(models.Model):
     """Catálogo simple de departamentos para asociar JD y personal."""
     _name = 'actividad.departamento'
