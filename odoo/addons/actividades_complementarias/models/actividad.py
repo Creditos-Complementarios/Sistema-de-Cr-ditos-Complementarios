@@ -1067,7 +1067,7 @@ class Actividad(models.Model):
             if rec.fecha_inicio and not bypass:
                 # True durante create() gracias al flag que estampa el override;
                 # False durante write() donde el flag no está presente.
-                es_nuevo = self.env.context.get('actividad_creating', False)
+                es_nuevo = not rec._origin.id
                 if es_nuevo:
                     # Al crear: mínimo 5 días hábiles desde hoy
                     min_fecha = _n_dias_habiles(5)
