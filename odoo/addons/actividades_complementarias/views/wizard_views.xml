@@ -213,18 +213,26 @@
         <field name="name">actividad.wizard.guardar.permisos.form</field>
         <field name="model">actividad.wizard.guardar.permisos</field>
         <field name="arch" type="xml">
-            <form string="Confirmar cambios de permisos">
+            <form string="Modificar Permisos">
                 <sheet>
                     <field name="permiso_id" invisible="1"/>
+                    <group string="Permisos Delegados">
+                        <field name="perm_modificar_actividades"/>
+                        <field name="perm_difundir_actividades"/>
+                        <field name="perm_asignar_alumnos"/>
+                        <field name="perm_enviar_catalogo"/>
+                    </group>
                     <group string="Resumen de cambios">
                         <field name="resumen_html" nolabel="1" colspan="2" widget="html"/>
                     </group>
                 </sheet>
                 <footer>
                     <button name="action_confirmar" string="Confirmar cambios"
-                            type="object" class="btn-primary"/>
-                    <button name="action_cancelar" string="Descartar cambios"
-                            type="object" class="btn-secondary"/>
+                            type="object" class="btn-primary"
+                            confirm="¿Está seguro de que desea confirmar los cambios en los permisos?"/>
+                    <button name="action_cancelar" string="Cancelar"
+                            type="object" class="btn-secondary"
+                            confirm="¿Desea descartar los cambios? Los permisos no se guardarán."/>
                 </footer>
             </form>
         </field>

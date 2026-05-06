@@ -336,18 +336,15 @@ class EmpleadoPermiso(models.Model):
     # ────────────────────────────────────────────────────────────────────────
 
     def action_guardar_permisos(self):
-        """Abre el wizard de confirmación mostrando el diff de permisos."""
+        """Abre el wizard de edición de permisos directamente desde la lista."""
         self.ensure_one()
-        wizard = self.env['actividad.wizard.guardar.permisos'].create(
-            {'permiso_id': self.id}
-        )
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Confirmar cambios de permisos',
+            'name': 'Modificar Permisos',
             'res_model': 'actividad.wizard.guardar.permisos',
-            'res_id': wizard.id,
             'view_mode': 'form',
             'target': 'new',
+            'context': {'default_permiso_id': self.id},
         }
 
     def action_regresar_lista(self):

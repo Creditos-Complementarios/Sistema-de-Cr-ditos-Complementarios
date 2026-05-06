@@ -35,6 +35,8 @@
                 <field name="perm_asignar_alumnos" string="Asignar Alumnos" widget="boolean" readonly="1"/>
                 <field name="perm_enviar_catalogo" string="Enviar al Catalogo" widget="boolean" readonly="1"/>
                 <field name="fecha_ultimo_uso" string="Ultimo Uso"/>
+                <button name="action_guardar_permisos" string="Editar Permisos"
+                        type="object" icon="fa-pencil" class="btn-sm btn-secondary"/>
             </list>
         </field>
     </record>
@@ -94,45 +96,38 @@
 
     <!-- Form -->
     <record id="view_empleado_permiso_form" model="ir.ui.view">
-        <field name="name">actividad.empleado.permiso.form</field>
-        <field name="model">actividad.empleado.permiso</field>
-        <field name="arch" type="xml">
-            <form string="Permisos de Personal" create="0">
-                <sheet>
-                    <div class="mb-3 d-flex gap-2">
-                        <button string="Guardar" type="object" name="action_guardar_permisos"
-                                class="btn btn-primary"/>
-                        <button string="Regresar" type="object" name="action_regresar_lista"
-                                class="btn btn-secondary"/>
-                    </div>
-                    <field name="dominio_user" invisible="1"/>
-                    <group string="Datos del Empleado">
-                        <field name="user_id" readonly="1"/>
-                        <field name="no_empleado" readonly="1"/>
-                        <field name="carrera" readonly="1"/>
-                        <field name="departamento_id" readonly="1"/>
-                        <field name="departamento_grupo" readonly="1"/>
-                        <field name="fecha_ultimo_uso" readonly="1"/>
-                    </group>
-                    <group string="Permisos Delegados">
-                        <field name="perm_modificar_actividades"/>
-                        <field name="perm_difundir_actividades"/>
-                        <field name="perm_asignar_alumnos"/>
-                        <field name="perm_enviar_catalogo"/>
-                    </group>
-                    <div class="alert alert-warning" role="alert">
-                        <strong>Nota:</strong> Los permisos se remueven automaticamente despues de 30 dias sin uso.
-                        El Jefe de Departamento conserva el derecho exclusivo de firmar constancias,
-                        generar actividades y gestionar personal.
-                        Solo puede asignar empleados de <strong>su misma rama de departamento</strong>.
-                    </div>
-                </sheet>
-                <chatter/>
-            </form>
-        </field>
-    </record>
+    <field name="name">actividad.empleado.permiso.form</field>
+    <field name="model">actividad.empleado.permiso</field>
+    <field name="arch" type="xml">
+        <form string="Permisos de Personal">
+            <header>
+                <button name="action_guardar_permisos" string="Editar Permisos"
+                        type="object" class="btn-primary"/>
+                <button name="action_regresar_lista" string="Regresar"
+                        type="object" class="btn-secondary"/>
+            </header>
+            <sheet>
+                <group string="Datos del Empleado">
+                    <field name="user_id" readonly="1"/>
+                    <field name="no_empleado" readonly="1"/>
+                    <field name="carrera" readonly="1"/>
+                    <field name="departamento_id" readonly="1"/>
+                    <field name="departamento_grupo" readonly="1"/>
+                    <field name="fecha_ultimo_uso" readonly="1"/>
+                </group>
+                <group string="Permisos Delegados">
+                    <field name="perm_modificar_actividades" readonly="1"/>
+                    <field name="perm_difundir_actividades" readonly="1"/>
+                    <field name="perm_asignar_alumnos" readonly="1"/>
+                    <field name="perm_enviar_catalogo" readonly="1"/>
+                </group>
+            </sheet>
+            <chatter/>
+        </form>
+    </field>
+</record>
 
-    <!-- Action -->
+    <!-- Action — abre el wizard directamente al hacer clic en un empleado -->
     <record id="action_empleado_permiso" model="ir.actions.act_window">
         <field name="name">Gestion de Personal</field>
         <field name="res_model">actividad.empleado.permiso</field>

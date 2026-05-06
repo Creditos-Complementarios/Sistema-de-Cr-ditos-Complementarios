@@ -12,6 +12,10 @@ class WizardGuardarPermisos(models.TransientModel):
         required=True,
         readonly=True,
     )
+    perm_modificar_actividades = fields.Boolean(string='Modificar Actividades Complementarias')
+    perm_difundir_actividades = fields.Boolean(string='Difundir Actividades')
+    perm_asignar_alumnos = fields.Boolean(string='Asignar Alumnos a Actividad')
+    perm_enviar_catalogo = fields.Boolean(string='Enviar al Catálogo')
     resumen_html = fields.Html(
         compute='_compute_resumen_html',
         store=False,
@@ -20,7 +24,23 @@ class WizardGuardarPermisos(models.TransientModel):
 
     # ── Computes ─────────────────────────────────────────────────────────────
 
-    @api.depends('permiso_id')
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        permiso_id = self.env.context.get('default_permiso_id')
+        if permiso_id:
+            p = self.env['actividad.empleado.permiso'].browse(permiso_id)
+            res.update({
+                'permiso_id': p.id,
+                'perm_modificar_actividades': p.perm_modificar_actividades,
+                'perm_difundir_actividades': p.perm_difundir_actividades,
+                'perm_asignar_alumnos': p.perm_asignar_alumnos,
+                'perm_enviar_catalogo': p.perm_enviar_catalogo,
+            })
+        return res
+
+    @api.depends('permiso_id', 'perm_modificar_actividades', 'perm_difundir_actividades',
+                 'perm_asignar_alumnos', 'perm_enviar_catalogo')
     def _compute_resumen_html(self):
         for rec in self:
             p = rec.permiso_id
@@ -33,17 +53,17 @@ class WizardGuardarPermisos(models.TransientModel):
 
             permisos = [
                 ('Modificar Actividades Complementarias',
-                 p.orig_perm_modificar_actividades,
-                 p.perm_modificar_actividades),
+                 p.perm_modificar_actividades,
+                 rec.perm_modificar_actividades),
                 ('Difundir Actividades',
-                 p.orig_perm_difundir_actividades,
-                 p.perm_difundir_actividades),
+                 p.perm_difundir_actividades,
+                 rec.perm_difundir_actividades),
                 ('Asignar Alumnos a Actividad',
-                 p.orig_perm_asignar_alumnos,
-                 p.perm_asignar_alumnos),
+                 p.perm_asignar_alumnos,
+                 rec.perm_asignar_alumnos),
                 ('Enviar al Catálogo',
-                 p.orig_perm_enviar_catalogo,
-                 p.perm_enviar_catalogo),
+                 p.perm_enviar_catalogo,
+                 rec.perm_enviar_catalogo),
             ]
 
             def badge(val):
@@ -104,14 +124,18 @@ class WizardGuardarPermisos(models.TransientModel):
     # ── Business logic ────────────────────────────────────────────────────────
 
     def action_confirmar(self):
-        """Persiste el snapshot y regresa a la lista."""
+        """Persiste los permisos editados y regresa a la lista."""
         self.ensure_one()
         p = self.permiso_id
         p.write({
-            'orig_perm_modificar_actividades': p.perm_modificar_actividades,
-            'orig_perm_difundir_actividades': p.perm_difundir_actividades,
-            'orig_perm_asignar_alumnos': p.perm_asignar_alumnos,
-            'orig_perm_enviar_catalogo': p.perm_enviar_catalogo,
+            'perm_modificar_actividades': self.perm_modificar_actividades,
+            'perm_difundir_actividades': self.perm_difundir_actividades,
+            'perm_asignar_alumnos': self.perm_asignar_alumnos,
+            'perm_enviar_catalogo': self.perm_enviar_catalogo,
+            'orig_perm_modificar_actividades': self.perm_modificar_actividades,
+            'orig_perm_difundir_actividades': self.perm_difundir_actividades,
+            'orig_perm_asignar_alumnos': self.perm_asignar_alumnos,
+            'orig_perm_enviar_catalogo': self.perm_enviar_catalogo,
         })
         return {
             'type': 'ir.actions.act_window',
@@ -122,19 +146,11 @@ class WizardGuardarPermisos(models.TransientModel):
         }
 
     def action_cancelar(self):
-        """Revierte los permisos al snapshot anterior y regresa al formulario."""
-        self.ensure_one()
-        p = self.permiso_id
-        p.write({
-            'perm_modificar_actividades': p.orig_perm_modificar_actividades,
-            'perm_difundir_actividades': p.orig_perm_difundir_actividades,
-            'perm_asignar_alumnos': p.orig_perm_asignar_alumnos,
-            'perm_enviar_catalogo': p.orig_perm_enviar_catalogo,
-        })
+        """Cancela sin guardar y regresa a la lista."""
         return {
             'type': 'ir.actions.act_window',
+            'name': 'Gestión de Personal',
             'res_model': 'actividad.empleado.permiso',
-            'res_id': p.id,
-            'view_mode': 'form',
+            'view_mode': 'list,kanban,form',
             'target': 'current',
         }
