@@ -852,6 +852,21 @@ class Actividad(models.Model):
         El flag se elimina del recordset devuelto para que llamadas
         posteriores a write() sobre esos registros no lo hereden.
         """
+        bypass = (
+            self.env.context.get('install_demo')
+            or self.env.context.get('skip_fecha_check')
+        )
+        if not bypass:
+            min_fecha = _n_dias_habiles(5)
+            for vals in vals_list:
+                fi = vals.get('fecha_inicio')
+                if fi and fi < min_fecha:
+                    raise ValidationError(
+                        _('La fecha de inicio debe ser al menos 5 días hábiles '
+                        'a partir de hoy. La fecha mínima válida es %s.')
+                        % min_fecha.strftime('%d/%m/%Y')
+                    )
+
         is_jd = self.env.user.has_group(
             'actividades_complementarias.group_jefe_departamento'
         )
@@ -1060,52 +1075,24 @@ class Actividad(models.Model):
         bypass = (
             self.env.context.get('install_demo')
             or self.env.context.get('skip_fecha_check')
-            or self.env.registry._init
         )
         manana = date.today() + timedelta(days=1)
         for rec in self:
             if rec.fecha_inicio and not bypass:
-                # True durante create() gracias al flag que estampa el override;
-                # False durante write() donde el flag no está presente.
-                es_nuevo = not rec._origin.id
-                if es_nuevo:
-                    # Al crear: mínimo 5 días hábiles desde hoy
-                    min_fecha = _n_dias_habiles(5)
-                    if rec.fecha_inicio < min_fecha:
-                        raise ValidationError(
-                            _(
-                                'La fecha de inicio debe ser al menos 5 días hábiles '
-                                '(sin domingos) a partir de hoy. '
-                                'La fecha mínima válida es %(fecha)s.',
-                                fecha=min_fecha.strftime('%d/%m/%Y'),
-                            )
-                        )
+                propuesta = self.env['actividad.propuesta'].search(
+                    [('actividad_id', '=', rec.id), ('estado_code', '=', 'aprobada')],
+                    order='fecha desc',
+                    limit=1,
+                )
+                if propuesta:
+                    min_fecha = max(_n_dias_habiles(5, desde=propuesta.fecha), manana)
                 else:
-                    # En edición: si existe propuesta aprobada, el mínimo se calcula
-                    # como 5 días hábiles contados desde la fecha de envío de esa propuesta,
-                    # de modo que el tiempo total (envío → inicio) sea al menos 5 días hábiles.
-                    # Piso absoluto: siempre al menos mañana.
-                    propuesta = self.env['actividad.propuesta'].search(
-                        [
-                            ('actividad_id', '=', rec.id),
-                            ('estado_code', '=', 'aprobada'),
-                        ],
-                        order='fecha desc',
-                        limit=1,
+                    min_fecha = manana
+                if rec.fecha_inicio < min_fecha:
+                    raise ValidationError(
+                        _('La fecha de inicio no puede ser anterior a %(fecha)s.',
+                        fecha=min_fecha.strftime('%d/%m/%Y'))
                     )
-                    if propuesta:
-                        min_desde_propuesta = _n_dias_habiles(5, desde=propuesta.fecha)
-                        min_fecha = max(min_desde_propuesta, manana)
-                    else:
-                        min_fecha = manana
-
-                    if rec.fecha_inicio < min_fecha:
-                        raise ValidationError(
-                            _(
-                                'La fecha de inicio no puede ser anterior a %(fecha)s.',
-                                fecha=min_fecha.strftime('%d/%m/%Y'),
-                            )
-                        )
             if rec.fecha_fin and rec.fecha_inicio and rec.fecha_fin <= rec.fecha_inicio:
                 raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
 
