@@ -12,6 +12,14 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
+PERFORMANCE_LEVELS = [
+    ("0", "Insuficiente"),
+    ("1", "Suficiente"),
+    ("2", "Bueno"),
+    ("3", "Notable"),
+    ("4", "Excelente"),
+]
+
 
 def _n_dias_habiles(n, desde=None):
     """Avanza *n* días hábiles (lunes a viernes) desde *desde*.
@@ -103,6 +111,15 @@ class Actividad(models.Model):
         help='Una vez confirmado, el Responsable de Actividad no puede cambiarse.',
         tracking=True,
     )
+    responsable_extraescolar_id = fields.Many2one(
+        'res.users',
+        string='Responsable de Actividad Extraescolar',
+        tracking=True,
+        help=(
+            'Usuario con perfil RAE asignado para gestionar esta actividad. '
+            'Solo visible y editable por el Jefe de Departamento y el Administrador.'
+        ),
+    )
     dominio_responsable = fields.Binary(
         compute='_compute_dominios',
         string='Dominio Responsable',
@@ -118,7 +135,7 @@ class Actividad(models.Model):
     # ── Fechas y duración ───────────────────────────────────────────────────
     fecha_inicio = fields.Date(string='Fecha de Inicio', required=True, tracking=True)
     fecha_fin = fields.Date(string='Fecha de Finalización', required=True, tracking=True)
-    cantidad_horas = fields.Float(string='Cantidad de Horas', required=True)
+    cantidad_horas = fields.Float(string='Cantidad de Horas', required=True, tracking=True)
     horas_maximas = fields.Float(
         string='Máximo de Horas',
         compute='_compute_horas_maximas',
@@ -141,6 +158,7 @@ class Actividad(models.Model):
             '  Lunes 10:00-12:00\n'
             '  Miércoles 10:00-12:00'
         ),
+        tracking=True,
     )
     horario_valido = fields.Boolean(
         string='Horario con Formato Válido',
@@ -210,15 +228,6 @@ class Actividad(models.Model):
 
     # ── Flags de control ─────────────────────────────────────────────────────
     en_catalogo = fields.Boolean(string='En Catálogo', default=False, tracking=True)
-    # Dual-signature: both JD and Responsable must sign before constancias reach students
-    jd_firmo = fields.Boolean(string='Firmado por Jefe de Departamento', default=False, tracking=True)
-    responsable_firmo = fields.Boolean(string='Firmado por Responsable de Actividad', default=False, tracking=True)
-    constancias_firmadas = fields.Boolean(
-        string='Constancias Firmadas',
-        compute='_compute_constancias_firmadas',
-        store=True,
-        help='True solo cuando tanto el JD como el Responsable de Actividad han firmado.',
-    )
     tiene_propuesta_activa = fields.Boolean(
         string='Tiene Propuesta Activa',
         compute='_compute_tiene_propuesta_activa',
@@ -242,6 +251,31 @@ class Actividad(models.Model):
         help='Si la actividad es de tipo predefinido se aprueba automáticamente '
              'sin pasar por el Comité Académico. Puede dejarse en blanco para quitarlo.',
     )
+    # Firma doble: Ambos actores deben firmar antes de que las constancias lleguen a los alumnos
+    jd_firmo = fields.Boolean(string='Firmado por Jefe de Departamento', default=False, tracking=True)
+    responsable_firmo = fields.Boolean(string='Firmado por Responsable de Actividad', default=False, tracking=True)
+    constancias_firmadas = fields.Boolean(
+        string='Constancias Firmadas',
+        compute='_compute_constancias_firmadas',
+        store=True,
+        help='True solo cuando tanto el JD como el Responsable de Actividad han firmado.',
+    )
+    # Control de evidencias y constancias
+    evidence_enabled = fields.Boolean(
+        string="Evidencias Habilitadas",
+        default=False,
+        tracking=True,
+        help=(
+            "Cuando está activo, los estudiantes pueden subir evidencias "
+            "de participación."
+        ),
+    )
+    certificates_generated = fields.Boolean(
+        string="Constancias Generadas",
+        default=False,
+        copy=False,
+        tracking=True,
+    )
     # ── Flags de permisos de edición (por estado) ─
     permisos_actividad_pendiente_inicio = fields.Boolean(
         string='Solo Responsable, Fechas y Horas Editables',
@@ -259,6 +293,79 @@ class Actividad(models.Model):
         compute='_compute_permisos_edicion',
         help='True cuando el usuario en sesión no puede editar ningún campo del formulario.',
     )
+    responsable_readonly = fields.Boolean(
+        string='Responsable Solo Lectura',
+        compute='_compute_responsable_readonly',
+    )
+    tipo_actividad_readonly = fields.Boolean(
+        compute='_compute_responsable_readonly',
+    )
+
+    @api.depends('estado_code')
+    def _compute_responsable_readonly(self):
+        is_jd = self.env.user.has_group(
+            'actividades_complementarias.group_jefe_departamento'
+        )
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+        # JD y admin pueden editar según estado; el resto siempre readonly
+        for rec in self:
+            if is_admin:
+                rec.responsable_readonly = False
+                rec.tipo_actividad_readonly = False
+            elif is_jd:
+                rec.responsable_readonly = rec.estado_code in ('en_revision', 'finalizada')
+                rec.tipo_actividad_readonly = rec.estado_code in (
+                    'aprobada', 'pendiente_inicio', 'en_curso', 'finalizada', 'en_revision'
+                )
+            else:
+                rec.responsable_readonly = True
+                rec.tipo_actividad_readonly = True
+
+    # Relaciones
+    horario_ids = fields.One2many(
+        comodel_name="actividad.horario",
+        inverse_name="actividad_id",
+        string="Horario por Día",
+        copy=True,
+    )
+    inscripcion_ids = fields.One2many(
+        comodel_name="actividad.inscripcion",
+        inverse_name="actividad_id",
+        string="Estudiantes Inscritos",
+        copy=False,
+    )
+    asistencia_ids = fields.One2many(
+        comodel_name="actividad.asistencia",
+        inverse_name="actividad_id",
+        string="Registros de Asistencia",
+        copy=False,
+    )
+
+    # Campos calculados
+    inscripcion_count = fields.Integer(
+        string="Total Inscritos",
+        compute="_compute_inscripcion_count",
+        store=True,
+    )
+    pending_evaluations = fields.Integer(
+        string="Sin Evaluar",
+        compute="_compute_pending_evaluations",
+        help="Número de estudiantes inscritos sin nivel de desempeño asignado.",
+    )
+
+    asistencia_count = fields.Integer(
+        string='Sesiones',
+        compute='_compute_asistencia_count',
+    )
+
+    @api.depends('asistencia_ids')
+    def _compute_asistencia_count(self):
+        for rec in self:
+            rec.asistencia_count = len(
+                set(rec.asistencia_ids.mapped('fecha'))
+            )
 
     # ────────────────────────────────────────────────────────────────────────
     # Helpers de rol
@@ -322,9 +429,9 @@ class Actividad(models.Model):
 
     _DIAS_VALIDOS = {
         'lunes': 'Lunes', 'martes': 'Martes',
-        'miércoles': 'Miércoles', 'miercoles': 'Miércoles',
+        'miércoles': 'Miércoles', 'miercoles': 'Miercoles',
         'jueves': 'Jueves', 'viernes': 'Viernes',
-        'sábado': 'Sábado', 'sabado': 'Sábado',
+        'sábado': 'Sábado', 'sabado': 'Sabado',
         'domingo': 'Domingo',
     }
 
@@ -356,6 +463,22 @@ class Actividad(models.Model):
             'inicio': (int(h1), int(m1)),
             'fin': (int(h2), int(m2)),
         }
+
+    # Computes
+
+    @api.depends("inscripcion_ids")
+    def _compute_inscripcion_count(self):
+        for rec in self:
+            rec.inscripcion_count = len(rec.inscripcion_ids)
+
+    @api.depends("inscripcion_ids", "inscripcion_ids.performance_level")
+    def _compute_pending_evaluations(self):
+        for rec in self:
+            rec.pending_evaluations = len(
+                rec.inscripcion_ids.filtered(
+                    lambda i: not i.performance_level
+                )
+            )
 
     @api.depends('horario')
     def _compute_horario_valido(self):
@@ -410,6 +533,8 @@ class Actividad(models.Model):
                     f"{dia_norm} {h1:02d}:{m1:02d}-{h2:02d}:{m2:02d}"
                 )
             rec.horario_sanitizado = '\n'.join(lineas_limpias)
+
+    # Constraints de base de datos y validaciones de negocio
 
     @api.constrains('horario')
     def _check_horario_formato(self):
@@ -513,8 +638,24 @@ class Actividad(models.Model):
             grupo = self.env.ref(xmlid, raise_if_not_found=False)
             if not grupo:
                 return []
-            return grupo.sudo().user_ids.ids
-        ids_responsable = _user_ids_en_grupo('actividades_complementarias.group_responsable_actividad')
+            self.env.cr.execute(
+                """SELECT uid FROM res_groups_users_rel WHERE gid = %s""",
+                (grupo.id,)
+            )
+            return [r[0] for r in self.env.cr.fetchall()]
+
+        # RA = cualquier usuario de Personal de Departamento (todos los grupos de
+        # personal implican group_responsable_actividad via security.xml).
+        # Se consultan directamente los grupos de personal para cubrir también
+        # usuarios que solo tengan el grupo RA standalone (datos demo, etc.).
+        _grupos_ra = list(self._GRUPOS_PERSONAL) + [
+            'actividades_complementarias.group_responsable_actividad',
+        ]
+        ids_responsable = list({
+            uid
+            for xmlid in _grupos_ra
+            for uid in _user_ids_en_grupo(xmlid)
+        })
         ids_alumno = _user_ids_en_grupo('actividades_complementarias.group_alumno')
 
         dom_resp = [('id', 'in', ids_responsable)] if ids_responsable else [('id', '=', False)]
@@ -629,7 +770,9 @@ class Actividad(models.Model):
         is_jd = self.env.user.has_group(
             'actividades_complementarias.group_jefe_departamento'
         )
-        is_personal = self._es_personal()
+        is_ra = self.env.user.has_group(
+            'actividades_complementarias.group_responsable_actividad'
+        )
 
         for rec in self:
             # Regla 1 (absoluta): finalizada → nadie edita
@@ -646,13 +789,13 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            if is_personal:
+            if is_ra and (not rec.id or rec.responsable_actividad_id.id == self.env.user.id):
                 rec.permisos_actividad_finalizada = False
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            if not is_jd and not is_personal:
+            if not is_jd:
                 # Otros roles: formulario de solo lectura
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
@@ -700,24 +843,69 @@ class Actividad(models.Model):
     def create(self, vals_list):
         """Estampa el flag actividad_creating=True en el contexto para que
         _check_fechas pueda distinguir una creación de una edición.
+
+        Si tipo_actividad_id no llega en vals (readonly en vista para RA/Personal)
+        pero sí viene actividad_predefinida, lo toma del predefinido en el servidor.
+
+        Para usuarios RA/Personal no JD/admin, auto-asigna responsable_actividad_id.
+
         El flag se elimina del recordset devuelto para que llamadas
         posteriores a write() sobre esos registros no lo hereden.
         """
-        # Auto-poblar tipo_actividad_id desde predefinida cuando personal
-        # no puede enviarlo por tener el campo readonly en la vista.
+        is_jd = self.env.user.has_group(
+            'actividades_complementarias.group_jefe_departamento'
+        )
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
         for vals in vals_list:
+            # Recuperar tipo_actividad_id desde el predefinido cuando el campo
+            # llega vacío (campo readonly no enviado por el cliente)
             if not vals.get('tipo_actividad_id') and vals.get('actividad_predefinida'):
                 predefinida = self.env['actividad.tipo.predefinida'].browse(
                     vals['actividad_predefinida']
                 )
                 if predefinida.tipo_actividad_id:
                     vals['tipo_actividad_id'] = predefinida.tipo_actividad_id.id
-
+            # Auto-asignar responsable para RA/Personal
+            if not is_jd and not is_admin:
+                vals.setdefault('responsable_actividad_id', self.env.user.id)
         records = super(
             Actividad,
             self.with_context(actividad_creating=True),
         ).create(vals_list)
         return records.with_context(actividad_creating=False)
+
+    @api.model
+    def action_personal_mis_actividades(self):
+        """Mis Actividades para Personal: filtra por departamento del usuario
+        usando DEPT_MAP en lugar de dominios estáticos por rama.
+        Funciona tanto con usuarios SII como con datos demo."""
+        from .empleado_permiso import DEPT_MAP
+
+        domain = [('id', '=', False)]  # default: nada si no se detecta dept
+        for keyword, _rama, xmlid in DEPT_MAP:
+            if self.env.user.has_group(xmlid):
+                domain = [('departamento_id.name', 'ilike', keyword)]
+                break
+
+        list_view = self.env.ref('actividades_complementarias.view_actividad_list')
+        kanban_view = self.env.ref('actividades_complementarias.view_actividad_kanban')
+        form_view = self.env.ref('actividades_complementarias.view_actividad_form')
+        search_view = self.env.ref('actividades_complementarias.view_actividad_search')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Mis Actividades',
+            'res_model': 'actividad.complementaria',
+            'view_mode': 'list,kanban,form',
+            'domain': domain,
+            'views': [
+                (list_view.id, 'list'),
+                (kanban_view.id, 'kanban'),
+                (form_view.id, 'form'),
+            ],
+            'search_view_id': [search_view.id, search_view.name],
+        }
 
     # ────────────────────────────────────────────────────────────────────────
     # ORM override: write()
@@ -744,6 +932,9 @@ class Actividad(models.Model):
         is_jd = self.env.user.has_group(
             'actividades_complementarias.group_jefe_departamento'
         )
+        is_ra = self.env.user.has_group(
+            'actividades_complementarias.group_responsable_actividad'
+        )
 
         for rec in self:
             # ── Regla 1: Finalizada → nadie puede modificar (incluido admin) ──
@@ -756,6 +947,10 @@ class Actividad(models.Model):
 
             # Admin: sin restricciones de estado
             if is_admin:
+                continue
+
+            # Reemplazar por ¿if is_ra and (not rec.id or rec.responsable_actividad_id.id == self.env.user.id):?
+            if is_ra and rec.responsable_actividad_id.id == self.env.user.id:
                 continue
 
             # ── Personal de Departamento ──────────────────────────────────────
@@ -865,13 +1060,14 @@ class Actividad(models.Model):
         bypass = (
             self.env.context.get('install_demo')
             or self.env.context.get('skip_fecha_check')
+            or self.env.registry._init
         )
         manana = date.today() + timedelta(days=1)
         for rec in self:
             if rec.fecha_inicio and not bypass:
                 # True durante create() gracias al flag que estampa el override;
                 # False durante write() donde el flag no está presente.
-                es_nuevo = self.env.context.get('actividad_creating', False)
+                es_nuevo = not rec._origin.id
                 if es_nuevo:
                     # Al crear: mínimo 5 días hábiles desde hoy
                     min_fecha = _n_dias_habiles(5)
@@ -941,7 +1137,9 @@ class Actividad(models.Model):
     def _check_horas_vs_dias(self):
         """La cantidad de horas no puede exceder el total de horas disponibles
         en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo."""
-        if self.env.context.get('install_demo') or self.env.context.get('skip_horas_check'):
+        if (self.env.context.get('install_demo')
+                or self.env.context.get('skip_horas_check')
+                or self.env.registry._init):
             return
         for rec in self:
             if rec.cantidad_horas <= 0:
@@ -1024,6 +1222,66 @@ class Actividad(models.Model):
             'target': 'new',
         }
 
+    def action_abrir_wizard_nueva_sesion(self):
+        """Abre el wizard para generar una nueva sesión de pase de lista."""
+        self.ensure_one()
+        if self.estado_code not in ('en_curso', 'finalizada'):
+            raise ValidationError(
+                _('El pase de lista solo está disponible para actividades en curso.')
+            )
+        if self.certificates_generated:
+            raise ValidationError(
+                _('No se puede modificar el pase de lista una vez generadas las constancias.')
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Nueva Sesión',
+            'res_model': 'actividad.wizard.nueva.sesion',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_actividad_id': self.id},
+        }
+
+    # En action_abrir_pase_lista — añadir la acción del wizard al contexto
+    def action_abrir_pase_lista(self):
+        self.ensure_one()
+        wizard_action = self.env.ref(
+            'actividades_complementarias.action_wizard_nueva_sesion'
+        )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Pase de Lista — %s' % self.name,
+            'res_model': 'actividad.asistencia',
+            'view_mode': 'list',
+            'views': [(self.env.ref(
+                'actividades_complementarias.view_asistencia_list_standalone'
+            ).id, 'list')],
+            'domain': [('actividad_id', '=', self.id)],
+            'context': {
+                'default_actividad_id': self.id,
+                'actividad_readonly': self.estado_code == 'finalizada'
+                or self.certificates_generated,
+                # Botón "Nueva Sesión" en el panel de control mediante acción auxiliar
+                'search_panel_default_action': wizard_action.id,
+            },
+        }
+
+    def action_abrir_evaluacion(self):
+        """Abre la vista de evaluación de desempeño separada."""
+        self.ensure_one()
+        if self.estado_code != 'finalizada':
+            raise ValidationError(
+                _('La evaluación de desempeño solo está disponible para actividades finalizadas.')
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Evaluación de Desempeño — %s' % self.name,
+            'res_model': 'actividad.inscripcion',
+            'view_mode': 'list',
+            'domain': [('actividad_id', '=', self.id)],
+            'context': {'default_actividad_id': self.id},
+        }
+
     def action_abrir_confirmacion_comite(self):
         self.ensure_one()
         if not self.cantidad_horas or self.cantidad_horas <= 0:
@@ -1061,6 +1319,44 @@ class Actividad(models.Model):
             'view_mode': 'form',
             'target': 'new',
         }
+
+    def action_confirmar_actividad(self):
+        """Responsable/Personal: confirma la actividad pasándola directamente
+        a 'Pendiente de Inicio' sin intervención del comité ni del JD."""
+        self.ensure_one()
+        if self.estado_code:
+            raise ValidationError(
+                'Esta actividad ya fue confirmada o se encuentra en un estado avanzado.'
+            )
+        if not self.cantidad_horas or self.cantidad_horas <= 0:
+            raise ValidationError(
+                'La cantidad de horas debe ser mayor a 0 antes de confirmar la actividad.'
+            )
+        if self.fecha_inicio and self.fecha_fin:
+            dias = (self.fecha_fin - self.fecha_inicio).days + 1
+            horas_maximas = dias * 12
+            if self.cantidad_horas > horas_maximas:
+                raise ValidationError(
+                    f'La cantidad de horas ({self.cantidad_horas} h) no puede ser mayor '
+                    f'al máximo permitido para el período seleccionado '
+                    f'({dias} día(s) × 12 h = {horas_maximas} h máximo).'
+                )
+        if not self.cupo_ilimitado:
+            if self.cupo_min < 1:
+                raise ValidationError('El cupo mínimo debe ser al menos 1.')
+            if self.cupo_max < self.cupo_min:
+                raise ValidationError('El cupo máximo debe ser mayor o igual al cupo mínimo.')
+
+        estado_pendiente = self.env.ref(
+            'actividades_complementarias.estado_pendiente_inicio'
+        )
+        self.with_context(bypass_edit_protection=True).write(
+            {'estado_id': estado_pendiente.id}
+        )
+        self.message_post(
+            body='Actividad confirmada por el Responsable de Actividad. '
+            'En espera de envío al catálogo por el Jefe de Departamento.'
+        )
 
     def action_enviar_comite(self):
         """Envia la actividad como propuesta al Comite Academico.
@@ -1157,7 +1453,25 @@ class Actividad(models.Model):
         if self.estado_code not in ('aprobada', 'pendiente_inicio'):
             raise ValidationError('Solo se pueden enviar al catálogo actividades aprobadas o pendientes de inicio.')
         self.with_context(bypass_edit_protection=True).write({'en_catalogo': True})
-        self.message_post(body='Actividad enviada al catálogo.')
+
+        # Notificaciones: determinar destinatarios según quién envía
+        sender = self.env.user
+        responsable = self.responsable_actividad_id
+        jd = self.jefe_departamento_id
+
+        notify_partners = []
+        # Siempre notificar al RA si no es quien está enviando
+        if responsable and responsable != sender and responsable.partner_id:
+            notify_partners.append(responsable.partner_id.id)
+        # Si quien envía es RA/Personal (tiene permiso delegado), notificar también al JD
+        if self._es_personal() and jd and jd != sender and jd.partner_id:
+            notify_partners.append(jd.partner_id.id)
+
+        self.message_post(
+            body='La actividad <b>%s</b> ha sido registrada en el catálogo.' % self.name,
+            partner_ids=notify_partners,
+            subtype_xmlid='mail.mt_comment',
+        )
         # Redirigir al catálogo de actividades (no quedar en vista superpuesta)
         action = self.env.ref(
             'actividades_complementarias.action_actividad_catalogo',
@@ -1323,7 +1637,62 @@ class Actividad(models.Model):
         story.append(tabla_firma)
 
         doc.build(story)
+        self.certificates_generated = True
+        self.message_post(
+            body=_(
+                "📄 Se generó la constancia. "
+                "Se requiere la firma del Responsable de Actividad "
+                "y del Jefe de Departamento."
+            ),
+            subtype_xmlid="mail.mt_note",
+        )
         return buf.getvalue()
+
+    def action_generate_certificates(self):
+        """Genera constancias para estudiantes con desempeño > 0 (RA-02SC, pasos 10-12).
+
+        Precondiciones:
+        - Actividad finalizada.
+        - Todos los estudiantes inscritos evaluados.
+        - Al menos un estudiante con nivel de desempeño > 0.
+        """
+        self.ensure_one()
+        if self.estado_code != 'finalizada':
+            raise UserError(
+                _('Las constancias solo pueden generarse para actividades finalizadas.')
+            )
+        unevaluated = self.inscripcion_ids.filtered(lambda i: not i.performance_level)
+        if unevaluated:
+            names = ", ".join(unevaluated.mapped("partner_id.name"))
+            raise UserError(
+                _(
+                    "Aún quedan estudiantes no evaluados: %s.\n"
+                    "Asigne un nivel de desempeño a todos antes de generar "
+                    "las constancias."
+                )
+                % names
+            )
+        approved = self.inscripcion_ids.filtered(
+            lambda i: int(i.performance_level) > 0
+        )
+        if not approved:
+            raise UserError(
+                _(
+                    "No hay estudiantes aprobados (nivel de desempeño > 0) "
+                    "para generar constancias."
+                )
+            )
+        approved.write({"certificate_generated": True})
+        self.certificates_generated = True
+        self.message_post(
+            body=_(
+                "📄 Se generaron <b>%d</b> constancia(s). "
+                "Se requiere la firma del Responsable de Actividad "
+                "y del Jefe de Departamento."
+            )
+            % len(approved),
+            subtype_xmlid="mail.mt_note",
+        )
 
     def action_firmar_constancias(self):
         """El JD firma su parte, genera un PDF por alumno y los entrega en un ZIP descargable."""
@@ -1415,6 +1784,14 @@ class Actividad(models.Model):
             raise ValidationError('El Responsable de Actividad ya firmó las constancias de esta actividad.')
         # La firma es una acción de negocio válida sobre una actividad finalizada
         self.with_context(bypass_edit_protection=True).write({'responsable_firmo': True})
+        self.message_post(
+            body=_(
+                "✍️ Constancias firmadas por el Responsable de Actividad: "
+                "<b>%s</b>."
+            )
+            % (self.responsable_actividad_id.name or ''),
+            subtype_xmlid="mail.mt_note",
+        )
         if self.constancias_firmadas:
             self.message_post(
                 body='Constancias firmadas por el Responsable de Actividad. '
@@ -1426,7 +1803,23 @@ class Actividad(models.Model):
                      'Pendiente firma del Jefe de Departamento.'
             )
 
+    def action_toggle_evidence(self):
+        """Habilita/deshabilita la carga de evidencias para estudiantes.
+
+        Usa bypass_edit_protection para que RA y RAE puedan usar este botón
+        sin necesitar el flag perm_modificar_actividades en EmpleadoPermiso.
+        """
+        self.ensure_one()
+        self.with_context(bypass_edit_protection=True).write(
+            {'evidence_enabled': not self.evidence_enabled}
+        )
+
     def _actualizar_estado_por_fecha(self):
+        """Cron diario: transiciona estados según fechas.
+
+        pendiente_inicio / aprobada  →  en_curso   cuando fecha_inicio <= hoy
+        en_curso                     →  finalizada cuando fecha_fin    <  hoy
+        """
         import logging
         _log = logging.getLogger(__name__)
         hoy = date.today()
@@ -1483,26 +1876,6 @@ class Actividad(models.Model):
         })
 
         _log.info('Job: %d actividad(es) → Finalizada.', len(self))
-
-    def action_confirmar_actividad(self):
-        """Personal: confirma la actividad pasándola a 'Pendiente de Inicio'."""
-        self.ensure_one()
-        if self.estado_code:
-            raise ValidationError(
-                'Esta actividad ya fue confirmada o se encuentra en un estado avanzado.'
-            )
-        if not self.cantidad_horas or self.cantidad_horas <= 0:
-            raise ValidationError('La cantidad de horas debe ser mayor a 0.')
-        if not self.cupo_ilimitado:
-            if self.cupo_min < 1:
-                raise ValidationError('El cupo mínimo debe ser al menos 1.')
-            if self.cupo_max < self.cupo_min:
-                raise ValidationError('El cupo máximo debe ser mayor o igual al cupo mínimo.')
-        estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
-        self.with_context(bypass_edit_protection=True).write(
-            {'estado_id': estado_pendiente.id}
-        )
-        self.message_post(body='Actividad confirmada. En espera de envío al catálogo.')
 
 
 class ActividadDepartamento(models.Model):
