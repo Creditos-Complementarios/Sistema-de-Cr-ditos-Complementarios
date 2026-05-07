@@ -863,8 +863,8 @@ class Actividad(models.Model):
                 if fi and fi < min_fecha:
                     raise ValidationError(
                         _('La fecha de inicio debe ser al menos 5 días hábiles '
-                        'a partir de hoy. La fecha mínima válida es %s.')
-                        % min_fecha.strftime('%d/%m/%Y')
+                            'a partir de hoy. La fecha mínima válida es %s.')
+                            % min_fecha.strftime('%d/%m/%Y')
                     )
 
         is_jd = self.env.user.has_group(
@@ -1091,7 +1091,7 @@ class Actividad(models.Model):
                 if rec.fecha_inicio < min_fecha:
                     raise ValidationError(
                         _('La fecha de inicio no puede ser anterior a %(fecha)s.',
-                        fecha=min_fecha.strftime('%d/%m/%Y'))
+                            fecha=min_fecha.strftime('%d/%m/%Y'))
                     )
             if rec.fecha_fin and rec.fecha_inicio and rec.fecha_fin <= rec.fecha_inicio:
                 raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
