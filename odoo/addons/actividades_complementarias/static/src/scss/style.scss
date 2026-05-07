@@ -570,3 +570,26 @@ body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
         opacity: 1;
     }
 }
+
+// ── Ítem de menú activo permanente ───────────────────────────────────────────
+//
+// ac_menu_active_item es inyectada por navbar_chevron.js cuando el dropdown
+// se abre, comparando la URL actual con el href de cada ítem.
+
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    a.o-dropdown-item.ac_menu_active_item {
+        color: #000000 !important;
+        font-weight: 700 !important;
+        opacity: 1 !important;
+    }
+}
+
+body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    a.o-dropdown-item.ac_menu_active_item {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        opacity: 1 !important;
+    }
+}
