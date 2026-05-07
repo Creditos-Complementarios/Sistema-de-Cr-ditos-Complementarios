@@ -97,6 +97,7 @@
                             <field name="actividad_jefe" readonly="1" string="Jefe de Departamento"/>
                             <field name="actividad_departamento" readonly="1" string="Departamento"/>
                             <field name="actividad_periodo" readonly="1" string="Periodo"/>
+                            <field name="actividad_horario" readonly="1" string="Horario"/>
                         </group>
                         <group>
                             <field name="actividad_fecha_inicio" readonly="1" string="Fecha de Inicio"/>

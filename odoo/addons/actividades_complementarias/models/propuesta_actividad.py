@@ -78,6 +78,11 @@ class PropuestaActividadComplementaria(models.Model):
         string='Cupo',
         compute='_compute_actividad_cupo',
     )
+    actividad_horario = fields.Text(
+        related='actividad_id.horario',
+        string='Horario por Día',
+        readonly=True,
+    )
 
     # ────────────────────────────────────────────────────────────────────────
     # Computes
