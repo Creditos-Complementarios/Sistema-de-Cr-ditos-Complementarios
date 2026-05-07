@@ -864,7 +864,7 @@ class Actividad(models.Model):
                     raise ValidationError(
                         _('La fecha de inicio debe ser al menos 5 días hábiles '
                             'a partir de hoy. La fecha mínima válida es %s.')
-                            % min_fecha.strftime('%d/%m/%Y')
+                                % min_fecha.strftime('%d/%m/%Y')
                     )
 
         is_jd = self.env.user.has_group(
