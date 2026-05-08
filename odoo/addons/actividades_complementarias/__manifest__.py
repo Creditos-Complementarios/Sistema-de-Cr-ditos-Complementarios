@@ -32,6 +32,8 @@
         'data/estado_solicitud_data.xml',
         'data/cron_data.xml',
         # 5. Vistas
+        'views/alumno_views.xml',
+        'views/solicitud_liberacion_views.xml',
         'views/tipo_actividad_views.xml',
         'views/tipo_predefinida_views.xml',
         'views/periodo_views.xml',

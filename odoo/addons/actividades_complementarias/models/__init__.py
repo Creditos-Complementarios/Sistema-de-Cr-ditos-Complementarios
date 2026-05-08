@@ -17,3 +17,4 @@ from . import estado_solicitud
 from . import actividad
 from . import propuesta_actividad
 from . import empleado_permiso
+from . import solicitud_liberacion

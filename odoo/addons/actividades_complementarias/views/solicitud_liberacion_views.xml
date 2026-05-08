@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_solicitud_liberacion_list" model="ir.ui.view">
+        <field name="name">actividad.solicitud.liberacion.list</field>
+        <field name="model">actividad.solicitud.liberacion</field>
+        <field name="arch" type="xml">
+            <list string="Solicitudes de Liberación" create="0">
+                <field name="estudiante_id"/>
+                <field name="fecha"/>
+                <field name="creditos_validos"/>
+                <field name="promedio_desempenio" digits="[4,2]"/>
+                <field name="estado" widget="badge"
+                    decoration-warning="estado == 'en_revision'"
+                    decoration-success="estado == 'aprobada'"
+                    decoration-danger="estado == 'rechazada'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_solicitud_liberacion_form" model="ir.ui.view">
+        <field name="name">actividad.solicitud.liberacion.form</field>
+        <field name="model">actividad.solicitud.liberacion</field>
+        <field name="arch" type="xml">
+            <form string="Solicitud de Liberación">
+                <header>
+                    <field name="estado" widget="statusbar"
+                           statusbar_visible="en_revision,aprobada,rechazada"
+                           readonly="1"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-info" role="alert"
+                         invisible="creditos_validos >= 5">
+                        Necesitas al menos <strong>5 créditos válidos</strong>
+                        para solicitar la liberación. Actualmente tienes
+                        <strong><field name="creditos_validos" nolabel="1"/></strong>.
+                    </div>
+                    <group>
+                        <group string="Datos del Estudiante">
+                            <field name="estudiante_id" readonly="1"/>
+                            <field name="fecha" readonly="1"/>
+                            <field name="estado" readonly="1"/>
+                        </group>
+                        <group string="Resumen de Créditos">
+                            <field name="creditos_validos" readonly="1"/>
+                            <field name="promedio_desempenio" readonly="1" digits="[4,2]"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+</odoo>

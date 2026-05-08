@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================ -->
+    <!-- E-01SC: Catálogo — vista formulario para alumnos                 -->
+    <!-- ================================================================ -->
+    <record id="view_actividad_alumno_form" model="ir.ui.view">
+        <field name="name">actividad.complementaria.alumno.form</field>
+        <field name="model">actividad.complementaria</field>
+        <field name="arch" type="xml">
+            <form string="Actividad Complementaria" create="0" edit="0" delete="0">
+                <header>
+                    <button name="action_inscribirse" string="Inscribirse"
+                            type="object" class="btn-primary"
+                            invisible="alumno_inscrito
+                                       or estado_code != 'pendiente_inicio'
+                                       or cupos_disponibles == 0"/>
+                    <button name="action_darse_de_baja" string="Dar de Baja"
+                            type="object" class="btn-danger"
+                            invisible="not alumno_inscrito
+                                       or estado_code == 'finalizada'"/>
+                    <field name="estado_id" widget="statusbar" readonly="1"/>
+                </header>
+                <sheet>
+                    <field name="alumno_inscrito" invisible="1"/>
+                    <field name="cupos_disponibles" invisible="1"/>
+                    <div class="alert alert-success" role="alert"
+                         invisible="not alumno_inscrito">
+                        <i class="fa fa-check me-1"/> Estás inscrito en esta actividad.
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="cupos_disponibles != 0 or cupo_ilimitado">
+                        <i class="fa fa-exclamation-triangle me-1"/>
+                        No hay cupos disponibles.
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Información General">
+                            <field name="tipo_actividad_id" readonly="1"/>
+                            <field name="periodo" readonly="1"/>
+                            <field name="jefe_departamento_id" string="Departamento (JD)" readonly="1"/>
+                            <field name="responsable_actividad_id" readonly="1"/>
+                            <field name="creditos" readonly="1"/>
+                        </group>
+                        <group string="Fechas y Duración">
+                            <field name="fecha_inicio" readonly="1"/>
+                            <field name="fecha_fin" readonly="1"/>
+                            <field name="cantidad_horas" readonly="1"/>
+                            <field name="horario" readonly="1"/>
+                            <field name="cupos_disponibles" readonly="1"
+                                   invisible="cupo_ilimitado"/>
+                            <field name="cupo_ilimitado" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Descripción">
+                        <field name="descripcion" nolabel="1" colspan="2" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================ -->
+    <!-- E-02SC: Mis Inscripciones — lista                                -->
+    <!-- ================================================================ -->
+    <record id="view_actividad_alumno_list" model="ir.ui.view">
+        <field name="name">actividad.complementaria.alumno.list</field>
+        <field name="model">actividad.complementaria</field>
+        <field name="arch" type="xml">
+            <list string="Mis Actividades Complementarias"
+                  create="0" edit="0" delete="0">
+                <field name="name"/>
+                <field name="tipo_actividad_id"/>
+                <field name="fecha_inicio"/>
+                <field name="fecha_fin"/>
+                <field name="creditos"/>
+                <field name="estado_id" widget="badge"
+                    decoration-info="estado_code == 'pendiente_inicio'"
+                    decoration-success="estado_code == 'en_curso'"
+                    decoration-muted="estado_code == 'finalizada'"/>
+                <field name="estado_code" column_invisible="1"/>
+                <field name="constancias_firmadas" string="Constancia"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ================================================================ -->
+    <!-- E-03SC: Expediente — lista de actividades acreditadas            -->
+    <!-- ================================================================ -->
+    <record id="view_actividad_expediente_list" model="ir.ui.view">
+        <field name="name">actividad.complementaria.expediente.list</field>
+        <field name="model">actividad.complementaria</field>
+        <field name="arch" type="xml">
+            <list string="Mis Constancias" create="0" edit="0" delete="0">
+                <field name="name"/>
+                <field name="tipo_actividad_id" string="Tipo"/>
+                <field name="periodo"/>
+                <field name="creditos"/>
+                <field name="responsable_actividad_id" string="Responsable"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ================================================================ -->
+    <!-- Acciones                                                         -->
+    <!-- ================================================================ -->
+
+    <!-- E-01SC: Catálogo -->
+    <record id="action_catalogo_alumno" model="ir.actions.act_window">
+        <field name="name">Catálogo de Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('en_catalogo', '=', True)]</field>
+        <field name="views" eval="[
+            (ref('view_actividad_alumno_list'), 'list'),
+            (ref('view_actividad_alumno_form'), 'form'),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay actividades disponibles en este momento.
+            </p>
+        </field>
+    </record>
+
+    <!-- E-02SC: Mis Inscripciones -->
+    <record id="action_mis_inscripciones_alumno" model="ir.actions.act_window">
+        <field name="name">Mis Inscripciones</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('alumno_ids', 'in', [uid])]</field>
+        <field name="views" eval="[
+            (ref('view_actividad_alumno_list'), 'list'),
+            (ref('view_actividad_alumno_form'), 'form'),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No estás inscrito a ninguna actividad todavía.
+            </p>
+        </field>
+    </record>
+
+    <!-- E-03SC: Expediente (actividades con constancia firmada) -->
+    <record id="action_expediente_alumno" model="ir.actions.act_window">
+        <field name="name">Mis Constancias</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[
+            ('alumno_ids', 'in', [uid]),
+            ('constancias_firmadas', '=', True),
+        ]</field>
+        <field name="views" eval="[
+            (ref('view_actividad_expediente_list'), 'list'),
+            (ref('view_actividad_alumno_form'), 'form'),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aún no tienes constancias firmadas.
+            </p>
+        </field>
+    </record>
+
+    <!-- E-03SC: Solicitudes de liberación -->
+    <record id="action_solicitud_liberacion_alumno" model="ir.actions.act_window">
+        <field name="name">Solicitud de Liberación</field>
+        <field name="res_model">actividad.solicitud.liberacion</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('estudiante_id', '=', uid)]</field>
+        <field name="context">{'default_estudiante_id': uid}</field>
+    </record>
+
+</odoo>
