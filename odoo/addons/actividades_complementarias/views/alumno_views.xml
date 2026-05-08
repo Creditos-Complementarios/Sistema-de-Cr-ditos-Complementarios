@@ -2,9 +2,9 @@
 <odoo>
 
     <!-- ================================================================ -->
-    <!-- E-01SC: Catálogo — vista formulario para alumnos                 -->
+    <!-- FORMULARIO ALUMNO (compartido por las 3 acciones)                -->
     <!-- ================================================================ -->
-    <record id="view_actividad_alumno_form" model="ir.ui.view">
+    <record id="view_act_alumno_form" model="ir.ui.view">
         <field name="name">actividad.complementaria.alumno.form</field>
         <field name="model">actividad.complementaria</field>
         <field name="arch" type="xml">
@@ -40,7 +40,8 @@
                         <group string="Información General">
                             <field name="tipo_actividad_id" readonly="1"/>
                             <field name="periodo" readonly="1"/>
-                            <field name="jefe_departamento_id" string="Departamento (JD)" readonly="1"/>
+                            <field name="jefe_departamento_id"
+                                   string="Departamento (JD)" readonly="1"/>
                             <field name="responsable_actividad_id" readonly="1"/>
                             <field name="creditos" readonly="1"/>
                         </group>
@@ -55,7 +56,8 @@
                         </group>
                     </group>
                     <group string="Descripción">
-                        <field name="descripcion" nolabel="1" colspan="2" readonly="1"/>
+                        <field name="descripcion" nolabel="1"
+                               colspan="2" readonly="1"/>
                     </group>
                 </sheet>
             </form>
@@ -63,16 +65,41 @@
     </record>
 
     <!-- ================================================================ -->
-    <!-- E-02SC: Mis Inscripciones — lista                                -->
+    <!-- E-01SC: Lista — Catálogo                                         -->
     <!-- ================================================================ -->
-    <record id="view_actividad_alumno_list" model="ir.ui.view">
-        <field name="name">actividad.complementaria.alumno.list</field>
+    <record id="view_act_alumno_catalogo_list" model="ir.ui.view">
+        <field name="name">actividad.complementaria.alumno.catalogo.list</field>
         <field name="model">actividad.complementaria</field>
         <field name="arch" type="xml">
-            <list string="Mis Actividades Complementarias"
+            <list string="Catálogo de Actividades"
                   create="0" edit="0" delete="0">
-                <field name="name"/>
-                <field name="tipo_actividad_id"/>
+                <field name="name" string="Actividad"/>
+                <field name="tipo_actividad_id" string="Tipo"/>
+                <field name="fecha_inicio"/>
+                <field name="fecha_fin"/>
+                <field name="creditos"/>
+                <field name="cupos_disponibles" string="Cupos Disp."/>
+                <field name="cupo_ilimitado" column_invisible="1"/>
+                <field name="estado_id" widget="badge"
+                    decoration-info="estado_code == 'pendiente_inicio'"
+                    decoration-success="estado_code == 'en_curso'"/>
+                <field name="estado_code" column_invisible="1"/>
+                <field name="constancias_firmadas" string="Constancia"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ================================================================ -->
+    <!-- E-02SC: Lista — Mis Inscripciones                                -->
+    <!-- ================================================================ -->
+    <record id="view_act_alumno_inscripciones_list" model="ir.ui.view">
+        <field name="name">actividad.complementaria.alumno.inscripciones.list</field>
+        <field name="model">actividad.complementaria</field>
+        <field name="arch" type="xml">
+            <list string="Mis Inscripciones"
+                  create="0" edit="0" delete="0">
+                <field name="name" string="Actividad"/>
+                <field name="tipo_actividad_id" string="Tipo"/>
                 <field name="fecha_inicio"/>
                 <field name="fecha_fin"/>
                 <field name="creditos"/>
@@ -87,14 +114,15 @@
     </record>
 
     <!-- ================================================================ -->
-    <!-- E-03SC: Expediente — lista de actividades acreditadas            -->
+    <!-- E-03SC: Lista — Expediente (constancias firmadas)                -->
     <!-- ================================================================ -->
-    <record id="view_actividad_expediente_list" model="ir.ui.view">
-        <field name="name">actividad.complementaria.expediente.list</field>
+    <record id="view_act_alumno_expediente_list" model="ir.ui.view">
+        <field name="name">actividad.complementaria.alumno.expediente.list</field>
         <field name="model">actividad.complementaria</field>
         <field name="arch" type="xml">
-            <list string="Mis Constancias" create="0" edit="0" delete="0">
-                <field name="name"/>
+            <list string="Mis Constancias"
+                  create="0" edit="0" delete="0">
+                <field name="name" string="Actividad"/>
                 <field name="tipo_actividad_id" string="Tipo"/>
                 <field name="periodo"/>
                 <field name="creditos"/>
@@ -104,18 +132,18 @@
     </record>
 
     <!-- ================================================================ -->
-    <!-- Acciones                                                         -->
+    <!-- ACCIONES                                                         -->
+    <!-- views usa corchetes dobles: [[id, 'tipo'], ...]                  -->
     <!-- ================================================================ -->
 
-    <!-- E-01SC: Catálogo -->
     <record id="action_catalogo_alumno" model="ir.actions.act_window">
         <field name="name">Catálogo de Actividades</field>
         <field name="res_model">actividad.complementaria</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('en_catalogo', '=', True)]</field>
         <field name="views" eval="[
-            (ref('view_actividad_alumno_list'), 'list'),
-            (ref('view_actividad_alumno_form'), 'form'),
+            [ref('actividades_complementarias.view_act_alumno_catalogo_list'), 'list'],
+            [ref('actividades_complementarias.view_act_alumno_form'), 'form'],
         ]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -124,15 +152,14 @@
         </field>
     </record>
 
-    <!-- E-02SC: Mis Inscripciones -->
     <record id="action_mis_inscripciones_alumno" model="ir.actions.act_window">
         <field name="name">Mis Inscripciones</field>
         <field name="res_model">actividad.complementaria</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('alumno_ids', 'in', [uid])]</field>
         <field name="views" eval="[
-            (ref('view_actividad_alumno_list'), 'list'),
-            (ref('view_actividad_alumno_form'), 'form'),
+            [ref('actividades_complementarias.view_act_alumno_inscripciones_list'), 'list'],
+            [ref('actividades_complementarias.view_act_alumno_form'), 'form'],
         ]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -141,7 +168,6 @@
         </field>
     </record>
 
-    <!-- E-03SC: Expediente (actividades con constancia firmada) -->
     <record id="action_expediente_alumno" model="ir.actions.act_window">
         <field name="name">Mis Constancias</field>
         <field name="res_model">actividad.complementaria</field>
@@ -151,8 +177,8 @@
             ('constancias_firmadas', '=', True),
         ]</field>
         <field name="views" eval="[
-            (ref('view_actividad_expediente_list'), 'list'),
-            (ref('view_actividad_alumno_form'), 'form'),
+            [ref('actividades_complementarias.view_act_alumno_expediente_list'), 'list'],
+            [ref('actividades_complementarias.view_act_alumno_form'), 'form'],
         ]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -161,7 +187,6 @@
         </field>
     </record>
 
-    <!-- E-03SC: Solicitudes de liberación -->
     <record id="action_solicitud_liberacion_alumno" model="ir.actions.act_window">
         <field name="name">Solicitud de Liberación</field>
         <field name="res_model">actividad.solicitud.liberacion</field>
