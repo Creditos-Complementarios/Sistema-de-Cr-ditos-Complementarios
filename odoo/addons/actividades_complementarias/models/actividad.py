@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
 import logging
-_logger = logging.getLogger(__name__)
+
 from odoo.exceptions import ValidationError, UserError
 from datetime import date, timedelta
 import base64
@@ -13,6 +13,7 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+_logger = logging.getLogger(__name__)
 
 PERFORMANCE_LEVELS = [
     ("0", "Insuficiente"),
