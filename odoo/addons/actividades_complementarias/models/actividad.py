@@ -839,6 +839,31 @@ class Actividad(models.Model):
     # ORM override: create()
     # ────────────────────────────────────────────────────────────────────────
 
+    def _sincronizar_inscripciones(self):
+        """Sincroniza actividad.inscripcion con alumno_ids.
+        Crea registros faltantes y elimina los que ya no corresponden.
+        Permite que la evaluación de desempeño encuentre a todos los alumnos.
+        """
+        Inscripcion = self.env['actividad.inscripcion'].sudo()
+        for rec in self:
+            partners_alumno = rec.alumno_ids.mapped('partner_id')
+            partners_inscritos = rec.inscripcion_ids.mapped('partner_id')
+
+            # Crear inscripciones para alumnos nuevos
+            por_crear = partners_alumno - partners_inscritos
+            for partner in por_crear:
+                Inscripcion.create({
+                    'actividad_id': rec.id,
+                    'partner_id': partner.id,
+                })
+
+            # Eliminar inscripciones de alumnos que ya no están asignados
+            por_eliminar = rec.inscripcion_ids.filtered(
+                lambda i: i.partner_id not in partners_alumno
+            )
+            if por_eliminar:
+                por_eliminar.unlink()
+
     @api.model_create_multi
     def create(self, vals_list):
         """Estampa el flag actividad_creating=True en el contexto para que
@@ -889,6 +914,7 @@ class Actividad(models.Model):
             Actividad,
             self.with_context(actividad_creating=True),
         ).create(vals_list)
+        records._sincronizar_inscripciones()
         return records.with_context(actividad_creating=False)
 
     @api.model
@@ -1064,7 +1090,10 @@ class Actividad(models.Model):
             # ── Regla 4: Rechazada → JD puede modificar cualquier campo
             #    que no sea auto-gestionado (ya validado arriba). ──
 
-        return super().write(vals)
+        result = super().write(vals)
+        if 'alumno_ids' in vals:
+            self._sincronizar_inscripciones()
+        return result
 
     # ────────────────────────────────────────────────────────────────────────
     # Constraints
