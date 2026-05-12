@@ -460,6 +460,7 @@
         <field name="domain">[('en_catalogo', '=', True)]</field>
         <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
         <field name="context">{'hide_catalogo': True}</field>
+        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
     <!--
@@ -474,6 +475,7 @@
         <field name="domain">[('responsable_actividad_id', '=', uid)]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'search_default_filter_pendiente': 0}</field>
+        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
     <!--
@@ -488,6 +490,7 @@
         <field name="domain">[('responsable_extraescolar_id', '=', uid)]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'search_default_filter_pendiente': 0}</field>
+        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
 </odoo>

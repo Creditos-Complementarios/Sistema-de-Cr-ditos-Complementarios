@@ -1,9 +1,20 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
+
+CREDITOS_MINIMOS = 5.0
+
+_NIVEL_LABELS = {
+    0: 'Insuficiente',
+    1: 'Suficiente',
+    2: 'Bueno',
+    3: 'Notable',
+    4: 'Excelente',
+}
 
 
 class SolicitudLiberacion(models.Model):
-    """E-03SC: Solicitud de liberación de créditos complementarios."""
+    """E-03SC: Expediente y solicitud de liberación de créditos complementarios."""
 
     _name = 'actividad.solicitud.liberacion'
     _description = 'Solicitud de Liberación de Créditos Complementarios'
@@ -19,41 +30,196 @@ class SolicitudLiberacion(models.Model):
         string='Fecha de Solicitud', default=fields.Date.today, readonly=True,
     )
     estado = fields.Selection([
+        ('borrador',    'Borrador'),
         ('en_revision', 'En Revisión'),
-        ('aprobada', 'Aprobada'),
-        ('rechazada', 'Rechazada'),
-    ], string='Estado', default='en_revision', tracking=True, readonly=True)
+        ('aprobada',    'Aprobada'),
+        ('rechazada',   'Rechazada'),
+    ], string='Estado', default='borrador', tracking=True, readonly=True)
+
+    # ── Resumen computado ────────────────────────────────────────────────────
     creditos_validos = fields.Float(
         string='Créditos Válidos',
         compute='_compute_resumen',
         store=True,
-        help='Máximo 2 créditos por tipo de actividad.',
+        digits=(4, 1),
+        help='Máximo 2 créditos contabilizados por tipo de actividad (RN1).',
     )
     promedio_desempenio = fields.Float(
         string='Promedio de Desempeño',
         compute='_compute_resumen',
         store=True,
         digits=(4, 2),
+        help='Media aritmética de los niveles de desempeño, redondeada al entero más próximo.',
     )
+    promedio_label = fields.Char(
+        string='Nivel de Desempeño',
+        compute='_compute_resumen',
+        store=True,
+    )
+    puede_solicitar = fields.Boolean(
+        compute='_compute_puede_solicitar',
+        store=False,
+        help='True cuando cumple RN2 (≥5 créditos) y RN3 (sin solicitud activa).',
+    )
+    razon_bloqueado = fields.Char(
+        compute='_compute_puede_solicitar',
+        store=False,
+    )
+
+    # ────────────────────────────────────────────────────────────────────────
+    # Computes
+    # ────────────────────────────────────────────────────────────────────────
 
     @api.depends('estudiante_id')
     def _compute_resumen(self):
-        """MVP: créditos con constancia firmada (máx 2 por tipo)."""
+        """
+        RN1: máx 2 créditos por tipo de actividad.
+        Promedio: media de performance_level en actividad.inscripcion,
+        redondeada al entero más próximo (paso 5 del flujo).
+        """
         for rec in self:
             if not rec.estudiante_id:
                 rec.creditos_validos = 0.0
                 rec.promedio_desempenio = 0.0
+                rec.promedio_label = ''
                 continue
-            actividades = self.env['actividad.complementaria'].sudo().search([
+
+            acreditadas = self.env['actividad.complementaria'].sudo().search([
                 ('alumno_ids', 'in', [rec.estudiante_id.id]),
                 ('constancias_firmadas', '=', True),
             ])
+
+            # RN1 ─ cap de 2 créditos por tipo
             creditos_por_tipo = {}
-            for act in actividades:
+            for act in acreditadas:
                 tipo = act.tipo_actividad_id.id
                 cr = float(act.creditos or 0.0)
                 creditos_por_tipo[tipo] = creditos_por_tipo.get(tipo, 0.0) + cr
             rec.creditos_validos = sum(
                 min(v, 2.0) for v in creditos_por_tipo.values()
             )
-            rec.promedio_desempenio = 0.0   # TODO E-03SC: leer desde inscripciones
+
+            # Promedio ─ desde actividad.inscripcion
+            partner = rec.estudiante_id.partner_id
+            inscripciones = self.env['actividad.inscripcion'].sudo().search([
+                ('actividad_id', 'in', acreditadas.ids),
+                ('partner_id', '=', partner.id),
+                ('performance_level', '!=', False),
+                ('performance_level', '!=', '0'),   # insuficiente no promedia
+            ])
+            if inscripciones:
+                niveles = [int(i.performance_level) for i in inscripciones]
+                promedio_redondeado = round(sum(niveles) / len(niveles))
+                rec.promedio_desempenio = promedio_redondeado
+                rec.promedio_label = _NIVEL_LABELS.get(promedio_redondeado, '')
+            else:
+                rec.promedio_desempenio = 0.0
+                rec.promedio_label = 'Sin evaluación registrada'
+
+    @api.depends('creditos_validos', 'estudiante_id')
+    def _compute_puede_solicitar(self):
+        """
+        RN2: necesita ≥ 5 créditos válidos.
+        RN3: sin solicitud en_revision activa; si ya fue aprobada → bloqueado permanente.
+        """
+        for rec in self:
+            uid = rec.estudiante_id.id
+            rid = rec._origin.id or 0
+
+            # RN3 permanente: ya liberado
+            liberado = self.search([
+                ('estudiante_id', '=', uid),
+                ('estado', '=', 'aprobada'),
+            ], limit=1)
+            if liberado:
+                rec.puede_solicitar = False
+                rec.razon_bloqueado = 'Tus actividades complementarias ya fueron liberadas.'
+                continue
+
+            # RN2
+            if rec.creditos_validos < CREDITOS_MINIMOS:
+                rec.puede_solicitar = False
+                rec.razon_bloqueado = (
+                    f'Necesitas {int(CREDITOS_MINIMOS)} créditos válidos. '
+                    f'Actualmente tienes {rec.creditos_validos:.1f}.'
+                )
+                continue
+
+            # RN3: solicitud en revisión existente
+            en_revision = self.search([
+                ('estudiante_id', '=', uid),
+                ('estado', '=', 'en_revision'),
+                ('id', '!=', rid),
+            ], limit=1)
+            if en_revision:
+                rec.puede_solicitar = False
+                rec.razon_bloqueado = 'Ya tienes una solicitud en revisión.'
+                continue
+
+            rec.puede_solicitar = True
+            rec.razon_bloqueado = ''
+
+    # ────────────────────────────────────────────────────────────────────────
+    # Constraints
+    # ────────────────────────────────────────────────────────────────────────
+
+    @api.constrains('estudiante_id', 'estado')
+    def _check_solicitud_unica(self):
+        """RN3: solo una solicitud en_revision o aprobada por estudiante."""
+        for rec in self:
+            if rec.estado not in ('en_revision', 'aprobada'):
+                continue
+            duplicado = self.search([
+                ('estudiante_id', '=', rec.estudiante_id.id),
+                ('estado', 'in', ['en_revision', 'aprobada']),
+                ('id', '!=', rec.id),
+            ], limit=1)
+            if duplicado:
+                raise ValidationError(
+                    'Ya existe una solicitud activa (En Revisión o Aprobada) '
+                    'para este estudiante. Solo puede haber una a la vez.'
+                )
+
+    # ────────────────────────────────────────────────────────────────────────
+    # Business logic
+    # ────────────────────────────────────────────────────────────────────────
+
+    def action_solicitar_liberacion(self):
+        """
+        Flujo principal paso 7: registra la solicitud en estado En Revisión.
+        Valida RN2 y RN3 antes de transicionar.
+        """
+        self.ensure_one()
+        if self.creditos_validos < CREDITOS_MINIMOS:
+            raise ValidationError(
+                f'Necesitas al menos {int(CREDITOS_MINIMOS)} créditos válidos. '
+                f'Actualmente tienes {self.creditos_validos:.1f}.'
+            )
+        liberado = self.search([
+            ('estudiante_id', '=', self.estudiante_id.id),
+            ('estado', '=', 'aprobada'),
+        ], limit=1)
+        if liberado:
+            raise ValidationError(
+                'Tus actividades complementarias ya fueron liberadas. '
+                'No puedes realizar una nueva solicitud.'
+            )
+        en_revision = self.search([
+            ('estudiante_id', '=', self.estudiante_id.id),
+            ('estado', '=', 'en_revision'),
+            ('id', '!=', self.id),
+        ], limit=1)
+        if en_revision:
+            raise ValidationError(
+                'Ya tienes una solicitud en revisión. '
+                'Espera a que sea resuelta antes de enviar otra.'
+            )
+        self.write({'estado': 'en_revision'})
+        self.message_post(
+            body=(
+                f'Solicitud enviada por <b>{self.estudiante_id.name}</b>.<br/>'
+                f'Créditos válidos: <b>{self.creditos_validos:.1f}</b>.<br/>'
+                f'Nivel de desempeño: <b>{self.promedio_label}</b>.'
+            ),
+            subtype_xmlid='mail.mt_comment',
+        )

@@ -1295,6 +1295,18 @@ class Actividad(models.Model):
             body=f'Alumno {self.env.user.name} se dio de baja de la actividad.',
             subtype_xmlid='mail.mt_note',
         )
+
+    def action_abrir_evidencia(self):
+        """E-02SC: abre el wizard de subida de evidencia."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Subir Evidencia',
+            'res_model': 'actividad.wizard.evidencia',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_actividad_id': self.id},
+        }
     # ────────────────────────────────────────────────────────────────────────
     # Business Logic
     # Todas las acciones de negocio que escriben campos auto-gestionados
