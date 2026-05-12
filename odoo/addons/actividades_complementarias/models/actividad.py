@@ -425,12 +425,15 @@ class Actividad(models.Model):
         )
 
     def _notify_jd_nueva_actividad(self):
-        """Notifica al JD vía mensaje directo en Conversaciones de Odoo (sin SMTP).
+        """Notifica al JD cuando el RA crea una nueva actividad complementaria.
 
-        - Busca o crea un canal DM entre el RA y el JD usando discuss.channel.
-        - El mensaje usa Markup para renderizar HTML correctamente.
-        - Como jefe_departamento_id es res.users, partner_id está disponible directo.
-        - Fallback al chatter si el canal DM no puede crearse.
+        Canal 1 — Conversaciones de Odoo (discuss.channel DM): mensaje directo
+                   interno sin SMTP, con HTML renderizado via Markup.
+        Canal 2 — Correo SMTP (mail.mail): si el JD tiene email configurado.
+
+        La notificación solo se dispara cuando:
+          - El creador pertenece a group_responsable_actividad o a Personal.
+          - Existe un jefe_departamento_id distinto al usuario en sesión.
         """
         self.ensure_one()
 
@@ -447,9 +450,10 @@ class Actividad(models.Model):
         if not jd.partner_id:
             return
 
-        body = Markup(
-            'El Responsable de Actividad <b>{ra}</b> ha creado la actividad <b>{act}</b>. '
-            'Está pendiente de revisión por el Jefe de Departamento <b>{jd}</b>.'
+        body_markup = Markup(
+            'El Responsable de Actividad <b>{ra}</b> ha creado la actividad '
+            '<b>{act}</b>. Está pendiente de revisión por el Jefe de '
+            'Departamento <b>{jd}</b>.'
         ).format(
             ra=creator.name,
             act=self.name,
@@ -462,26 +466,48 @@ class Actividad(models.Model):
                 mail_create_nosubscribe=True,
             )._get_or_create_direct_message_channel(jd.id)
             channel.sudo().message_post(
-                body=body,
+                body=body_markup,
                 message_type='comment',
                 subtype_xmlid='mail.mt_comment',
                 author_id=creator.partner_id.id,
+                notify_by_email=False,
             )
-            return
         except Exception:
             _logger.warning(
                 'No se pudo crear canal DM para notificar al JD %s, '
                 'usando fallback al chatter.', jd.name
             )
+            # Fallback — chatter suscribiendo al JD
+            self.message_subscribe(partner_ids=[jd.partner_id.id])
+            self.message_post(
+                body=body_markup,
+                subtype_xmlid='mail.mt_comment',
+                message_type='comment',
+                notify_by_email=False,
+            )
 
-        # 2. Fallback — chatter con Markup (HTML renderizado correctamente)
-        self.message_subscribe(partner_ids=[jd.partner_id.id])
-        self.message_post(
-            body=body,
-            subtype_xmlid='mail.mt_comment',
-            message_type='comment',
-            notify_by_email=False,
-        )
+        # 2. Correo SMTP al JD
+        if not jd.email:
+            return
+
+        self.env['mail.mail'].sudo().create({
+            'subject': _('Nueva actividad complementaria: %s') % self.name,
+            'email_to': jd.email,
+            'body_html': Markup(
+                '<p>Estimado/a <b>{jd}</b>,</p>'
+                '<p>El Responsable de Actividad <b>{ra}</b> ha creado la actividad '
+                '<b>{act}</b> con fecha de inicio <b>{inicio}</b> '
+                'y fin <b>{fin}</b>.</p>'
+                '<p>Ingrese al sistema para revisarla.</p>'
+            ).format(
+                jd=jd.name,
+                ra=creator.name,
+                act=self.name,
+                inicio=str(self.fecha_inicio or '—'),
+                fin=str(self.fecha_fin or '—'),
+            ),
+            'auto_delete': True,
+        }).send()
 
     # ────────────────────────────────────────────────────────────────────────
     # Computes
