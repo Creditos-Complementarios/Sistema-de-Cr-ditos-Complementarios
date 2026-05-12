@@ -1263,7 +1263,7 @@ class Actividad(models.Model):
         compute='_compute_campos_alumno',
         store=False,
     )
-        
+
     def _compute_campos_alumno(self):
         """E-01SC / E-02SC: flags contextuales para el alumno en sesión."""
         uid = self.env.user.id
