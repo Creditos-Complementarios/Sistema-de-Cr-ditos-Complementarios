@@ -285,7 +285,7 @@ Miércoles 15:00-17:00</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_academica"/>
         <field name="periodo" ref="actividades_complementarias.per_2025A"/>
         <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
-        <field name="responsable_actividad_id" ref="user_responsable_2"/>
+        <field name="responsable_actividad_id" ref="user_personal_sistemas"/>
         <field name="fecha_inicio">2026-06-01</field>
         <field name="fecha_fin">2026-06-30</field>
         <field name="cantidad_horas">40</field>
@@ -359,7 +359,7 @@ Jueves 18:00-20:00</field>
         <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_academica"/>
         <field name="periodo" ref="actividades_complementarias.per_2025B"/>
         <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
-        <field name="responsable_actividad_id" ref="user_responsable_1"/>
+        <field name="responsable_actividad_id" ref="user_personal_sistemas"/>
         <field name="fecha_inicio">2026-08-01</field>
         <field name="fecha_fin">2026-12-15</field>
         <field name="cantidad_horas">60</field>
@@ -367,9 +367,10 @@ Jueves 18:00-20:00</field>
         <field name="cupo_min">10</field>
         <field name="cupo_max">30</field>
         <field name="estado_id" ref="actividades_complementarias.estado_finalizada"/>
+        <field name="en_catalogo">True</field>
         <field name="jd_firmo">True</field>
         <field name="responsable_firmo">False</field>
-        <field name="alumno_ids" eval="[(4, ref('user_alumno_3')), (4, ref('user_alumno_7'))]"/>
+        <field name="alumno_ids" eval="[(4, ref('user_alumno_1')), (4, ref('user_alumno_3')), (4, ref('user_alumno_7'))]"/>
     </record>
 
     <!-- Finalizada: ambas firmas — constancias_firmadas = True (computed) -->
@@ -387,6 +388,8 @@ Jueves 18:00-20:00</field>
         <field name="cupo_min">5</field>
         <field name="cupo_max">20</field>
         <field name="estado_id" ref="actividades_complementarias.estado_finalizada"/>
+        <field name="en_catalogo">True</field>
+        <field name="evidence_enabled">True</field>
         <field name="jd_firmo">True</field>
         <field name="responsable_firmo">True</field>
         <field name="alumno_ids" eval="[(4, ref('user_alumno_1')), (4, ref('user_alumno_2')), (4, ref('user_alumno_8'))]"/>
@@ -442,6 +445,72 @@ Jueves 18:00-20:00</field>
         <field name="estado_solicitud_id" ref="actividades_complementarias.estado_solicitud_rechazada"/>
         <field name="motivo_rechazo">La actividad no cumple con el mínimo de horas requeridas para otorgar créditos complementarios (mínimo 20 h). Se solicita ampliar la duración o replantear el formato del evento.</field>
     </record>
+
+    <!-- ================================================================== -->
+    <!-- ACTIVIDADES DEMO para E-03SC                                        -->
+    <!-- alumno_1 acumula: 2.0 (servicio_social) + 1.0 (deportiva)          -->
+    <!--                 + 1.0 (cultural) + 1.0 (academica) = 5.0           -->
+    <!-- ================================================================== -->
+
+    <record id="act_demo_atletismo" model="actividad.complementaria">
+        <field name="name">Atletismo Representativo</field>
+        <field name="descripcion">Entrenamiento y competencias de atletismo a nivel regional.</field>
+        <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_deportiva"/>
+        <field name="periodo" ref="actividades_complementarias.per_2024B"/>
+        <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
+        <field name="responsable_actividad_id" ref="user_personal_sistemas"/>
+        <field name="fecha_inicio">2024-08-12</field>
+        <field name="fecha_fin">2024-12-13</field>
+        <field name="cantidad_horas">40</field>
+        <field name="creditos">1.0</field>
+        <field name="cupo_min">5</field>
+        <field name="cupo_max">20</field>
+        <field name="estado_id" ref="actividades_complementarias.estado_finalizada"/>
+        <field name="en_catalogo">True</field>
+        <field name="jd_firmo">True</field>
+        <field name="responsable_firmo">True</field>
+        <field name="alumno_ids" eval="[(4, ref('user_alumno_1'))]"/>
+    </record>
+
+    <record id="act_demo_muralismo" model="actividad.complementaria">
+        <field name="name">Taller de Muralismo</field>
+        <field name="descripcion">Creación de murales institucionales con técnicas de arte urbano.</field>
+        <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_cultural"/>
+        <field name="periodo" ref="actividades_complementarias.per_2024B"/>
+        <field name="jefe_departamento_id" ref="user_jefe_biologia"/>
+        <field name="responsable_actividad_id" ref="user_responsable_3"/>
+        <field name="fecha_inicio">2024-08-12</field>
+        <field name="fecha_fin">2024-12-13</field>
+        <field name="cantidad_horas">30</field>
+        <field name="creditos">1.0</field>
+        <field name="cupo_min">5</field>
+        <field name="cupo_max">20</field>
+        <field name="estado_id" ref="actividades_complementarias.estado_finalizada"/>
+        <field name="en_catalogo">True</field>
+        <field name="jd_firmo">True</field>
+        <field name="responsable_firmo">True</field>
+        <field name="alumno_ids" eval="[(4, ref('user_alumno_1'))]"/>
+    </record>
+
+    <record id="act_demo_robotica_basica" model="actividad.complementaria">
+        <field name="name">Introducción a la Robótica</field>
+        <field name="descripcion">Fundamentos de robótica con Arduino para estudiantes de primer ingreso.</field>
+        <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_academica"/>
+        <field name="periodo" ref="actividades_complementarias.per_2024B"/>
+        <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
+        <field name="responsable_actividad_id" ref="user_responsable_2"/>
+        <field name="fecha_inicio">2024-08-12</field>
+        <field name="fecha_fin">2024-12-13</field>
+        <field name="cantidad_horas">35</field>
+        <field name="creditos">1.0</field>
+        <field name="cupo_min">5</field>
+        <field name="cupo_max">20</field>
+        <field name="estado_id" ref="actividades_complementarias.estado_finalizada"/>
+        <field name="en_catalogo">True</field>
+        <field name="jd_firmo">True</field>
+        <field name="responsable_firmo">True</field>
+        <field name="alumno_ids" eval="[(4, ref('user_alumno_1'))]"/>
+    </record>    
 
 </data>
 </odoo>
