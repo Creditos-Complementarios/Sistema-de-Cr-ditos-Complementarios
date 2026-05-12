@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
+import logging
+
 from odoo.exceptions import ValidationError, UserError
 from datetime import date, timedelta
 import base64
@@ -11,6 +13,7 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+_logger = logging.getLogger(__name__)
 
 PERFORMANCE_LEVELS = [
     ("0", "Insuficiente"),
@@ -420,6 +423,62 @@ class Actividad(models.Model):
         return self.env['actividad.empleado.permiso'].sudo().search(
             [('user_id', '=', self.env.user.id)], limit=1
         )
+
+    def _notify_jd_nueva_actividad(self):
+        """Notifica al JD que el Responsable de Actividad creó una nueva actividad.
+
+        Canal 1 — Chatter (siempre): mensaje interno visible en Odoo para el JD.
+        Canal 2 — Correo directo (si el JD tiene email): construido en Python,
+                   sin depender de ningún mail.template en base de datos.
+
+        La notificación solo se dispara cuando:
+          - El creador pertenece a group_responsable_actividad o a Personal.
+          - Existe un jefe_departamento_id distinto al usuario en sesión.
+        """
+        self.ensure_one()
+
+        creator = self.env.user
+        jd = self.jefe_departamento_id
+
+        es_ra = creator.has_group(
+            'actividades_complementarias.group_responsable_actividad'
+        ) or self._es_personal()
+
+        if not es_ra or not jd or jd == creator:
+            return
+
+        # 1. Mensaje interno en el chatter
+        self.message_post(
+            body=_(
+                'El Responsable de Actividad <b>%(ra)s</b> ha creado esta actividad. '
+                'Está pendiente de revisión por el Jefe de Departamento <b>%(jd)s</b>.'
+            ) % {'ra': creator.name, 'jd': jd.name},
+            partner_ids=[jd.partner_id.id] if jd.partner_id else [],
+            subtype_xmlid='mail.mt_note',
+            message_type='comment',
+        )
+
+        # 2. Correo directo sin template
+        if not jd.email:
+            return
+
+        self.env['mail.mail'].sudo().create({
+            'subject': _('Nueva actividad complementaria: %s') % self.name,
+            'email_to': jd.email,
+            'body_html': _(
+                '<p>Estimado/a <b>%(jd)s</b>,</p>'
+                '<p>El Responsable de Actividad <b>%(ra)s</b> ha creado la actividad '
+                '<b>%(act)s</b> con fecha de inicio <b>%(inicio)s</b> y fin <b>%(fin)s</b>.</p>'
+                '<p>Ingrese al sistema para revisarla.</p>'
+            ) % {
+                'jd': jd.name,
+                'ra': creator.name,
+                'act': self.name,
+                'inicio': self.fecha_inicio or '—',
+                'fin': self.fecha_fin or '—',
+            },
+            'auto_delete': True,
+        }).send()
 
     # ────────────────────────────────────────────────────────────────────────
     # Computes
@@ -860,6 +919,9 @@ class Actividad(models.Model):
             min_fecha = _n_dias_habiles(5)
             for vals in vals_list:
                 fi = vals.get('fecha_inicio')
+                if fi:
+                    if isinstance(fi, str):
+                        fi = date.fromisoformat(fi)
                 if fi and fi < min_fecha:
                     raise ValidationError(
                         _('La fecha de inicio debe ser al menos 5 días hábiles '
@@ -889,7 +951,25 @@ class Actividad(models.Model):
             Actividad,
             self.with_context(actividad_creating=True),
         ).create(vals_list)
-        return records.with_context(actividad_creating=False)
+        records = records.with_context(actividad_creating=False)
+
+        # Notificar al JD de cada actividad recién creada por un RA / Personal
+        # (best-effort: un fallo no impide que la actividad quede creada)
+        skip_notify = (
+            self.env.context.get("install_demo")
+            or self.env.context.get("skip_fecha_check")
+        )
+        if not skip_notify:
+            for rec in records:
+                try:
+                    rec._notify_jd_nueva_actividad()
+                except Exception:
+                    _logger.exception(
+                        "Error al notificar al JD sobre nueva actividad %s (id=%s)",
+                        rec.name, rec.id,
+                    )
+
+        return records
 
     @api.model
     def action_personal_mis_actividades(self):
