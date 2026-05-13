@@ -160,6 +160,7 @@
                     <field name="permisos_actividad_finalizada" invisible="1"/>
                     <field name="permisos_actividad_en_curso" invisible="1"/>
                     <field name="certificates_generated" invisible="1"/>
+                    <field name="constancias_liberadas" invisible="1"/>
                     <!--
                         Banner informativo de solo lectura.
                         Aparece cuando el formulario está bloqueado para el usuario actual.
@@ -433,7 +434,6 @@
                 <field name="evidence_enabled" invisible="1"/>
                 <field name="certificates_generated" invisible="1"/>
                 <field name="responsable_firmo" invisible="1"/>
-                <field name="constancias_liberadas" invisible="1"/>
             </xpath>
         </field>
     </record>
