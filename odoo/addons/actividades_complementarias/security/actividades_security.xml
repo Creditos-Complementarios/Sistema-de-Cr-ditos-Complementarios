@@ -315,13 +315,26 @@
         Escribe únicamente a través de action_liberar_constancias
         (bypass_edit_protection=True).
     ════════════════════════════════════════════════════════════════════ -->
+    <!-- SE: solo lectura en actividad.complementaria (SE-03SC indirectamente) -->
     <record id="rule_actividad_servicios_escolares" model="ir.rule">
-        <field name="name">SE: solo actividades finalizadas con constancias firmadas</field>
+        <field name="name">SE: lectura de actividades finalizadas con constancias</field>
         <field name="model_id" ref="model_actividad_complementaria"/>
         <field name="domain_force">[
             ('estado_code', '=', 'finalizada'),
             ('constancias_firmadas', '=', True)
         ]</field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_servicios_escolares'))]"/>
+        <field name="perm_read"   eval="True"/>
+        <field name="perm_write"  eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- SE: acceso total a solicitudes de liberación -->
+    <record id="rule_solicitud_liberacion_se" model="ir.rule">
+        <field name="name">SE: gestión completa de solicitudes de liberación</field>
+        <field name="model_id" ref="model_actividad_solicitud_liberacion"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('actividades_complementarias.group_servicios_escolares'))]"/>
         <field name="perm_read"   eval="True"/>
         <field name="perm_write"  eval="True"/>

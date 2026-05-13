@@ -552,5 +552,12 @@ Jueves 18:00-20:00</field>
         <field name="alumno_ids" eval="[(4, ref('user_alumno_3')), (4, ref('user_alumno_6'))]"/>
     </record>
 
+    <!-- ── Ventana de liberación activa (demo) ── -->
+    <record id="ventana_2025B" model="actividad.ventana.liberacion">
+        <field name="periodo_id" ref="actividades_complementarias.per_2026A"/>
+        <field name="fecha_inicio">2026-05-01</field>
+        <field name="fecha_fin">2026-05-31</field>
+    </record>
+
 </data>
 </odoo>

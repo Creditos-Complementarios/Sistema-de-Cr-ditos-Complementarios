@@ -9,7 +9,7 @@
     <menuitem id="menu_actividades_root"
               name="Actividades Complementarias"
               sequence="50"
-              groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_comite_academico,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_alumno"
+              groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_comite_academico,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_alumno,actividades_complementarias.group_servicios_escolares"
               web_icon="actividades_complementarias,static/description/icon.png"/>
 
     <!-- ── Jefe de Departamento ──────────────────────────────────────────── -->
@@ -189,27 +189,6 @@
               sequence="20"
               groups="actividades_complementarias.group_admin_actividades,actividades_complementarias.group_jefe_departamento"/>
 
-    <!-- ── Servicios Escolares (SE-01SC) ─────────────────────────────────── -->
-    <menuitem id="menu_servicios_escolares"
-            name="Servicios Escolares"
-            parent="menu_actividades_root"
-            sequence="55"
-            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_se_pendientes"
-            name="Pendientes de Liberación"
-            parent="menu_servicios_escolares"
-            action="action_actividad_se_pendientes"
-            sequence="10"
-            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_se_liberadas"
-            name="Historial de Liberaciones"
-            parent="menu_servicios_escolares"
-            action="action_actividad_se_liberadas"
-            sequence="20"
-            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
     <!-- Admin: todas las actividades sin filtro -->
     <menuitem id="menu_admin_todas_actividades"
               name="Todas las Actividades"
@@ -260,4 +239,60 @@
               action="action_solicitud_liberacion_alumno"
               sequence="40"
               groups="actividades_complementarias.group_alumno"/>
+
+    <!-- ── Servicios Escolares ───────────────────────────────────────────────── -->
+    <menuitem id="menu_servicios_escolares"
+            name="Servicios Escolares"
+            parent="menu_actividades_root"
+            sequence="55"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_se_pendientes"
+            name="Pendientes de Liberación"
+            parent="menu_servicios_escolares"
+            action="action_actividad_se_pendientes"
+            sequence="10"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_se_liberadas"
+            name="Historial de Liberaciones"
+            parent="menu_servicios_escolares"
+            action="action_actividad_se_liberadas"
+            sequence="20"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_servicios_escolares"
+            name="Servicios Escolares"
+            parent="menu_actividades_root"
+            sequence="55"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_se_solicitudes"
+            name="Solicitudes de Liberación"
+            parent="menu_servicios_escolares"
+            action="action_solicitud_liberacion_se"
+            sequence="10"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_se_ventanas"
+            name="Ventanas de Evaluación"
+            parent="menu_servicios_escolares"
+            action="action_ventana_liberacion"
+            sequence="20"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_se_historial"
+            name="Historial de Solicitudes"
+            parent="menu_servicios_escolares"
+            action="action_historial_solicitudes_se"
+            sequence="30"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_se_estudiantes"
+            name="Buscar Estudiante"
+            parent="menu_servicios_escolares"
+            action="action_consulta_estudiante_se"
+            sequence="40"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
 </odoo>
