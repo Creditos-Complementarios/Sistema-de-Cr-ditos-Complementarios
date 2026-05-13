@@ -1257,6 +1257,62 @@ class Actividad(models.Model):
                     "Elimine el campo 'Actividades Predefinidas' o cambie "
                     "el tipo de actividad antes de continuar."
                 )
+
+    # ── Campos calculados para el Alumno ─────────────────────────────────────
+    alumno_inscrito = fields.Boolean(
+        string='Inscrito',
+        compute='_compute_campos_alumno',
+        store=False,
+    )
+    cupos_disponibles = fields.Integer(
+        string='Cupos Disponibles',
+        compute='_compute_campos_alumno',
+        store=False,
+    )
+
+    def _compute_campos_alumno(self):
+        """E-01SC / E-02SC: flags contextuales para el alumno en sesión."""
+        uid = self.env.user.id
+        for rec in self:
+            rec.alumno_inscrito = uid in rec.alumno_ids.ids
+            if rec.cupo_ilimitado:
+                rec.cupos_disponibles = 9999
+            else:
+                rec.cupos_disponibles = max(0, rec.cupo_max - len(rec.alumno_ids))
+
+    def action_inscribirse(self):
+        """E-01SC paso 1.6: el alumno se inscribe a la actividad."""
+        self.ensure_one()
+        self.sudo().with_context(bypass_edit_protection=True).write({
+            'alumno_ids': [(4, self.env.user.id)],
+        })
+        self.sudo().message_post(
+            body=f'Alumno {self.env.user.name} se inscribió a la actividad.',
+            subtype_xmlid='mail.mt_note',
+        )
+
+    def action_darse_de_baja(self):
+        """E-02SC flujo alterno: el alumno se da de baja."""
+        self.ensure_one()
+        self.sudo().with_context(bypass_edit_protection=True).write({
+            'alumno_ids': [(3, self.env.user.id)],
+        })
+        self.sudo().message_post(
+            body=f'Alumno {self.env.user.name} se dio de baja de la actividad.',
+            subtype_xmlid='mail.mt_note',
+        )
+
+    def action_abrir_evidencia(self):
+        """E-02SC: abre el wizard de subida de evidencia."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Subir Evidencia',
+            'res_model': 'actividad.wizard.evidencia',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_actividad_id': self.id},
+        }
     # ────────────────────────────────────────────────────────────────────────
     # Business Logic
     # Todas las acciones de negocio que escriben campos auto-gestionados
