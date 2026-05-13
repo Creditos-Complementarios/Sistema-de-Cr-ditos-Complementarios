@@ -206,6 +206,30 @@
         <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
         <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
     </record>
+    <!-- sii.estudiante — SE -->
+    <record id="access_sii_estudiante_se" model="ir.model.access">
+        <field name="name">sii_estudiante_se</field>
+        <field name="model_id" ref="model_sii_estudiante"/>
+        <field name="group_id" ref="actividades_complementarias.group_servicios_escolares"/>
+        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
+    </record>
+    <!-- sii.carrera — SE -->
+    <record id="access_sii_carrera_se" model="ir.model.access">
+        <field name="name">sii_carrera_se</field>
+        <field name="model_id" ref="model_sii_carrera"/>
+        <field name="group_id" ref="actividades_complementarias.group_servicios_escolares"/>
+        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
+    </record>
+    <!-- sii.periodo — SE -->
+    <record id="access_sii_periodo_se" model="ir.model.access">
+        <field name="name">sii_periodo_se</field>
+        <field name="model_id" ref="model_sii_periodo"/>
+        <field name="group_id" ref="actividades_complementarias.group_servicios_escolares"/>
+        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
+    </record>
 
 </data>
 </odoo>
