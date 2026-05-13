@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
 from datetime import date, timedelta
 from markupsafe import Markup
@@ -87,6 +87,11 @@ class PropuestaActividadComplementaria(models.Model):
     # ────────────────────────────────────────────────────────────────────────
     # Computes
     # ────────────────────────────────────────────────────────────────────────
+
+    def copy(self, default=None):
+        raise UserError(_(
+            "Acción no valida, no es posible duplicar actividades"
+        ))
 
     @api.depends('actividad_id')
     def _compute_encabezado(self):

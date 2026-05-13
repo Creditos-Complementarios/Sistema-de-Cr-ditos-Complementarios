@@ -304,6 +304,12 @@ class Actividad(models.Model):
         compute='_compute_responsable_readonly',
     )
 
+    # ── Restricción de duplicación ──────────────────────────────────────────
+    def copy(self, default=None):
+        raise UserError(_(
+            "Acción no valida, no es posible duplicar actividades"
+        ))
+
     @api.depends('estado_code')
     def _compute_responsable_readonly(self):
         is_jd = self.env.user.has_group(
