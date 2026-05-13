@@ -1453,19 +1453,26 @@ class Actividad(models.Model):
         }
 
     def action_abrir_evaluacion(self):
-        """Abre la vista de evaluación de desempeño separada."""
         self.ensure_one()
         if self.estado_code != 'finalizada':
             raise ValidationError(
                 _('La evaluación de desempeño solo está disponible para actividades finalizadas.')
             )
+        view_id = self.env.ref(
+            'actividades_complementarias.view_actividad_inscripcion_list'
+        ).id
         return {
             'type': 'ir.actions.act_window',
             'name': 'Evaluación de Desempeño — %s' % self.name,
             'res_model': 'actividad.inscripcion',
             'view_mode': 'list',
+            'views': [(view_id, 'list')],
             'domain': [('actividad_id', '=', self.id)],
-            'context': {'default_actividad_id': self.id},
+            'context': {
+                'default_actividad_id': self.id,
+                'create': False,
+                'delete': False,
+            },
         }
 
     def action_abrir_confirmacion_comite(self):
