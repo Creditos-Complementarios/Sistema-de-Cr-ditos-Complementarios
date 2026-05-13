@@ -38,6 +38,8 @@
         'views/tipo_predefinida_views.xml',
         'views/periodo_views.xml',
         'views/actividad_views.xml',
+        'views/actividad_inscripcion_views.xml',
+        'views/actividad_asistencia_views.xml',
         'views/propuesta_views.xml',
         'views/empleado_views.xml',
         'views/wizard_views.xml',

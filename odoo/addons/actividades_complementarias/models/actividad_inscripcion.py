@@ -110,6 +110,18 @@ class ActividadInscripcion(models.Model):
     # Constraints
     # ------------------------------------------------------------------
 
+    def action_evaluar(self):
+        """Abre el wizard para asignar nivel de desempeño a este alumno."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Asignar Nivel de Desempeño',
+            'res_model': 'actividad.wizard.evaluar.alumno',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_inscripcion_id': self.id},
+        }
+
     _sql_constraints = [
         (
             "unique_inscripcion",
