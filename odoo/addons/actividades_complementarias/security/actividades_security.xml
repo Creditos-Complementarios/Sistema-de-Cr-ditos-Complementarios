@@ -339,6 +339,25 @@
     </record>
 
     <!-- ════════════════════════════════════════════════════════════════════
+        Record rules — Servicios Escolares
+        Solo ve actividades finalizadas con constancias firmadas.
+        Escribe únicamente a través de action_liberar_constancias
+        (bypass_edit_protection=True).
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="rule_actividad_servicios_escolares" model="ir.rule">
+        <field name="name">SE: solo actividades finalizadas con constancias firmadas</field>
+        <field name="model_id" ref="model_actividad_complementaria"/>
+        <field name="domain_force">[
+            ('estado_code', '=', 'finalizada'),
+            ('constancias_firmadas', '=', True)
+        ]</field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_servicios_escolares'))]"/>
+        <field name="perm_read"   eval="True"/>
+        <field name="perm_write"  eval="True"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <!-- ════════════════════════════════════════════════════════════════════
          Record rules — Departamento de Extraescolares (DE)
          Misma lógica que JD: escritura solo sobre sus propias actividades.
     ════════════════════════════════════════════════════════════════════ -->

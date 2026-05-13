@@ -418,6 +418,14 @@
                         invisible="not certificates_generated or responsable_firmo"
                         groups="actividades_complementarias.group_responsable_actividad"/>
 
+                <!-- SE-01SC: Liberar constancias a expedientes -->
+                <button name="action_liberar_constancias"
+                        string="Liberar a Expedientes"
+                        type="object"
+                        class="btn-success"
+                        invisible="not constancias_firmadas or constancias_liberadas"
+                        groups="actividades_complementarias.group_servicios_escolares,
+                                actividades_complementarias.group_admin_actividades"/>
             </xpath>
 
             <!-- ── Campo de control de evidencias (invisible, usado en botón) -->
@@ -425,6 +433,7 @@
                 <field name="evidence_enabled" invisible="1"/>
                 <field name="certificates_generated" invisible="1"/>
                 <field name="responsable_firmo" invisible="1"/>
+                <field name="constancias_liberadas" invisible="1"/>
             </xpath>
         </field>
     </record>
@@ -532,6 +541,34 @@
         <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
+    <!-- SE-01SC: Pendientes de liberación -->
+    <record id="action_actividad_se_pendientes" model="ir.actions.act_window">
+        <field name="name">Pendientes de Liberación</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[
+            ('estado_code', '=', 'finalizada'),
+            ('constancias_firmadas', '=', True),
+            ('constancias_liberadas', '=', False)
+        ]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay constancias pendientes de liberación
+            </p>
+            <p>Aparecerán aquí las actividades finalizadas cuyas constancias estén firmadas por ambos actores.</p>
+        </field>
+    </record>
+
+    <!-- SE-01SC: Historial de liberadas -->
+    <record id="action_actividad_se_liberadas" model="ir.actions.act_window">
+        <field name="name">Historial de Liberaciones</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[
+            ('estado_code', '=', 'finalizada'),
+            ('constancias_liberadas', '=', True)
+        ]</field>
+    </record>
     <record id="action_actividad_de" model="ir.actions.act_window">
         <field name="name">Mis Actividades</field>
         <field name="res_model">actividad.complementaria</field>

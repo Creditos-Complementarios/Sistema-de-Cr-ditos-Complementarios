@@ -510,7 +510,47 @@ Jueves 18:00-20:00</field>
         <field name="jd_firmo">True</field>
         <field name="responsable_firmo">True</field>
         <field name="alumno_ids" eval="[(4, ref('user_alumno_1'))]"/>
-    </record>    
+    </record>  
+
+    <!-- ================================================================== -->
+    <!--  USUARIOS DE SERVICIOS ESCOLARES (SE-01SC)                         -->
+    <!-- ================================================================== -->
+    <record id="user_se_jefe" model="res.users">
+        <field name="name">Lic. Carmen Dzul Herrera</field>
+        <field name="login">jefe.se@ittech.edu.mx</field>
+        <field name="password">Admin1234!</field>
+        <field name="company_id" ref="base.main_company"/>
+        <field name="group_ids" eval="[(4, ref('actividades_complementarias.group_servicios_escolares'))]"/>
+    </record>
+
+    <record id="user_se_personal" model="res.users">
+        <field name="name">Ing. Pedro Cetina Moo</field>
+        <field name="login">personal.se@ittech.edu.mx</field>
+        <field name="password">Admin1234!</field>
+        <field name="company_id" ref="base.main_company"/>
+        <field name="group_ids" eval="[(4, ref('actividades_complementarias.group_servicios_escolares'))]"/>
+    </record>
+
+    <!-- Actividad demostración: finalizada, ambas firmas, aún sin liberar -->
+    <record id="act_taller_excel" model="actividad.complementaria">
+        <field name="name">Taller de Hoja de Cálculo</field>
+        <field name="descripcion">Taller práctico de Excel para gestión de datos académicos.</field>
+        <field name="tipo_actividad_id" ref="actividades_complementarias.tipo_academica"/>
+        <field name="periodo" ref="actividades_complementarias.per_2025A"/>
+        <field name="jefe_departamento_id" ref="user_jefe_sistemas"/>
+        <field name="responsable_actividad_id" ref="user_responsable_1"/>
+        <field name="fecha_inicio">2026-01-10</field>
+        <field name="fecha_fin">2026-01-20</field>
+        <field name="cantidad_horas">20</field>
+        <field name="creditos">0.5</field>
+        <field name="cupo_min">5</field>
+        <field name="cupo_max">20</field>
+        <field name="estado_id" ref="actividades_complementarias.estado_finalizada"/>
+        <field name="jd_firmo">True</field>
+        <field name="responsable_firmo">True</field>
+        <field name="constancias_liberadas">False</field>
+        <field name="alumno_ids" eval="[(4, ref('user_alumno_3')), (4, ref('user_alumno_6'))]"/>
+    </record>
 
 </data>
 </odoo>
