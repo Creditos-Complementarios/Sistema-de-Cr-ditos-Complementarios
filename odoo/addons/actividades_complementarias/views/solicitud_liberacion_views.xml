@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_solicitud_liberacion_list" model="ir.ui.view">
+        <field name="name">actividad.solicitud.liberacion.list</field>
+        <field name="model">actividad.solicitud.liberacion</field>
+        <field name="arch" type="xml">
+            <list string="Expediente de Créditos Complementarios">
+                <field name="fecha"/>
+                <field name="creditos_validos" string="Créditos Válidos"/>
+                <field name="promedio_label" string="Nivel de Desempeño"/>
+                <field name="estado" widget="badge"
+                    decoration-muted="estado == 'borrador'"
+                    decoration-warning="estado == 'en_revision'"
+                    decoration-success="estado == 'aprobada'"
+                    decoration-danger="estado == 'rechazada'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_solicitud_liberacion_form" model="ir.ui.view">
+        <field name="name">actividad.solicitud.liberacion.form</field>
+        <field name="model">actividad.solicitud.liberacion</field>
+        <field name="arch" type="xml">
+            <form string="Expediente de Créditos Complementarios">
+                <header>
+                    <!-- Paso 6 flujo: botón habilitado solo si puede_solicitar -->
+                    <button name="action_solicitar_liberacion"
+                            string="Solicitar Liberación"
+                            type="object" class="btn-primary"
+                            invisible="estado != 'borrador' or not puede_solicitar"/>
+                    <field name="estado" widget="statusbar"
+                           statusbar_visible="borrador,en_revision,aprobada,rechazada"
+                           readonly="1"/>
+                </header>
+                <sheet>
+                    <field name="puede_solicitar" invisible="1"/>
+                    <field name="razon_bloqueado" invisible="1"/>
+
+                    <!-- Alerta: no cumple RN2 o RN3 -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="puede_solicitar or estado != 'borrador'">
+                        <i class="fa fa-exclamation-triangle me-1"/>
+                        <strong>No puedes solicitar la liberación: </strong>
+                        <field name="razon_bloqueado" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <!-- Aprobada: liberación completa -->
+                    <div class="alert alert-success" role="alert"
+                         invisible="estado != 'aprobada'">
+                        <i class="fa fa-check-circle me-1"/>
+                        <strong>¡Liberación aprobada!</strong>
+                        Tus actividades complementarias han sido liberadas.
+                    </div>
+
+                    <!-- Rechazada: flujo alterno RN3 — puede crear nueva -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="estado != 'rechazada'">
+                        <i class="fa fa-info-circle me-1"/>
+                        Tu solicitud fue rechazada. Puedes crear una
+                        <strong>nueva solicitud</strong> desde el listado si
+                        aún cumples con los requisitos.
+                    </div>
+
+                    <group>
+                        <group string="Datos del Estudiante">
+                            <field name="estudiante_id" readonly="1"/>
+                            <field name="fecha" readonly="1"/>
+                        </group>
+                        <group string="Resumen de Créditos">
+                            <field name="creditos_validos" readonly="1"/>
+                            <field name="promedio_desempenio" readonly="1"
+                                   digits="[4,2]"/>
+                            <field name="promedio_label"
+                                   string="Nivel" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <div class="alert alert-light border" role="alert"
+                         invisible="estado != 'borrador'">
+                        <i class="fa fa-info-circle me-1"/>
+                        Consulta tus <strong>constancias acreditadas</strong>
+                        en el menú <em>Mis Constancias</em>.
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+</odoo>
