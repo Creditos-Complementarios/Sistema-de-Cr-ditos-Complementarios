@@ -936,6 +936,31 @@ class Actividad(models.Model):
     # ORM override: create()
     # ────────────────────────────────────────────────────────────────────────
 
+    def _sincronizar_inscripciones(self):
+        """Sincroniza actividad.inscripcion con alumno_ids.
+        Crea registros faltantes y elimina los que ya no corresponden.
+        Permite que la evaluación de desempeño encuentre a todos los alumnos.
+        """
+        Inscripcion = self.env['actividad.inscripcion'].sudo()
+        for rec in self:
+            partners_alumno = rec.alumno_ids.mapped('partner_id')
+            partners_inscritos = rec.inscripcion_ids.mapped('partner_id')
+
+            # Crear inscripciones para alumnos nuevos
+            por_crear = partners_alumno - partners_inscritos
+            for partner in por_crear:
+                Inscripcion.create({
+                    'actividad_id': rec.id,
+                    'partner_id': partner.id,
+                })
+
+            # Eliminar inscripciones de alumnos que ya no están asignados
+            por_eliminar = rec.inscripcion_ids.filtered(
+                lambda i: i.partner_id not in partners_alumno
+            )
+            if por_eliminar:
+                por_eliminar.unlink()
+
     @api.model_create_multi
     def create(self, vals_list):
         """Estampa el flag actividad_creating=True en el contexto para que
@@ -1182,7 +1207,10 @@ class Actividad(models.Model):
             # ── Regla 4: Rechazada → JD puede modificar cualquier campo
             #    que no sea auto-gestionado (ya validado arriba). ──
 
-        return super().write(vals)
+        result = super().write(vals)
+        if 'alumno_ids' in vals:
+            self._sincronizar_inscripciones()
+        return result
 
     # ────────────────────────────────────────────────────────────────────────
     # Constraints
@@ -1406,24 +1434,21 @@ class Actividad(models.Model):
     # En action_abrir_pase_lista — añadir la acción del wizard al contexto
     def action_abrir_pase_lista(self):
         self.ensure_one()
-        wizard_action = self.env.ref(
-            'actividades_complementarias.action_wizard_nueva_sesion'
+        view = self.env.ref(
+            'actividades_complementarias.view_actividad_asistencia_list',
+            raise_if_not_found=False,
         )
         return {
             'type': 'ir.actions.act_window',
             'name': 'Pase de Lista — %s' % self.name,
             'res_model': 'actividad.asistencia',
             'view_mode': 'list',
-            'views': [(self.env.ref(
-                'actividades_complementarias.view_asistencia_list_standalone'
-            ).id, 'list')],
+            'views': [(view.id, 'list')] if view else [(False, 'list')],
             'domain': [('actividad_id', '=', self.id)],
             'context': {
                 'default_actividad_id': self.id,
                 'actividad_readonly': self.estado_code == 'finalizada'
                 or self.certificates_generated,
-                # Botón "Nueva Sesión" en el panel de control mediante acción auxiliar
-                'search_panel_default_action': wizard_action.id,
             },
         }
 
