@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api, _
-import logging
-
-from odoo.exceptions import ValidationError, UserError
-from datetime import date, timedelta
 import base64
 import io
+import logging
 import zipfile
+from datetime import date, timedelta
+
+from markupsafe import Markup
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError, UserError
+
 _logger = logging.getLogger(__name__)
 
 PERFORMANCE_LEVELS = [
@@ -431,11 +434,11 @@ class Actividad(models.Model):
         )
 
     def _notify_jd_nueva_actividad(self):
-        """Notifica al JD que el Responsable de Actividad creó una nueva actividad.
+        """Notifica al JD cuando el RA crea una nueva actividad complementaria.
 
-        Canal 1 — Chatter (siempre): mensaje interno visible en Odoo para el JD.
-        Canal 2 — Correo directo (si el JD tiene email): construido en Python,
-                   sin depender de ningún mail.template en base de datos.
+        Canal 1 — Conversaciones de Odoo (discuss.channel DM): mensaje directo
+                   interno sin SMTP, con HTML renderizado via Markup.
+        Canal 2 — Correo SMTP (mail.mail): si el JD tiene email configurado.
 
         La notificación solo se dispara cuando:
           - El creador pertenece a group_responsable_actividad o a Personal.
@@ -453,36 +456,65 @@ class Actividad(models.Model):
         if not es_ra or not jd or jd == creator:
             return
 
-        # 1. Mensaje interno en el chatter
-        self.message_post(
-            body=_(
-                'El Responsable de Actividad <b>%(ra)s</b> ha creado esta actividad. '
-                'Está pendiente de revisión por el Jefe de Departamento <b>%(jd)s</b>.'
-            ) % {'ra': creator.name, 'jd': jd.name},
-            partner_ids=[jd.partner_id.id] if jd.partner_id else [],
-            subtype_xmlid='mail.mt_note',
-            message_type='comment',
+        if not jd.partner_id:
+            return
+
+        body_markup = Markup(
+            'El Responsable de Actividad <b>{ra}</b> ha creado la actividad '
+            '<b>{act}</b>. Está pendiente de revisión por el Jefe de '
+            'Departamento <b>{jd}</b>.'
+        ).format(
+            ra=creator.name,
+            act=self.name,
+            jd=jd.name,
         )
 
-        # 2. Correo directo sin template
+        # 1. Mensaje directo en Conversaciones (discuss.channel DM)
+        try:
+            channel = self.env['discuss.channel'].sudo().with_context(
+                mail_create_nosubscribe=True,
+            )._get_or_create_direct_message_channel(jd.id)
+            channel.sudo().message_post(
+                body=body_markup,
+                message_type='comment',
+                subtype_xmlid='mail.mt_comment',
+                author_id=creator.partner_id.id,
+                notify_by_email=False,
+            )
+        except Exception:
+            _logger.warning(
+                'No se pudo crear canal DM para notificar al JD %s, '
+                'usando fallback al chatter.', jd.name
+            )
+            # Fallback — chatter suscribiendo al JD
+            self.message_subscribe(partner_ids=[jd.partner_id.id])
+            self.message_post(
+                body=body_markup,
+                subtype_xmlid='mail.mt_comment',
+                message_type='comment',
+                notify_by_email=False,
+            )
+
+        # 2. Correo SMTP al JD
         if not jd.email:
             return
 
         self.env['mail.mail'].sudo().create({
             'subject': _('Nueva actividad complementaria: %s') % self.name,
             'email_to': jd.email,
-            'body_html': _(
-                '<p>Estimado/a <b>%(jd)s</b>,</p>'
-                '<p>El Responsable de Actividad <b>%(ra)s</b> ha creado la actividad '
-                '<b>%(act)s</b> con fecha de inicio <b>%(inicio)s</b> y fin <b>%(fin)s</b>.</p>'
+            'body_html': Markup(
+                '<p>Estimado/a <b>{jd}</b>,</p>'
+                '<p>El Responsable de Actividad <b>{ra}</b> ha creado la actividad '
+                '<b>{act}</b> con fecha de inicio <b>{inicio}</b> '
+                'y fin <b>{fin}</b>.</p>'
                 '<p>Ingrese al sistema para revisarla.</p>'
-            ) % {
-                'jd': jd.name,
-                'ra': creator.name,
-                'act': self.name,
-                'inicio': self.fecha_inicio or '—',
-                'fin': self.fecha_fin or '—',
-            },
+            ).format(
+                jd=jd.name,
+                ra=creator.name,
+                act=self.name,
+                inicio=str(self.fecha_inicio or '—'),
+                fin=str(self.fecha_fin or '—'),
+            ),
             'auto_delete': True,
         }).send()
 
