@@ -1261,24 +1261,21 @@ class Actividad(models.Model):
     # En action_abrir_pase_lista — añadir la acción del wizard al contexto
     def action_abrir_pase_lista(self):
         self.ensure_one()
-        wizard_action = self.env.ref(
-            'actividades_complementarias.action_wizard_nueva_sesion'
+        view = self.env.ref(
+            'actividades_complementarias.view_actividad_asistencia_list',
+            raise_if_not_found=False,
         )
         return {
             'type': 'ir.actions.act_window',
             'name': 'Pase de Lista — %s' % self.name,
             'res_model': 'actividad.asistencia',
             'view_mode': 'list',
-            'views': [(self.env.ref(
-                'actividades_complementarias.view_asistencia_list_standalone'
-            ).id, 'list')],
+            'views': [(view.id, 'list')] if view else [(False, 'list')],
             'domain': [('actividad_id', '=', self.id)],
             'context': {
                 'default_actividad_id': self.id,
                 'actividad_readonly': self.estado_code == 'finalizada'
                 or self.certificates_generated,
-                # Botón "Nueva Sesión" en el panel de control mediante acción auxiliar
-                'search_panel_default_action': wizard_action.id,
             },
         }
 

@@ -78,22 +78,22 @@ class ActividadAsistencia(models.Model):
         """La fecha del pase de lista debe estar dentro del rango de la actividad."""
         for rec in self:
             actividad = rec.actividad_id
-            if not actividad.date_start or not actividad.date_end:
+            if not actividad.fecha_inicio or not actividad.fecha_fin:
                 continue
-            if rec.fecha < actividad.date_start or rec.fecha > actividad.date_end:
+            if rec.fecha < actividad.fecha_inicio or rec.fecha > actividad.fecha_fin:
                 raise ValidationError(
                     _(
                         "La fecha de asistencia (%s) está fuera del rango de la "
                         "actividad (%s – %s)."
                     )
-                    % (rec.fecha, actividad.date_start, actividad.date_end)
+                    % (rec.fecha, actividad.fecha_inicio, actividad.fecha_fin)
                 )
 
     @api.constrains("actividad_id")
     def _check_actividad_no_finalizada(self):
         """No se puede modificar el pase de lista de una actividad finalizada."""
         for rec in self:
-            if rec.actividad_id.state == "done":
+            if rec.actividad_id.estado_code == "finalizada":
                 raise ValidationError(
                     _(
                         "El pase de lista no puede modificarse una vez que "
@@ -108,7 +108,7 @@ class ActividadAsistencia(models.Model):
     def write(self, vals):
         """Bloquea cualquier modificación si la actividad ya está finalizada."""
         for rec in self:
-            if rec.actividad_id.state == "done":
+            if rec.actividad_id.estado_code == "finalizada":
                 raise ValidationError(
                     _(
                         "No se puede modificar el registro de asistencia: "
