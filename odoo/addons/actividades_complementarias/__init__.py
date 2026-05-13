@@ -8,3 +8,4 @@ def post_init_hook(env):
     for a in actividades:
         a._sincronizar_inscripciones()     
 
+
