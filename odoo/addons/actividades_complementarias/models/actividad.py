@@ -1473,7 +1473,7 @@ class Actividad(models.Model):
                 'create': False,
                 'delete': False,
             },
-    }
+        }
 
     def action_abrir_confirmacion_comite(self):
         self.ensure_one()
