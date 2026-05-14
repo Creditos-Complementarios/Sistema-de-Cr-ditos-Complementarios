@@ -26,26 +26,44 @@
 
            <!-- ── Search Catálogo ──────────────────────────────────────────────── -->
     <record id="view_actividad_Catalogo_search" model="ir.ui.view">
-        <field name="name">actividad.complementaria.catalogo.search</field>
-        <field name="model">actividad.complementaria</field>
-        <field name="arch" type="xml">
-            <search string="Buscar Actividades">
-                <field name="name" string="Actividad"/>
-                <field name="tipo_actividad_id" string="Tipo"/>
-                <field name="periodo"/>
-                <separator/>
-                <filter name="filter_en_curso" string="En Curso"
-                        domain="[('estado_code','=','en_curso')]"/>
-                <filter name="filter_proximas" string="Próximas"
-                        domain="[('estado_code','=','pendiente_inicio')]"/>
-                <separator/>
-                <filter name="group_tipo" string="Por Tipo"
-                        context="{'group_by':'tipo_actividad_id'}"/>
-                <filter name="group_periodo" string="Por Periodo"
-                        context="{'group_by':'periodo'}"/>
-            </search>
-        </field>
-    </record>
+    <field name="name">actividad.complementaria.catalogo.search</field>
+    <field name="model">actividad.complementaria</field>
+    <field name="arch" type="xml">
+        <search string="Buscar Actividades">
+            <!-- Búsqueda por nombre -->
+            <field name="name" string="Actividad"/>
+            <field name="tipo_actividad_id" string="Tipo"/>
+            <field name="periodo"/>
+            <field name="departamento_id" string="Departamento"/>
+            <separator/>
+            <!-- Filtros por estado -->
+            <filter name="filter_en_curso" string="En Curso"
+                    domain="[('estado_code','=','en_curso')]"/>
+            <filter name="filter_proximas" string="Próximas"
+                    domain="[('estado_code','=','pendiente_inicio')]"/>
+            <separator/>
+            <!-- Filtros por créditos -->
+            <filter name="filter_creditos_05" string="0.5 créditos"
+                    domain="[('creditos','=','0.5')]"/>
+            <filter name="filter_creditos_1" string="1 crédito"
+                    domain="[('creditos','=','1.0')]"/>
+            <filter name="filter_creditos_15" string="1.5 créditos"
+                    domain="[('creditos','=','1.5')]"/>
+            <filter name="filter_creditos_2" string="2 créditos"
+                    domain="[('creditos','=','2.0')]"/>
+            <separator/>
+            <!-- Agrupaciones -->
+            <filter name="group_tipo" string="Por Tipo"
+                    context="{'group_by':'tipo_actividad_id'}"/>
+            <filter name="group_departamento" string="Por Departamento"
+                    context="{'group_by':'departamento_id'}"/>
+            <filter name="group_periodo" string="Por Periodo"
+                    context="{'group_by':'periodo'}"/>
+            <filter name="group_creditos" string="Por Créditos"
+                    context="{'group_by':'creditos'}"/>
+        </search>
+    </field>
+</record>
 
     <!-- ── List ─────────────────────────────────────────────────────────── -->
     <record id="view_actividad_list" model="ir.ui.view">
