@@ -21,6 +21,9 @@
                     <button name="action_darse_de_baja" string="Dar de Baja"
                             type="object" class="btn-danger"
                             invisible="not alumno_inscrito
+                                       or estado_code == 'finalizada'"
+                            confirm="¿Está seguro de que desea dar de baja esta actividad?"/>
+                    <field name="estado_id" widget="statusbar" readonly="1"/>
                                        or estado_code == 'finalizada'"/>
                     <field name="estado_barra" widget="statusbar"
                            statusbar_visible="pendiente_inicio,en_curso,finalizada"
