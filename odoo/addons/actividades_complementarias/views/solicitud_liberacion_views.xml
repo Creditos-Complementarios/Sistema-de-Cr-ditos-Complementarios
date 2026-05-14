@@ -22,7 +22,7 @@
         <field name="name">actividad.solicitud.liberacion.form</field>
         <field name="model">actividad.solicitud.liberacion</field>
         <field name="arch" type="xml">
-            <form string="Expediente de Créditos Complementarios">
+            <form string="Expediente de Créditos Complementarios" create="0">
                 <header>
                     <!-- Paso 6 flujo: botón habilitado solo si puede_solicitar -->
                     <button name="action_solicitar_liberacion"
