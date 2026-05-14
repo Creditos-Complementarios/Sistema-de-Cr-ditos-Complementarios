@@ -22,7 +22,9 @@
                             type="object" class="btn-danger"
                             invisible="not alumno_inscrito
                                        or estado_code == 'finalizada'"/>
-                    <field name="estado_id" widget="statusbar" readonly="1"/>
+                    <field name="estado_barra" widget="statusbar"
+                           statusbar_visible="pendiente_inicio,en_curso,finalizada"
+                           readonly="1"/>
                     <button name="action_abrir_evidencia"
                             string="Subir Evidencia"
                             type="object" class="btn-secondary"
