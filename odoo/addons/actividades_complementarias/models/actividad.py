@@ -1842,12 +1842,17 @@ class Actividad(models.Model):
         return buf.getvalue()
 
     def action_generate_certificates(self):
-        """Genera constancias para estudiantes con desempeño > 0 (RA-02SC, pasos 10-12).
+        """Genera y firma automáticamente constancias para alumnos aprobados (RA-02SC, pasos 10-13).
 
         Precondiciones:
         - Actividad finalizada.
         - Todos los estudiantes inscritos evaluados.
-        - Al menos un estudiante con nivel de desempeño > 0.
+        - Al menos un estudiante con nivel de desempeño > 0 (Suficiente, Bueno, Notable o Excelente).
+
+        Al ejecutarse:
+        - Genera constancias únicamente para los alumnos aprobados (nivel > 0).
+        - Firma automáticamente las constancias como Responsable de Actividad.
+        - Queda pendiente únicamente la firma del Jefe de Departamento.
         """
         self.ensure_one()
         if self.estado_code != 'finalizada':
@@ -1865,25 +1870,35 @@ class Actividad(models.Model):
                 )
                 % names
             )
+        # Solo alumnos aprobados: Suficiente (1), Bueno (2), Notable (3) o Excelente (4)
         approved = self.inscripcion_ids.filtered(
-            lambda i: int(i.performance_level) > 0
+            lambda i: i.performance_level and int(i.performance_level) > 0
         )
         if not approved:
             raise UserError(
                 _(
-                    "No hay estudiantes aprobados (nivel de desempeño > 0) "
+                    "No hay estudiantes aprobados (Suficiente, Bueno, Notable o Excelente) "
                     "para generar constancias."
                 )
             )
-        approved.write({"certificate_generated": True})
-        self.certificates_generated = True
+        # Generar y marcar como firmadas por el Responsable de Actividad automáticamente
+        approved.write({
+            "certificate_generated": True,
+            "certificate_signed": True,
+        })
+        self.with_context(bypass_edit_protection=True).write({
+            'certificates_generated': True,
+            'responsable_firmo': True,
+        })
         self.message_post(
             body=_(
-                "📄 Se generaron <b>%d</b> constancia(s). "
-                "Se requiere la firma del Responsable de Actividad "
-                "y del Jefe de Departamento."
+                "📄 Se generaron <b>%d</b> constancia(s) para alumnos aprobados "
+                "(Suficiente, Bueno, Notable o Excelente).<br/>"
+                "✍️ Constancias firmadas automáticamente por el Responsable de Actividad: "
+                "<b>%s</b>.<br/>"
+                "Pendiente: firma del Jefe de Departamento."
             )
-            % len(approved),
+            % (len(approved), self.responsable_actividad_id.name or ''),
             subtype_xmlid="mail.mt_note",
         )
 
