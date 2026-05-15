@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
+from odoo import _, models, fields, api
+from odoo.exceptions import ValidationError
 
 PERFORMANCE_LEVELS = [
     ("0", "Insuficiente"),
@@ -52,6 +53,17 @@ class WizardEvaluarAlumno(models.TransientModel):
 
     def action_confirmar(self):
         self.ensure_one()
+        if self.inscripcion_id.performance_level:
+            raise ValidationError(
+                _(
+                    "El nivel de desempeño de \"%s\" ya fue asignado (%s) "
+                    "y no puede modificarse."
+                )
+                % (
+                    self.inscripcion_id.partner_id.name,
+                    self.inscripcion_id.performance_label,
+                )
+            )
         self.inscripcion_id.write({
             'performance_level': self.performance_level,
             'observations': self.observations,
