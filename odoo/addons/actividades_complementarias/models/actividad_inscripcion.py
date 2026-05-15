@@ -110,9 +110,35 @@ class ActividadInscripcion(models.Model):
     # Constraints
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # ORM override: write()
+    # ------------------------------------------------------------------
+
+    def write(self, vals):
+        """Impide modificar el nivel de desempeño una vez que ha sido asignado."""
+        if 'performance_level' in vals:
+            for rec in self:
+                if rec.performance_level:
+                    raise ValidationError(
+                        _(
+                            "El nivel de desempeño del estudiante \"%s\" ya fue asignado "
+                            "(%s) y no puede modificarse."
+                        )
+                        % (rec.partner_id.name, rec.performance_label)
+                    )
+        return super().write(vals)
+
     def action_evaluar(self):
         """Abre el wizard para asignar nivel de desempeño a este alumno."""
         self.ensure_one()
+        if self.performance_level:
+            raise ValidationError(
+                _(
+                    "El nivel de desempeño de \"%s\" ya fue asignado (%s) "
+                    "y no puede modificarse."
+                )
+                % (self.partner_id.name, self.performance_label)
+            )
         return {
             'type': 'ir.actions.act_window',
             'name': 'Asignar Nivel de Desempeño',
