@@ -19,3 +19,4 @@ from . import propuesta_actividad
 from . import empleado_permiso
 from . import solicitud_liberacion
 from . import ventana_liberacion
+from . import empleado_permiso_se
