@@ -33,7 +33,7 @@
                             type="object" class="btn-secondary"
                             invisible="not alumno_inscrito
                                        or not evidence_enabled
-                                       or estado_code != 'finalizada'"/>
+                                       or estado_code not in ['en_curso', 'finalizada']"/>
                 </header>
                 <sheet>
                     <field name="alumno_inscrito" invisible="1"/>
@@ -252,21 +252,45 @@
         <field name="arch" type="xml">
             <form string="Subir Evidencia de Participación">
                 <sheet>
-                    <div class="alert alert-info" role="alert">
-                        El archivo quedará adjunto a la actividad y visible
-                        para el Responsable de Actividad.
+                    <!-- Campos de control ocultos -->
+                    <field name="evidence_enabled" invisible="1"/>
+                    <field name="estado_code" invisible="1"/>
+
+                    <!-- Alerta: plazo cerrado -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="evidence_enabled">
+                        <strong>⚠ Plazo cerrado.</strong>
+                        El responsable no ha habilitado la carga de evidencias
+                        o el período ya finalizó. No puedes subir archivos en este momento.
                     </div>
-                    <group>
+
+                    <group string="Actividad">
                         <field name="actividad_id" readonly="1"/>
+                    </group>
+
+                    <group string="Evidencia">
                         <field name="descripcion"
                                placeholder="Ej: Fotografía de participación en sesión 3"/>
-                        <field name="archivo" filename="archivo_nombre"/>
+                        <field name="archivo"
+                               filename="archivo_nombre"
+                               widget="binary"/>
                         <field name="archivo_nombre" invisible="1"/>
                     </group>
+
+                    <!-- Nota de requisitos -->
+                    <div class="alert alert-info" role="alert">
+                        <ul class="mb-0">
+                            <li><strong>Formatos permitidos:</strong> PDF, JPG, PNG, DOCX</li>
+                            <li><strong>Tamaño máximo:</strong> 5 MB</li>
+                            <li>El archivo quedará adjunto y visible para el Responsable de Actividad.</li>
+                        </ul>
+                    </div>
                 </sheet>
                 <footer>
-                    <button name="action_subir" string="Subir"
-                            type="object" class="btn-primary"/>
+                    <button name="action_subir"
+                            string="Subir Evidencia"
+                            type="object" class="btn-primary"
+                            invisible="not evidence_enabled"/>
                     <button string="Cancelar" class="btn-secondary"
                             special="cancel"/>
                 </footer>
