@@ -86,7 +86,7 @@
               name="Mis Actividades"
               parent="menu_personal_depto"
               action="action_actividad_complementaria"
-              sequence="13"
+              sequence="14"
               groups="actividades_complementarias.group_admin_actividades"/>
 
     <menuitem id="menu_personal_catalogo"
@@ -239,4 +239,40 @@
               action="action_solicitud_liberacion_alumno"
               sequence="40"
               groups="actividades_complementarias.group_alumno"/>
+
+    <!-- ── Departamento de Extraescolares ────────────────────────────────── -->
+    <!--
+        DE-01SC / DE-02SC / DE-03SC
+        Menú paralelo al de Jefe de Departamento pero reservado al
+        Departamento de Extraescolares. Solo puede crear y gestionar
+        actividades de tipo Extraescolar y Selectivo Extraescolar.
+        No envía propuestas al Comité Académico.
+    -->
+    <menuitem id="menu_depto_extraescolar"
+              name="Departamento de Extraescolares"
+              parent="menu_actividades_root"
+              sequence="15"
+              groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_de_mis_actividades"
+              name="Mis Actividades"
+              parent="menu_depto_extraescolar"
+              action="action_actividad_de"
+              sequence="10"
+              groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_de_catalogo"
+              name="Catálogo de Actividades"
+              parent="menu_depto_extraescolar"
+              action="action_actividad_catalogo"
+              sequence="20"
+              groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
+
+    <menuitem id="menu_de_gestion_personal"
+              name="Gestión de Personal"
+              parent="menu_depto_extraescolar"
+              action="action_empleado_permiso_de"
+              sequence="30"
+              groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
+
 </odoo>

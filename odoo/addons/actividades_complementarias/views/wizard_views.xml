@@ -16,9 +16,15 @@
                     <group string="Informacion General">
                         <field name="actividad_predefinida"
                                options="{'no_create': True, 'no_quick_create': True}"
-                               placeholder="Buscar actividad predefinida o aprobada por Comité..."/>
+                               placeholder="Buscar actividad predefinida o aprobada por Comité..."
+                               invisible="es_usuario_de"/>
                         <field name="name" placeholder="Nombre de la actividad (max. 200 caracteres)"/>
-                        <field name="tipo_actividad_id"/>
+                        <field name="es_usuario_de" invisible="1"/>
+                        <field name="tipo_actividad_id"
+                               domain="[('name', 'in', ['Extraescolar', 'Selectivo Extraescolar'])]"
+                               invisible="not es_usuario_de"/>
+                        <field name="tipo_actividad_id"
+                               invisible="es_usuario_de"/>
                         <field name="es_predefinida" invisible="1"/>
                         <field name="periodo" placeholder="Ej: 2025-A"/>
                     </group>
@@ -50,10 +56,16 @@
                 <footer>
                     <button name="action_confirmar" string="Enviar al Catalogo"
                             type="object" class="btn-primary"
-                            invisible="not es_predefinida"/>
+                            invisible="not es_predefinida"
+                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_personal_departamento_extraescolar,actividades_complementarias.group_admin_actividades"/>
                     <button name="action_confirmar" string="Enviar al Comite Academico"
                             type="object" class="btn-warning"
-                            invisible="es_predefinida"/>
+                            invisible="es_predefinida"
+                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_personal_departamento_extraescolar,actividades_complementarias.group_admin_actividades"/>
+                    <!-- DE-01SC: registra la actividad y la aprueba automáticamente -->
+                    <button name="action_confirmar" string="Registrar Actividad Extraescolar"
+                            type="object" class="btn-primary"
+                            groups="actividades_complementarias.group_depto_extraescolar"/>
                     <button name="action_cancelar" string="Cancelar"
                             type="object" class="btn-secondary"/>
                 </footer>

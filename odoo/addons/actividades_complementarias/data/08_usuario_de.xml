@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="1">
+
+    <!-- ============================================================ -->
+    <!-- USUARIO: Jefe del Departamento de Extraescolares (DE actor)  -->
+    <!-- ============================================================ -->
+    <record id="user_depto_extraescolar" model="res.users">
+        <field name="name">María del Carmen Pech Flores</field>
+        <field name="login">carmen.pech@chetumal.tecnm.mx</field>
+        <field name="password">Admin1234!</field>
+        <field name="company_id" ref="base.main_company"/>
+        <field name="group_ids" eval="[(4, ref('actividades_complementarias.group_depto_extraescolar'))]"/>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Departamento de Extraescolares en el catálogo interno        -->
+    <!-- jefe_id se vincula después de crear el usuario               -->
+    <!-- ============================================================ -->
+    <record id="depto_extraescolares" model="actividad.departamento">
+        <field name="name">Departamento de Extraescolares</field>
+        <field name="jefe_id" ref="user_depto_extraescolar"/>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- USUARIO: Personal del Departamento de Extraescolares         -->
+    <!-- Rol: Personal de Departamento Extraescolar                   -->
+    <!-- Puede gestionar actividades de su departamento y ser         -->
+    <!-- asignado como Responsable de Actividad.                      -->
+    <!-- ============================================================ -->
+    <record id="user_personal_extraescolar_1" model="res.users">
+        <field name="name">Carlos Alberto Dzul Moo</field>
+        <field name="login">carlos.dzul@chetumal.tecnm.mx</field>
+        <field name="password">Admin1234!</field>
+        <field name="company_id" ref="base.main_company"/>
+        <field name="group_ids" eval="[(4, ref('actividades_complementarias.group_personal_departamento_extraescolar'))]"/>
+    </record>
+
+    <!-- Registro en actividad.empleado.permiso para que aparezca en Gestión de Personal -->
+    <record id="permiso_personal_extraescolar_1" model="actividad.empleado.permiso">
+        <field name="user_id" ref="user_personal_extraescolar_1"/>
+        <field name="departamento_id" ref="depto_extraescolares"/>
+        <field name="departamento_grupo">extraescolar</field>
+    </record>
+
+</data>
+</odoo>

@@ -80,6 +80,23 @@
     </record>
 
     <!--
+        Departamento de Extraescolares — actor principal (DE-01SC, DE-02SC, DE-03SC).
+        Equivale funcionalmente al Jefe de Departamento pero con acceso restringido
+        a los tipos de actividad "Extraescolar" y "Selectivo Extraescolar".
+        No envía propuestas al Comité Académico: las actividades se aprueban de
+        forma automática al ser publicadas en el catálogo.
+    -->
+    <record id="group_depto_extraescolar" model="res.groups">
+        <field name="name">Departamento de Extraescolares</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">
+            Puede crear y gestionar actividades Extraescolar/Selectivo Extraescolar,
+            difundirlas, firmar constancias y delegar permisos de Modificar y Difundir
+            a su personal a cargo.  No puede enviar propuestas al Comité Académico.
+        </field>
+    </record>
+
+    <!--
         Servicios Escolares (SE-01SC..SE-04SC).
         Grupo stub — añadir rows en ir.model.access.csv al implementar este actor.
     -->
@@ -216,6 +233,18 @@
         <field name="perm_unlink" eval="False"/>
     </record>
 
+    <!-- Personal Extraescolar: escritura solo en actividades del Depto. de Extraescolares -->
+    <record id="rule_actividad_personal_extraescolar" model="ir.rule">
+        <field name="name">Personal Extraescolar: escritura solo en su departamento</field>
+        <field name="model_id" ref="model_actividad_complementaria"/>
+        <field name="domain_force">[('departamento_id.name', 'ilike', 'extraescolar')]</field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_personal_departamento_extraescolar'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
     <!-- ════════════════════════════════════════════════════════════════════
          Record rules — actividad.inscripcion
          RA  : sus actividades asignadas (responsable_actividad_id).
@@ -303,6 +332,59 @@
             [('actividad_id.responsable_extraescolar_id', '=', user.id)]
         </field>
         <field name="groups" eval="[(4, ref('actividades_complementarias.group_responsable_actividad_extraescolar'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         Record rules — Departamento de Extraescolares (DE)
+         Misma lógica que JD: escritura solo sobre sus propias actividades.
+    ════════════════════════════════════════════════════════════════════ -->
+
+    <record id="rule_actividad_depto_extraescolar" model="ir.rule">
+        <field name="name">DE: escritura solo en actividades propias</field>
+        <field name="model_id" ref="model_actividad_complementaria"/>
+        <field name="domain_force">[('jefe_departamento_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_depto_extraescolar'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_empleado_permiso_de" model="ir.rule">
+        <field name="name">DE: solo gestiona personal de su departamento</field>
+        <field name="model_id" ref="model_actividad_empleado_permiso"/>
+        <field name="domain_force">[('departamento_id.jefe_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_depto_extraescolar'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <record id="rule_inscripcion_depto_extraescolar" model="ir.rule">
+        <field name="name">DE: inscripciones de sus actividades</field>
+        <field name="model_id" ref="model_actividad_inscripcion"/>
+        <field name="domain_force">
+            [('actividad_id.jefe_departamento_id', '=', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_depto_extraescolar'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <record id="rule_asistencia_depto_extraescolar" model="ir.rule">
+        <field name="name">DE: asistencia de sus actividades</field>
+        <field name="model_id" ref="model_actividad_asistencia"/>
+        <field name="domain_force">
+            [('actividad_id.jefe_departamento_id', '=', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_depto_extraescolar'))]"/>
         <field name="perm_read" eval="True"/>
         <field name="perm_write" eval="True"/>
         <field name="perm_create" eval="True"/>

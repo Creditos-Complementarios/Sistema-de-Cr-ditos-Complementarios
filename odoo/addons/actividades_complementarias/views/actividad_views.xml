@@ -106,6 +106,11 @@
                         type="object" class="btn-primary"
                         invisible="not actividad_predefinida or en_catalogo or (estado_code and estado_code not in ['pendiente_inicio','aprobada'])"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
+                    <!-- Botón Enviar al Catálogo para DE (actividades extraescolar sin Comité) -->
+                    <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
+                        type="object" class="btn-primary"
+                        invisible="en_catalogo or (estado_code and estado_code not in ['', False, 'aprobada', 'pendiente_inicio'])"
+                        groups="actividades_complementarias.group_depto_extraescolar"/>
                     <button name="action_confirmar_actividad"
                         string="Crear Actividad"
                         type="object"
@@ -142,8 +147,12 @@
                 <sheet>
                     <field name="tipo_actividad_readonly" invisible="1"/>
                     <field name="tiene_propuesta_activa" invisible="1"/>
-                    <field name="tipo_actividad_predefinida" invisible="1"/>
-                    <field name="tipo_es_nueva" invisible="1"/>
+                    <field name="actividad_predefinida"
+                        invisible="tipo_es_nueva"
+                        readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"
+                        options="{'no_create': True, 'no_quick_create': True}"
+                        groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"
+                        help="Seleccione si la actividad es predefinida (aprobación automática). Las actividades aprobadas por el Comité también aparecen aquí."/>                    <field name="tipo_es_nueva" invisible="1"/>
                     <field name="dominio_responsable" invisible="1"/>
                     <field name="dominio_alumnos" invisible="1"/>
                     <field name="es_personal" invisible="1"/>
@@ -216,11 +225,13 @@
                                 groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                             <field name="tipo_actividad_id" readonly="1"
                                 groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
+                            <field name="dominio_predefinida" invisible="1"/>
                             <field name="actividad_predefinida"
                                    invisible="tipo_es_nueva"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"
+                                   domain="dominio_predefinida"
                                    options="{'no_create': True, 'no_quick_create': True}"
-                                   help="Seleccione si la actividad es predefinida (aprobación automática). Las actividades aprobadas por el Comité también aparecen aquí."/>
+                                   help="Seleccione si la actividad es predefinida (aprobación automática)."/>
                             <field name="periodo"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                             <field name="jefe_departamento_id" readonly="1"/>
@@ -470,6 +481,16 @@
         <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
+    <!-- Personal de Departamento Extraescolar: ve actividades de su departamento -->
+    <record id="action_actividad_personal_extraescolar" model="ir.actions.act_window">
+        <field name="name">Mis Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('departamento_id.name', 'ilike', 'extraescolar')]</field>
+        <field name="search_view_id" ref="view_actividad_search"/>
+        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
+    </record>
+
     <!-- Catálogo global -->
     <record id="action_actividad_catalogo" model="ir.actions.act_window">
         <field name="name">Catálogo General de Actividades</field>
@@ -509,6 +530,21 @@
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'search_default_filter_pendiente': 0}</field>
         <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
+    </record>
+
+    <record id="action_actividad_de" model="ir.actions.act_window">
+        <field name="name">Mis Actividades</field>
+        <field name="res_model">actividad.complementaria</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('jefe_departamento_id', '=', uid)]</field>
+        <field name="search_view_id" ref="view_actividad_search"/>
+        <field name="views" eval="[(ref('view_actividad_list_jefe'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
+    </record>
+
+    <record id="action_empleado_permiso_de" model="ir.actions.act_window">
+        <field name="name">Gestión de Personal</field>
+        <field name="res_model">actividad.empleado.permiso</field>
+        <field name="view_mode">list,form</field>
     </record>
 
 </odoo>
