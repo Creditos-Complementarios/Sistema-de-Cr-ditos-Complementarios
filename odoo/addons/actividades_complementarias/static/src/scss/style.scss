@@ -30,6 +30,13 @@ body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
         padding-top: 12px !important;
     }
 
+    /* Separador antes de Mis Inscripciones en menú Alumno */
+    a[data-menu-xmlid="actividades_complementarias.menu_alumno_inscripciones"] {
+        border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
+        margin-top: 4px !important;
+        padding-top: 12px !important;
+    }
+
     /* ── Empty state: reemplaza el muñeco por el logo del TecNM ── */
     .o_nocontent_help .o_nocontent_image,
     .o_view_nocontent .o_nocontent_image {
@@ -538,6 +545,11 @@ body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementaria
 
     /* Separador Gestión de Personal en modo oscuro */
     a[data-menu-xmlid="actividades_complementarias.menu_gestion_personal"] {
+        border-top-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Separador Mis Inscripciones (menú Alumno) en modo oscuro */
+    a[data-menu-xmlid="actividades_complementarias.menu_alumno_inscripciones"] {
         border-top-color: rgba(255, 255, 255, 0.2) !important;
     }
 
