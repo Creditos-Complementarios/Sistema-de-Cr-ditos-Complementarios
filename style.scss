@@ -1,0 +1,607 @@
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    /* Botón Nuevo siempre azul */
+    .o_control_panel .btn-outline-primary,
+    .o_control_panel .btn.btn-outline-primary,
+    .o_form_button_create {
+        background-color: #71639E !important;
+        border-color: #71639E !important;
+        color: white !important;
+
+        &:hover, &:focus, &:active {
+            background-color: #5a4f8a !important;
+            border-color: #5a4f8a !important;
+            color: white !important;
+        }
+    }
+
+    /* Botón Enviar al Comité Académico */
+    .o_form_statusbar .btn-warning,
+    .btn-warning {
+        background-color: #71639E !important;
+        border-color: #71639E !important;
+        color: white !important;
+    }
+    
+   /* Separador antes de Gestión de Personal */
+    a[data-menu-xmlid="actividades_complementarias.menu_gestion_personal"] {
+        border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
+        margin-top: 4px !important;
+        padding-top: 12px !important;
+    }
+
+    /* Separador antes de Mis Inscripciones en menú Alumno */
+    a[data-menu-xmlid="actividades_complementarias.menu_alumno_inscripciones"] {
+        border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
+        margin-top: 4px !important;
+        padding-top: 12px !important;
+    }
+
+    /* ── Empty state: reemplaza el muñeco por el logo del TecNM ── */
+    .o_nocontent_help .o_nocontent_image,
+    .o_view_nocontent .o_nocontent_image {
+        background-image: url('/actividades_complementarias/static/src/img/tecnm.png') !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        width: 120px !important;
+        height: 120px !important;
+    }
+
+    /* Oculta el SVG animado original de Odoo */
+    .o_nocontent_help .o_nocontent_image img,
+    .o_view_nocontent .o_nocontent_image img {
+        display: none !important;
+    }
+}
+
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    /* Botones barra superior */
+    .o_main_navbar .o_menu_sections button,
+    .o_main_navbar .o_menu_sections .o-dropdown-toggle,
+    .o_main_navbar .o_menu_sections .dropdown {
+        background-color: transparent !important;
+        color: white !important;
+        transition: background-color 0.2s ease !important;
+    }
+
+    /* Hover naranja */
+    .o_main_navbar .o_menu_sections button:hover,
+    .o_main_navbar .o_menu_sections .o-dropdown-toggle:hover,
+    .o_main_navbar .o_menu_sections button.show,
+    .o_main_navbar .o_menu_sections .o-dropdown-toggle.show {
+        background-color: #F06702 !important;
+        color: white !important;
+        border-radius: 4px !important;
+    }
+}
+
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    /* Ícono Gestión de Personal */
+    a[data-menu-xmlid="actividades_complementarias.menu_gestion_personal"]::before {
+        content: "\f007";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    /* Íconos menú Jefe de Departamento */
+    a[data-menu-xmlid="actividades_complementarias.menu_mis_actividades"]::before {
+        content: "\f073";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    a[data-menu-xmlid="actividades_complementarias.menu_catalogo"]::before {
+        content: "\f02d";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    a[data-menu-xmlid="actividades_complementarias.menu_mis_propuestas"]::before {
+        content: "\f1d8";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    a[data-menu-xmlid="actividades_complementarias.menu_gestion_personal"]::before {
+        content: "\f007";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    /* Íconos menú Comité Académico */
+    a[data-menu-xmlid="actividades_complementarias.menu_propuestas_pendientes"]::before {
+        content: "\f017";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    a[data-menu-xmlid="actividades_complementarias.menu_todas_propuestas"]::before {
+        content: "\f1da";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    a[data-menu-xmlid="actividades_complementarias.menu_catalogo_comite"]::before {
+        content: "\f02d";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    /* Íconos menú Personal de Departamento */
+    a[data-menu-xmlid="actividades_complementarias.menu_personal_mis_actividades"]::before {
+        content: "\f073";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    a[data-menu-xmlid="actividades_complementarias.menu_personal_catalogo"]::before {
+        content: "\f02d";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    /* Íconos menú Configuración */
+    a[data-menu-xmlid="actividades_complementarias.menu_admin_todas_actividades"]::before {
+        content: "\f0e8";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    a[data-menu-xmlid="actividades_complementarias.menu_tipos_actividad"]::before {
+        content: "\f0ca";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+
+    a[data-menu-xmlid="actividades_complementarias.menu_periodos"]::before {
+        content: "\f133";
+        font-family: FontAwesome;
+        margin-right: 8px;
+        opacity: 0.85;
+    }
+}
+
+
+/* Separador antes de Catálogo en Comité Académico */
+a[data-menu-xmlid="actividades_complementarias.menu_catalogo_comite"] {
+    border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
+    margin-top: 4px !important;
+    padding-top: 12px !important;
+}
+
+/* Navbar SOLO cuando estás dentro de Actividades Complementarias */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) .o_main_navbar {
+    background-color: #2c3a4f !important;
+}
+
+/* Botones primarios */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) .btn-primary {
+    background-color: #2c3a4f !important;
+    border-color: #2c3a4f !important;
+}
+
+/* Contenedor del lado derecho */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) .o_menu_systray {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Logo dentro del navbar */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) .o_menu_systray::before {
+    content: "";
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    background: url('/actividades_complementarias/static/src/img/ITCH.png') no-repeat center;
+    background-size: contain;
+}
+
+/* Columnas de tabla no redimensionables */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+    .o_list_renderer th .o_resize {
+        display: none !important;
+        pointer-events: none !important;
+    }
+}
+
+/* Palomita del boolean en verde */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+    .o_list_view .o_boolean_column .o_field_boolean .form-check-input:checked,
+    .o_list_view .o_field_boolean input:checked,
+    .o_field_boolean input[type="checkbox"]:checked {
+        background-color: #28a745 !important;
+        border-color: #28a745 !important;
+    }
+}
+
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    .o_switch_view.o_list::before {
+        content: "Vista Detallada";
+        display: block;
+        font-size: 10px;
+        color: var(--color-text-secondary);
+        text-align: center;
+        margin-bottom: 2px;
+    }
+
+    .o_switch_view.o_kanban::before {
+        content: "Tablero";
+        display: block;
+        font-size: 10px;
+        color: var(--color-text-secondary);
+        text-align: center;
+        margin-bottom: 2px;
+    }
+    
+}
+/* ── Ícono de ayuda personalizado ── */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) sup.d-print-none[data-tooltip-template="web.FieldTooltip"] {
+    font-size: 0 !important;
+    display: inline-block !important;
+    width: 14px !important;
+    height: 14px !important;
+    background-image: url('/actividades_complementarias/static/src/img/HelpIcon.png') !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    vertical-align: middle !important;
+    cursor: pointer !important;
+}
+
+/* Remarcar campos editables en formularios */
+.o_field_widget .o_input,
+.o_field_many2one .o_input,
+.o_field_many2one_selection .o_input,
+.o_field_float .o_input,
+.o_field_date .o_input,
+.o_field_integer .o_input,
+.o_field_selection select,
+.o_field_selection .o_select_menu {
+    border-bottom: 1px solid #aaa !important;
+    border-radius: 0;
+}
+
+/* Asterisco en campos requeridos */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+    .o_form_view .o_wrap_label:has(+ .o_wrap_input .o_required_modifier) .o_form_label::after {
+        content: " *";
+        color: #e74c3c;
+        font-weight: bold;
+    }
+}
+
+/* SWITCH */
+.dark-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+.dark-switch input {
+    display: none;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    background-color: #ccc;
+    border-radius: 20px;
+    top: 0; left: 0; right: 0; bottom: 0;
+    transition: 0.3s;
+}
+
+.slider:before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.dark-switch input:checked + .slider {
+    background-color: #f06702;
+}
+
+.dark-switch input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+/* DARK MODE */
+body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    background-color: #1e1e1e !important;
+
+    .o_main_navbar {
+        background: #1a1a2e !important;
+    }
+
+    .o_action_manager,
+    .o_content {
+        background-color: #1e1e1e !important;
+        color: #e0e0e0 !important;
+    }
+
+    .o_list_view,
+    .o_form_view,
+    .o_kanban_view {
+        background-color: #1e1e1e !important;
+        color: #e0e0e0 !important;
+    }
+
+    .o_list_view .o_data_row td,
+    .o_list_view .o_data_row .o_data_cell,
+    .o_list_table tbody tr td {
+        background-color: #252525 !important;
+        color: #e0e0e0 !important;
+        border-color: #333 !important;
+    }
+
+    .o_list_table {
+        background-color: #1e1e1e !important;
+        color: #e0e0e0 !important;
+    }
+
+    .o_data_row {
+        background-color: #252525 !important;
+        color: #e0e0e0 !important;
+        &:hover {
+            background-color: #2e2e2e !important;
+        }
+    }
+
+    .o_list_table thead th {
+        background-color: #1a1a1a !important;
+        color: #a0a0a0 !important;
+    }
+
+    .o_form_view .o_form_sheet_bg,
+    .o_form_sheet_bg,
+    .o_form_renderer,
+    .o_form_view {
+        background-color: #1e1e1e !important;
+    }
+
+     /* Ícono lupa del buscador */
+    .o_searchview .o_searchview_icon,
+    .o_searchview .fa-search,
+    .o_searchview_input_container .fa-search {
+        color: #e0e0e0 !important;
+    }
+
+    /* Triángulo dropdown de búsqueda */
+    .o_searchview_dropdown_toggler,
+    .o_searchview_dropdown_toggler .fa,
+    .o_searchview_dropdown_toggler i,
+    .o_cp_searchview .o_dropdown_button,
+    .o_cp_searchview button.o_searchview_dropdown_toggler,
+    .o_searchview button[aria-label],
+    .o_searchview .o_searchview_facet .o_delete,
+    .o_cp_buttons .o_dropdown .o_dropdown_button {
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+        background-color: #2e2e2e !important;
+    }
+
+     /* Borde del input de búsqueda */
+    .o_searchview {
+        border-color: #444 !important;
+        background-color: #2e2e2e !important;
+        color: #e0e0e0 !important;
+    }
+
+    .o_form_sheet {
+        background-color: #252525 !important;
+        color: #e0e0e0 !important;
+    }
+
+    .o_field_widget input,
+    .o_field_widget textarea {
+        background-color: #2e2e2e !important;
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+    }
+
+    .o_kanban_record {
+        background-color: #252525 !important;
+        color: #e0e0e0 !important;
+        border-color: #3a3a3a !important;
+    }
+
+    .o_mail_chatter {
+        background-color: #1e1e1e !important;
+        color: #e0e0e0 !important;
+    }
+
+    .o_view_nocontent,
+    .o_nocontent_help,
+    .o_view_nocontent_smiling_face,
+    .o_view_nocontent p {
+        color: #e0e0e0 !important;
+    }
+
+    .o_control_panel,
+    .o_cp_top,
+    .o_cp_bottom,
+    .o_breadcrumb,
+    .o_searchview,
+    .o_cp_searchview {
+        background-color: #1e1e1e !important;
+        color: #e0e0e0 !important;
+        border-color: #333 !important;
+    }
+
+    .o_searchview .o_searchview_input {
+        color: #e0e0e0 !important;
+        background-color: #1e1e1e !important;
+    }
+
+    .o_control_panel .btn-primary {
+        background-color: #2E75B6 !important;
+        border-color: #2E75B6 !important;
+    }
+
+    .o_field_widget,
+    .o_wrap_field,
+    .o_cell,
+    .o_td_label label,
+    .o_form_label,
+    .o_group .o_wrap_label,
+    .o_group .o_wrap_label label,
+    .o_group td.o_td_label,
+    .o_group th.o_td_label {
+        color: #e0e0e0 !important;
+    }
+
+    .o_field_widget input::placeholder,
+    .o_field_widget textarea::placeholder {
+        color: #888 !important;
+    }
+
+    .o_horizontal_separator,
+    .o_group_label,
+    .o_group > .o_wrap_group > tbody > tr > td.o_td_label,
+    .o_wrap_group .o_group_name {
+        color: #a0a0a0 !important;
+    }
+
+    .o_statusbar_status button,
+    .o_statusbar_status button.o_arrow_button {
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+        background-color: #2e2e2e !important;
+    }
+
+    .o_form_statusbar {
+        background-color: #252525 !important;
+        border-color: #444 !important;
+    }
+
+    .o_field_char input,
+    .o_form_sheet h1,
+    .o_form_sheet h2 {
+        color: #e0e0e0 !important;
+        background-color: transparent !important;
+    }
+
+    .o_breadcrumb .o_breadcrumb_item,
+    .o_breadcrumb span,
+    .o_breadcrumb a {
+        color: #e0e0e0 !important;
+    }
+
+    .o_notebook,
+    .o_notebook .nav-link,
+    .o_notebook .tab-content,
+    .o_notebook .tab-pane {
+        background-color: #252525 !important;
+        color: #e0e0e0 !important;
+        border-color: #444 !important;
+    }
+
+    .o_notebook .nav-link.active {
+        background-color: #1e1e1e !important;
+        color: #2E75B6 !important;
+        border-color: #444 !important;
+    }
+
+    .o_boolean_toggle.o_field_widget button.active,
+    .o_field_boolean_toggle button.active {
+        background-color: #2E75B6 !important;
+        border-color: #2E75B6 !important;
+    }
+
+    .o_searchview_dropdown_toggler,
+    .o_searchview_dropdown_toggler .fa,
+    .o_searchview_dropdown_toggler i {
+        color: #e0e0e0 !important;
+    }
+
+    /* Separador Catálogo Comité en modo oscuro */
+    a[data-menu-xmlid="actividades_complementarias.menu_catalogo_comite"] {
+        border-top-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Separador Gestión de Personal en modo oscuro */
+    a[data-menu-xmlid="actividades_complementarias.menu_gestion_personal"] {
+        border-top-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Separador Mis Inscripciones (menú Alumno) en modo oscuro */
+    a[data-menu-xmlid="actividades_complementarias.menu_alumno_inscripciones"] {
+        border-top-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Palomita verde en modo oscuro */
+    .o_field_boolean input[type="checkbox"]:checked {
+        background-color: #28a745 !important;
+        border-color: #28a745 !important;
+    }
+    
+}
+/* Indicador ▾/▴ en navbar — span inyectado por navbar_chevron.js */
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    .ac_nav_chevron {
+        display: inline-block;
+        font-size: 11px;
+        opacity: 0.75;
+        margin-left: 4px;
+        vertical-align: middle;
+        pointer-events: none;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+
+        &::before {
+            content: "▾";
+        }
+    }
+
+    button.show .ac_nav_chevron {
+        transform: rotate(180deg);
+        opacity: 1;
+    }
+}
+
+// ── Ítem de menú activo permanente ───────────────────────────────────────────
+//
+// ac_menu_active_item es inyectada por navbar_chevron.js cuando el dropdown
+// se abre, comparando la URL actual con el href de cada ítem.
+
+body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    a.o-dropdown-item.ac_menu_active_item {
+        color: #000000 !important;
+        font-weight: 700 !important;
+        opacity: 1 !important;
+    }
+}
+
+body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
+
+    a.o-dropdown-item.ac_menu_active_item {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        opacity: 1 !important;
+    }
+}
