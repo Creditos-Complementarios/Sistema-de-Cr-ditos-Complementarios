@@ -258,6 +258,23 @@ class Actividad(models.Model):
         help='Si la actividad es de tipo predefinido se aprueba automáticamente '
              'sin pasar por el Comité Académico. Puede dejarse en blanco para quitarlo.',
     )
+
+    dominio_predefinida = fields.Binary(
+        compute='_compute_dominio_predefinida',
+        string='Dominio Predefinidas',
+    )
+
+    def _compute_dominio_predefinida(self):
+        es_extraescolar = self.env.user.has_group(
+            'actividades_complementarias.group_depto_extraescolar'
+        )
+        if es_extraescolar:
+            domain = [('key', 'in', ['extraescolar', 'selectivo']), ('is_comite', '=', False)]
+        else:
+            domain = [('key', 'not in', ['extraescolar', 'selectivo'])]
+        for rec in self:
+            rec.dominio_predefinida = domain
+
     # Firma doble: Ambos actores deben firmar antes de que las constancias lleguen a los alumnos
     jd_firmo = fields.Boolean(string='Firmado por Jefe de Departamento', default=False, tracking=True)
     responsable_firmo = fields.Boolean(string='Firmado por Responsable de Actividad', default=False, tracking=True)
@@ -322,12 +339,16 @@ class Actividad(models.Model):
         is_admin = self.env.user.has_group(
             'actividades_complementarias.group_admin_actividades'
         )
+        # DE behaves like JD for readonly logic
+        is_de = self.env.user.has_group(
+            'actividades_complementarias.group_depto_extraescolar'
+        )
         # JD y admin pueden editar según estado; el resto siempre readonly
         for rec in self:
             if is_admin:
                 rec.responsable_readonly = False
                 rec.tipo_actividad_readonly = False
-            elif is_jd:
+            elif is_jd or is_de:
                 rec.responsable_readonly = rec.estado_code in ('en_revision', 'finalizada')
                 rec.tipo_actividad_readonly = rec.estado_code in (
                     'aprobada', 'pendiente_inicio', 'en_curso', 'finalizada', 'en_revision'
@@ -391,7 +412,8 @@ class Actividad(models.Model):
         """
         user = self.env.user
         if (user.has_group('actividades_complementarias.group_jefe_departamento')
-                or user.has_group('actividades_complementarias.group_admin_actividades')):
+                or user.has_group('actividades_complementarias.group_admin_actividades')
+                or user.has_group('actividades_complementarias.group_depto_extraescolar')):
             return user
 
         # Buscar por correo en sii.empleado → departamento → JD
@@ -417,6 +439,12 @@ class Actividad(models.Model):
     def _es_personal(self):
         """True si el usuario en sesion pertenece a algun grupo de Personal."""
         return any(self.env.user.has_group(g) for g in self._GRUPOS_PERSONAL)
+
+    def _es_depto_extraescolar(self):
+        """True si el usuario en sesión es el Departamento de Extraescolares."""
+        return self.env.user.has_group(
+            'actividades_complementarias.group_depto_extraescolar'
+        )
 
     es_personal = fields.Boolean(
         compute='_compute_es_personal_field',
@@ -871,6 +899,12 @@ class Actividad(models.Model):
         is_ra = self.env.user.has_group(
             'actividades_complementarias.group_responsable_actividad'
         )
+        # DE actor behaves identically to JD for form edit permissions
+        is_de = self.env.user.has_group(
+            'actividades_complementarias.group_depto_extraescolar'
+        )
+        # Treat DE as JD for all permission-computation purposes
+        is_jd_or_de = is_jd or is_de
 
         for rec in self:
             # Regla 1 (absoluta): finalizada → nadie edita
@@ -893,18 +927,18 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            if not is_jd:
+            if not is_jd_or_de:
                 # Otros roles: formulario de solo lectura
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            # Usuario es JD (no admin)
+            # Usuario es JD o DE (no admin)
             es_dueno = (rec.jefe_departamento_id.id == self.env.user.id)
 
             if not es_dueno:
-                # Regla 6: JD viendo actividad de otro JD (solo catálogo accesible via record rule)
+                # Regla 6: JD/DE viendo actividad de otro JD/DE
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
@@ -916,7 +950,7 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
 
             elif rec.estado_code == 'en_revision':
-                # Regla 2/3: propuesta en revisión → JD no puede modificar nada
+                # Regla 2/3: propuesta en revisión → JD/DE no puede modificar nada
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
@@ -999,6 +1033,10 @@ class Actividad(models.Model):
         is_admin = self.env.user.has_group(
             'actividades_complementarias.group_admin_actividades'
         )
+        # DE behaves like JD: does not auto-assign responsable
+        is_de = self.env.user.has_group(
+            'actividades_complementarias.group_depto_extraescolar'
+        )
         for vals in vals_list:
             # Recuperar tipo_actividad_id desde el predefinido cuando el campo
             # llega vacío (campo readonly no enviado por el cliente)
@@ -1008,8 +1046,8 @@ class Actividad(models.Model):
                 )
                 if predefinida.tipo_actividad_id:
                     vals['tipo_actividad_id'] = predefinida.tipo_actividad_id.id
-            # Auto-asignar responsable para RA/Personal
-            if not is_jd and not is_admin:
+            # Auto-asignar responsable para RA/Personal (no para JD, Admin ni DE)
+            if not is_jd and not is_admin and not is_de:
                 vals.setdefault('responsable_actividad_id', self.env.user.id)
         records = super(
             Actividad,
@@ -1094,6 +1132,10 @@ class Actividad(models.Model):
         is_ra = self.env.user.has_group(
             'actividades_complementarias.group_responsable_actividad'
         )
+        # DE: Departamento de Extraescolares — same restrictions as JD for write
+        is_de = self.env.user.has_group(
+            'actividades_complementarias.group_depto_extraescolar'
+        )
 
         for rec in self:
             # ── Regla 1: Finalizada → nadie puede modificar (incluido admin) ──
@@ -1106,6 +1148,50 @@ class Actividad(models.Model):
 
             # Admin: sin restricciones de estado
             if is_admin:
+                continue
+
+            # ── Departamento de Extraescolares — misma lógica que JD ──────────
+            if is_de:
+                if rec.jefe_departamento_id.id != self.env.user.id:
+                    raise UserError(
+                        _('No tiene permiso para modificar actividades de '
+                          'otros responsables de Extraescolares.')
+                    )
+                campos_auto_solicitados = set(vals.keys()) & self._CAMPOS_AUTO_JD
+                if campos_auto_solicitados:
+                    raise UserError(
+                        _('Los siguientes campos son gestionados automáticamente '
+                          'por el sistema y no pueden modificarse directamente: %s.')
+                        % ', '.join(sorted(campos_auto_solicitados))
+                    )
+                # DE nunca genera propuestas en revisión, pero por seguridad:
+                if rec.estado_code == 'en_revision':
+                    raise UserError(
+                        _('La actividad "%s" está en revisión y no puede ser modificada.')
+                        % rec.name
+                    )
+                if rec.en_catalogo or rec.estado_code in ('aprobada', 'pendiente_inicio'):
+                    campos_permitidos = {
+                        'responsable_actividad_id', 'fecha_inicio',
+                        'fecha_fin', 'horario', 'horario_valido',
+                        'horario_sanitizado', 'alumno_ids',
+                    }
+                    campos_no_permitidos = set(vals.keys()) - campos_permitidos
+                    if campos_no_permitidos:
+                        raise UserError(
+                            _('La actividad "%s" está en estado aprobada o pendiente de inicio. '
+                              'Solo puede modificar Responsable, Fechas, Alumnos y Horario.')
+                            % rec.name
+                        )
+                if rec.estado_code == 'en_curso':
+                    campos_permitidos = {'responsable_actividad_id'}
+                    campos_no_permitidos = set(vals.keys()) - campos_permitidos
+                    if campos_no_permitidos:
+                        raise UserError(
+                            _('La actividad "%s" está en curso. '
+                              'Solo puede modificar el Responsable de Actividad.')
+                            % rec.name
+                        )
                 continue
 
             # Reemplazar por ¿if is_ra and (not rec.id or rec.responsable_actividad_id.id == self.env.user.id):?
@@ -1317,6 +1403,31 @@ class Actividad(models.Model):
                     "a una configuración predefinida. "
                     "Elimine el campo 'Actividades Predefinidas' o cambie "
                     "el tipo de actividad antes de continuar."
+                )
+
+    # Nombres de los tipos de actividad permitidos para el Departamento de Extraescolares.
+    # Regla de negocio DE-01SC regla 3.
+    _TIPOS_DE = frozenset({'Extraescolar', 'Selectivo Extraescolar'})
+
+    @api.constrains('tipo_actividad_id')
+    def _check_tipo_actividad_de(self):
+        """DE-01SC regla 3: el Departamento de Extraescolares solo puede crear
+        actividades de tipo 'Extraescolar' o 'Selectivo Extraescolar'.
+        Esta restricción se aplica al crear o modificar el tipo.
+        Se omite para admin, instalación demo y migración.
+        """
+        if (self.env.context.get('install_demo')
+                or self.env.context.get('skip_tipo_de_check')
+                or self.env.registry._init):
+            return
+        if not self.env.user.has_group('actividades_complementarias.group_depto_extraescolar'):
+            return
+        for rec in self:
+            if rec.tipo_actividad_id and rec.tipo_actividad_id.name not in self._TIPOS_DE:
+                raise ValidationError(
+                    'El Departamento de Extraescolares solo puede crear actividades '
+                    'de tipo "Extraescolar" o "Selectivo Extraescolar". '
+                    f'Tipo seleccionado: "{rec.tipo_actividad_id.name}".'
                 )
 
     # ── Campos calculados para el Alumno ─────────────────────────────────────
@@ -1627,8 +1738,19 @@ class Actividad(models.Model):
             raise ValidationError(
                 'Debe asignar un Responsable de Actividad antes de enviar al catálogo.'
             )
+        # DE: Departamento de Extraescolares auto-aprueba sus actividades
+        # (no pasan por Comité Académico — regla de negocio DE-01SC / DE-02SC).
+        is_de = self._es_depto_extraescolar()
+        if is_de and not self.estado_code:
+            estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
+            self.with_context(bypass_edit_protection=True).write(
+                {'estado_id': estado_pendiente.id}
+            )
+            self.message_post(
+                body='Actividad de Extraescolares aprobada automáticamente y enviada al catálogo.'
+            )
         # Si es predefinida y aún no está en un estado válido, la aprobamos automáticamente
-        if self.actividad_predefinida and self.estado_code not in ('aprobada', 'pendiente_inicio', 'en_curso'):
+        elif self.actividad_predefinida and self.estado_code not in ('aprobada', 'pendiente_inicio', 'en_curso'):
             estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
             self.with_context(bypass_edit_protection=True).write({'estado_id': estado_pendiente.id})
             self.message_post(

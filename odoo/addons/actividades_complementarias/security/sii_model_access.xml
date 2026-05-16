@@ -117,6 +117,14 @@
         <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
     </record>
 
+    <record id="access_sii_periodo_depto_extraescolar" model="ir.model.access">
+        <field name="name">sii_periodo_depto_extraescolar</field>
+        <field name="model_id" ref="model_sii_periodo"/>
+        <field name="group_id" ref="actividades_complementarias.group_depto_extraescolar"/>
+        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
+    </record>
+
     <!-- sii.empleado -->
     <record id="access_sii_empleado_admin" model="ir.model.access">
         <field name="name">sii_empleado_admin</field>

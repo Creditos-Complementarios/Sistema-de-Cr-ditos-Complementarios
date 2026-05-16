@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Tipos de actividad exclusivos del Departamento de Extraescolares.
+        Referenciados como TIPOS_DE en actividad.py para la restricción de creación.
+    -->
+    <data noupdate="1">
+        <record id="tipo_extraescolar" model="actividad.tipo">
+            <field name="name">Extraescolar</field>
+            <field name="es_predefinida">False</field>
+        </record>
+        <record id="tipo_selectivo_extraescolar" model="actividad.tipo">
+            <field name="name">Selectivo Extraescolar</field>
+            <field name="es_predefinida">False</field>
+        </record>
+    </data>
+</odoo>

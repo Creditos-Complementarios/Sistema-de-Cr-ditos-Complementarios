@@ -25,8 +25,10 @@
         'data/05_periodos.xml',
         'data/06_estudiantes.xml',
         'data/07_usuarios_sii.xml',
+        'data/08_usuario_de.xml',
         # 4. Datos del módulo
         'data/tipo_actividad_data.xml',
+        'data/tipo_actividad_de_data.xml',
         'data/tipo_predefinida_data.xml',
         'data/estado_actividad_data.xml',
         'data/estado_solicitud_data.xml',

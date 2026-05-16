@@ -15,5 +15,11 @@
             <field name="tipo_actividad_id" ref="tipo_cultural"/>
             <field name="is_comite">False</field>
         </record>
+        <record id="predefinida_selectivo" model="actividad.tipo.predefinida">
+            <field name="name">Selectivo</field>
+            <field name="key">selectivo</field>
+            <field name="tipo_actividad_id" ref="tipo_deportiva"/>
+            <field name="is_comite">False</field>
+        </record>
     </data>
 </odoo>
