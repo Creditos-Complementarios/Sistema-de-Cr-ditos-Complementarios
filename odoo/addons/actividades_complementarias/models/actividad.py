@@ -203,6 +203,7 @@ class Actividad(models.Model):
     # (los campos related no permiten filtrar statusbar_visible correctamente)
     estado_barra = fields.Selection(
         selection=[
+            ('borrador',         'Borrador'),
             ('en_revision',      'En Revisión'),
             ('rechazada',        'Rechazada'),
             ('aprobada',         'Aprobada'),
@@ -834,7 +835,7 @@ class Actividad(models.Model):
         todos los valores del Selection de origen).
         """
         for rec in self:
-            rec.estado_barra = rec.estado_code or False
+            rec.estado_barra = rec.estado_code or 'borrador'
 
     @api.depends('alumno_ids')
     def _compute_alumno_count(self):
