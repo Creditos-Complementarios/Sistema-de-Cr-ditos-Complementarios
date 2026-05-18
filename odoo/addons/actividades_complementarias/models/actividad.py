@@ -2147,7 +2147,7 @@ class Actividad(models.Model):
         if not self.constancias_firmadas:
             raise ValidationError(
                 _('Las constancias deben estar firmadas por el JD y el Responsable '
-                'antes de poder liberarse a los expedientes.')
+                    'antes de poder liberarse a los expedientes.')
             )
         if self.constancias_liberadas:
             raise ValidationError(
