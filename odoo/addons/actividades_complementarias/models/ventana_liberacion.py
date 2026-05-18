@@ -17,7 +17,7 @@ class VentanaLiberacion(models.Model):
     fecha_inicio = fields.Date(string='Fecha de Inicio', required=True)
     fecha_fin = fields.Date(string='Fecha de Cierre', required=True)
     activa = fields.Boolean(
-        string='Activa', compute='_compute_activa', store=False,
+        string='Activa', compute='_compute_activa', store=True,
     )
     reporte_generado = fields.Boolean(
         string='Reporte Generado', default=False, readonly=True, copy=False,
@@ -39,6 +39,7 @@ class VentanaLiberacion(models.Model):
             else:
                 rec.display_name = 'Nueva ventana'
 
+    @api.depends('fecha_inicio', 'fecha_fin')
     def _compute_activa(self):
         from datetime import date
         hoy = date.today()

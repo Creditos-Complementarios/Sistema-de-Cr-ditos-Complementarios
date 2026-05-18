@@ -112,43 +112,49 @@
     <record id="view_solicitud_liberacion_se_form" model="ir.ui.view">
         <field name="name">actividad.solicitud.liberacion.se.form</field>
         <field name="model">actividad.solicitud.liberacion</field>
+        <field name="inherit_id" ref="view_solicitud_liberacion_form"/>
         <field name="arch" type="xml">
-            <form string="Solicitud de Liberación" create="0">
-                <header>
-                    <button name="action_aprobar_se" string="Aprobar"
-                            type="object" class="btn-success"
-                            invisible="estado != 'en_revision'"
-                            confirm="¿Confirmar la aprobación de esta solicitud?"/>
-                    <button name="action_rechazar_se" string="Rechazar"
-                            type="object" class="btn-danger"
-                            invisible="estado != 'en_revision'"/>
-                    <field name="estado" widget="statusbar"
-                        statusbar_visible="borrador,en_revision,aprobada,rechazada"
-                        readonly="1"/>
-                </header>
-                <sheet>
-                    <group>
-                        <group string="Datos del Estudiante">
-                            <field name="estudiante_id" readonly="1"/>
-                            <field name="fecha" readonly="1"/>
-                            <field name="ventana_id" readonly="1"/>
-                        </group>
-                        <group string="Resumen de Créditos">
-                            <field name="creditos_validos" readonly="1"/>
-                            <field name="promedio_desempenio" readonly="1"/>
-                            <field name="promedio_label" string="Nivel" readonly="1"/>
-                        </group>
-                    </group>
-                    <group string="Resolución" invisible="estado == 'borrador'">
-                        <field name="aprobado_por" readonly="1"
-                            invisible="estado == 'en_revision'"/>
-                        <field name="observaciones_se"
-                            readonly="estado not in ['en_revision']"
-                            placeholder="Obligatorio al rechazar..."/>
-                    </group>
-                </sheet>
-                <chatter/>
-            </form>
+
+            <!-- Botones SE en el header, antes del botón del estudiante -->
+            <xpath expr="//header/button[@name='action_solicitar_liberacion']"
+                position="before">
+                <button name="action_aprobar_se"
+                        string="Aprobar"
+                        type="object"
+                        class="btn-success"
+                        invisible="estado != 'en_revision'"
+                        confirm="¿Confirmar la aprobación? Esta acción no puede deshacerse."
+                        groups="actividades_complementarias.group_servicios_escolares,
+                                actividades_complementarias.group_admin_actividades"/>
+                <button name="action_rechazar_se"
+                        string="Rechazar"
+                        type="object"
+                        class="btn-danger"
+                        invisible="estado != 'en_revision'"
+                        groups="actividades_complementarias.group_servicios_escolares,
+                                actividades_complementarias.group_admin_actividades"/>
+            </xpath>
+
+            <!-- Sección SE: resolución + expediente, visible solo para SE/Admin -->
+            <xpath expr="//sheet/group" position="after">
+                <group string="Resolución de Servicios Escolares"
+                    invisible="estado == 'borrador'"
+                    groups="actividades_complementarias.group_servicios_escolares,
+                            actividades_complementarias.group_admin_actividades">
+                    <field name="ventana_id" readonly="1"/>
+                    <field name="aprobado_por" readonly="1"
+                        invisible="estado == 'en_revision'"/>
+                    <field name="observaciones_se"
+                        placeholder="Obligatorio al rechazar..."
+                        readonly="estado != 'en_revision'"/>
+                    <button name="action_ver_expediente_alumno"
+                            string="Ver Expediente del Alumno"
+                            type="object"
+                            class="btn-secondary btn-sm mt-1"
+                            icon="fa-external-link"/>
+                </group>
+            </xpath>
+
         </field>
     </record>
 
@@ -179,11 +185,8 @@
         <field name="view_mode">list,form</field>
         <field name="domain">[('estado', '!=', 'borrador')]</field>
         <field name="context">{'search_default_filter_pendientes': 1}</field>
+        <field name="view_id" ref="view_solicitud_liberacion_se_list"/>
         <field name="search_view_id" ref="view_solicitud_liberacion_se_search"/>
-        <field name="views" eval="[
-            (ref('view_solicitud_liberacion_se_list'), 'list'),
-            (ref('view_solicitud_liberacion_se_form'), 'form'),
-        ]"/>
     </record>
 
     <!-- Acción SE: historial (aprobadas y rechazadas de periodos anteriores) -->
@@ -222,6 +225,14 @@
         <field name="arch" type="xml">
             <form string="Expediente del Estudiante" create="0" edit="0" delete="0">
                 <sheet>
+                    <div name="button_box" class="oe_button_box">
+                        <button name="action_ver_expediente"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-graduation-cap">
+                            <span class="o_stat_text">Ver Expediente</span>
+                        </button>
+                    </div>
                     <group string="Datos Generales">
                         <field name="no_control" readonly="1"/>
                         <field name="nombre" readonly="1"/>
