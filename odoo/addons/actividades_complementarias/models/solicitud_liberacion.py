@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
+from datetime import date
 
 CREDITOS_MINIMOS = 5.0
 
@@ -150,10 +151,11 @@ class SolicitudLiberacion(models.Model):
                 rec.razon_bloqueado = 'Tus actividades complementarias ya fueron liberadas.'
                 continue
 
-            # Verificar ventana activa
-            ventana_activa = self.env['actividad.ventana.liberacion'].search(
-                [('activa', '=', True)], limit=1
-            )
+            hoy = date.today()
+            ventana_activa = self.env['actividad.ventana.liberacion'].sudo().search([
+                ('fecha_inicio', '<=', hoy),
+                ('fecha_fin', '>=', hoy),
+            ], limit=1)
             if not ventana_activa:
                 rec.puede_solicitar = False
                 rec.razon_bloqueado = (
@@ -241,15 +243,17 @@ class SolicitudLiberacion(models.Model):
                 'Espera a que sea resuelta antes de enviar otra.'
             )
         # Asignar la ventana activa al momento de enviar
-        ventana = self.env['actividad.ventana.liberacion'].search([
-            ('activa', '=', True),
+        hoy = date.today()
+        ventana_activa = self.env['actividad.ventana.liberacion'].sudo().search([
+            ('fecha_inicio', '<=', hoy),
+            ('fecha_fin', '>=', hoy),
         ], limit=1)
-        if not ventana:
+        if not ventana_activa:
             raise ValidationError(
                 'No hay un período habilitado para enviar solicitudes de liberación. '
                 'Consulte a Servicios Escolares.'
             )
-        self.write({'estado': 'en_revision', 'ventana_id': ventana.id})
+        self.write({'estado': 'en_revision', 'ventana_id': ventana_activa.id})
         self.message_post(
             body=(
                 f'Solicitud enviada por <b>{self.estudiante_id.name}</b>.<br/>'
@@ -278,6 +282,27 @@ class SolicitudLiberacion(models.Model):
             )
         self.write({'estado': 'rechazada', 'aprobado_por': self.env.user.id})
         self._notificar_estudiante_se(aprobada=False)
+
+    def action_ver_expediente_alumno(self):
+        """Abre el expediente (sii.estudiante) del alumno en esta solicitud."""
+        self.ensure_one()
+        estudiante = self.env['sii.estudiante'].sudo().search(
+            [('no_control', '=', self.estudiante_id.login)], limit=1
+        )
+        if not estudiante:
+            raise ValidationError(
+                f'No se encontró un expediente en el SII para el usuario '
+                f'"{self.estudiante_id.name}" (login: {self.estudiante_id.login}).'
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'Expediente — {self.estudiante_id.name}',
+            'res_model': 'sii.estudiante',
+            'res_id': estudiante.id,
+            'view_mode': 'form',
+            'target': 'new',
+            'views': [(False, 'form')],
+        }
 
     def _notificar_estudiante_se(self, aprobada):
         """Publica mensaje en el chatter y notifica al estudiante."""
