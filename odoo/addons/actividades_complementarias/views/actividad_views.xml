@@ -390,7 +390,7 @@
                 <button name="action_toggle_evidence"
                         type="object"
                         class="btn-secondary"
-                        invisible="estado_code not in ['finalizada']"
+                        invisible="estado_code not in ['en_curso', 'finalizada']"
                         groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar">
                     <span invisible="evidence_enabled">Habilitar Evidencias</span>
                     <span invisible="not evidence_enabled">Deshabilitar Evidencias</span>
