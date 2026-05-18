@@ -28,6 +28,15 @@ body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
         border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
         margin-top: 4px !important;
         padding-top: 12px !important;
+        box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Separador antes de Mis Inscripciones en menú Alumno */
+    a[data-menu-xmlid="actividades_complementarias.menu_alumno_inscripciones"] {
+        border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
+        margin-top: 4px !important;
+        padding-top: 12px !important;
+        box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.15) !important;
     }
 
     /* ── Empty state: reemplaza el muñeco por el logo del TecNM ── */
@@ -175,6 +184,7 @@ a[data-menu-xmlid="actividades_complementarias.menu_catalogo_comite"] {
     border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
     margin-top: 4px !important;
     padding-top: 12px !important;
+    box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Navbar SOLO cuando estás dentro de Actividades Complementarias */
@@ -541,6 +551,11 @@ body.ac_dark_mode:has(.o_menu_brand[data-menu-xmlid^="actividades_complementaria
         border-top-color: rgba(255, 255, 255, 0.2) !important;
     }
 
+    /* Separador Mis Inscripciones (menú Alumno) en modo oscuro */
+    a[data-menu-xmlid="actividades_complementarias.menu_alumno_inscripciones"] {
+        border-top-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
     /* Palomita verde en modo oscuro */
     .o_field_boolean input[type="checkbox"]:checked {
         background-color: #28a745 !important;
@@ -582,6 +597,8 @@ body:has(.o_menu_brand[data-menu-xmlid^="actividades_complementarias"]) {
         color: #000000 !important;
         font-weight: 700 !important;
         opacity: 1 !important;
+        background-color: #F06702 !important;
+        border-radius: 4px !important;
     }
 }
 
