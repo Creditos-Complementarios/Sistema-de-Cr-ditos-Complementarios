@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Actividades Complementarias',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'Gestión de actividades complementarias para el Jefe de Departamento',
     'description': (
         'Módulo para la gestión de actividades complementarias. '
