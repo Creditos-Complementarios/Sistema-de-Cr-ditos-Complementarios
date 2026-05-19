@@ -1491,7 +1491,6 @@ class Actividad(models.Model):
     # usan with_context(bypass_edit_protection=True) para pasar el guard de write().
     # ────────────────────────────────────────────────────────────────────────
 
-
     def action_descargar_constancia(self):
         """E-03SC: El estudiante descarga su constancia en PDF si ambas firmas están completas."""
         self.ensure_one()
@@ -1505,7 +1504,8 @@ class Actividad(models.Model):
         actividad_sudo = self.sudo()
         if not actividad_sudo.constancias_firmadas:
             raise UserError(
-                _('La constancia aún no está lista. Debe ser firmada por el Jefe de Departamento y el Responsable de Actividad.')
+                _('La constancia aún no está lista. Debe ser firmada por el'
+                  ' Jefe de Departamento y el Responsable de Actividad.')
             )
 
         # Buscar la inscripción del alumno con sudo (el estudiante no tiene acceso a inscripcion_ids)
@@ -1538,8 +1538,14 @@ class Actividad(models.Model):
         creditos_map = dict(self._fields['creditos'].selection)
         creditos_label = creditos_map.get(actividad_sudo.creditos, actividad_sudo.creditos or '—')
 
-        fecha_inicio_str = actividad_sudo.fecha_inicio.strftime('%d de %B de %Y') if actividad_sudo.fecha_inicio else '—'
-        fecha_fin_str = actividad_sudo.fecha_fin.strftime('%d de %B de %Y') if actividad_sudo.fecha_fin else '—'
+        fecha_inicio_str = (
+            actividad_sudo.fecha_inicio.strftime('%d de %B de %Y')
+            if actividad_sudo.fecha_inicio else '—'
+        )
+        fecha_fin_str = (
+            actividad_sudo.fecha_fin.strftime('%d de %B de %Y')
+            if actividad_sudo.fecha_fin else '—'
+        )
         fecha_hoy_str = date.today().strftime('%d de %B de %Y')
 
         nombre_jd = actividad_sudo.jefe_departamento_id.name or '—'
@@ -1740,7 +1746,6 @@ class Actividad(models.Model):
             Paragraph('Estudiante', style_firma_rol),
         ]
 
-        from reportlab.platypus import KeepTogether
         tabla_firmas = Table(
             [[firma_jd, firma_estudiante]],
             colWidths=[8 * cm, 8 * cm],
