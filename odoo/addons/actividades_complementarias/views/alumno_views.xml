@@ -34,6 +34,12 @@
                             invisible="not alumno_inscrito
                                        or not evidence_enabled
                                        or estado_code not in ['en_curso', 'finalizada']"/>
+                    <button name="action_descargar_constancia"
+                            string="Descargar Constancia"
+                            type="object" class="btn-success"
+                            invisible="not alumno_inscrito
+                                       or estado_code != 'finalizada'
+                                       or not constancias_firmadas"/>
                 </header>
                 <sheet>
                     <field name="alumno_inscrito" invisible="1"/>

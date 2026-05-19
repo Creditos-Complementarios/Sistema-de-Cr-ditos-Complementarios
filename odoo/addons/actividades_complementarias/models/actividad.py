@@ -1491,6 +1491,287 @@ class Actividad(models.Model):
     # usan with_context(bypass_edit_protection=True) para pasar el guard de write().
     # ────────────────────────────────────────────────────────────────────────
 
+
+    def action_descargar_constancia(self):
+        """E-03SC: El estudiante descarga su constancia en PDF si ambas firmas están completas."""
+        self.ensure_one()
+        user = self.env.user
+
+        # Verificar que el estudiante esté inscrito
+        if user.id not in self.alumno_ids.ids:
+            raise UserError(_('No estás inscrito en esta actividad.'))
+
+        # Verificar que ambas firmas estén completas (usar sudo para evitar error de permisos)
+        actividad_sudo = self.sudo()
+        if not actividad_sudo.constancias_firmadas:
+            raise UserError(
+                _('La constancia aún no está lista. Debe ser firmada por el Jefe de Departamento y el Responsable de Actividad.')
+            )
+
+        # Buscar la inscripción del alumno con sudo (el estudiante no tiene acceso a inscripcion_ids)
+        inscripcion = actividad_sudo.inscripcion_ids.filtered(
+            lambda i: i.partner_id.id == user.partner_id.id
+        )
+        if not inscripcion or not inscripcion[0].certificate_generated:
+            raise UserError(
+                _('No tienes una constancia generada para esta actividad. Contacta al Jefe de Departamento.')
+            )
+
+        # Obtener datos del estudiante
+        nombre_alumno = user.name
+        correo_alumno = user.login
+
+        if 'sii.estudiante' in self.env:
+            estudiante = self.env['sii.estudiante'].sudo().search(
+                [('no_control', '=', user.login)], limit=1
+            )
+            if estudiante:
+                nombre_alumno = ' '.join(filter(None, [
+                    estudiante.nombre,
+                    estudiante.apellido_paterno,
+                    estudiante.apellido_materno,
+                ]))
+                if estudiante.correo:
+                    correo_alumno = estudiante.correo
+
+        # Obtener datos de la actividad via sudo para evitar restricciones de permisos
+        creditos_map = dict(self._fields['creditos'].selection)
+        creditos_label = creditos_map.get(actividad_sudo.creditos, actividad_sudo.creditos or '—')
+
+        fecha_inicio_str = actividad_sudo.fecha_inicio.strftime('%d de %B de %Y') if actividad_sudo.fecha_inicio else '—'
+        fecha_fin_str = actividad_sudo.fecha_fin.strftime('%d de %B de %Y') if actividad_sudo.fecha_fin else '—'
+        fecha_hoy_str = date.today().strftime('%d de %B de %Y')
+
+        nombre_jd = actividad_sudo.jefe_departamento_id.name or '—'
+        nombre_ra = actividad_sudo.responsable_actividad_id.name or '—'
+        nombre_actividad = actividad_sudo.name
+
+        # Generar PDF con el formato de constancia oficial
+        pdf_bytes = self._generar_pdf_constancia_alumno(
+            nombre_alumno=nombre_alumno,
+            correo_alumno=correo_alumno,
+            nombre_actividad=nombre_actividad,
+            fecha_inicio_str=fecha_inicio_str,
+            fecha_fin_str=fecha_fin_str,
+            creditos_label=creditos_label,
+            fecha_hoy_str=fecha_hoy_str,
+            nombre_jd=nombre_jd,
+            nombre_ra=nombre_ra,
+        )
+
+        # Nombre del archivo: nombreactividad_constancia.pdf (sin espacios)
+        nombre_archivo = self.name.replace(' ', '_').lower() + '_constancia.pdf'
+
+        # Guardar como adjunto y devolver URL de descarga (data: URL no funciona en Odoo)
+        adjunto = self.env['ir.attachment'].sudo().create({
+            'name': nombre_archivo,
+            'type': 'binary',
+            'datas': base64.b64encode(pdf_bytes).decode(),
+            'mimetype': 'application/pdf',
+            'res_model': self._name,
+            'res_id': self.id,
+        })
+
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{adjunto.id}?download=true',
+            'target': 'new',
+        }
+
+    def _generar_pdf_constancia_alumno(
+        self, nombre_alumno, correo_alumno, nombre_actividad,
+        fecha_inicio_str, fecha_fin_str, creditos_label,
+        fecha_hoy_str, nombre_jd, nombre_ra,
+    ):
+        """Genera el PDF de constancia oficial para el alumno."""
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buf,
+            pagesize=letter,
+            rightMargin=3 * cm,
+            leftMargin=3 * cm,
+            topMargin=3 * cm,
+            bottomMargin=3 * cm,
+        )
+
+        styles = getSampleStyleSheet()
+
+        style_titulo = ParagraphStyle(
+            'Titulo',
+            parent=styles['Normal'],
+            fontSize=14,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#1a3a5c'),
+            alignment=TA_CENTER,
+            spaceAfter=4,
+            leading=18,
+        )
+        style_subtitulo = ParagraphStyle(
+            'Subtitulo',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            textColor=colors.HexColor('#555555'),
+            alignment=TA_CENTER,
+            spaceAfter=2,
+        )
+        style_cuerpo = ParagraphStyle(
+            'Cuerpo',
+            parent=styles['Normal'],
+            fontSize=11,
+            fontName='Helvetica',
+            leading=18,
+            alignment=TA_JUSTIFY,
+            spaceAfter=12,
+        )
+        style_seccion = ParagraphStyle(
+            'Seccion',
+            parent=styles['Normal'],
+            fontSize=11,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#1a3a5c'),
+            alignment=TA_CENTER,
+            spaceBefore=16,
+            spaceAfter=8,
+        )
+        style_firma_nombre = ParagraphStyle(
+            'FirmaNombre',
+            parent=styles['Normal'],
+            fontSize=11,
+            fontName='Helvetica-Bold',
+            alignment=TA_CENTER,
+            spaceAfter=2,
+        )
+        style_firma_rol = ParagraphStyle(
+            'FirmaRol',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            textColor=colors.HexColor('#555555'),
+            alignment=TA_CENTER,
+            spaceAfter=2,
+        )
+
+        story = []
+
+        # ── Encabezado ───────────────────────────────────────────────────────
+        story.append(Paragraph('CONSTANCIA DE TERMINACIÓN DE ACTIVIDAD COMPLEMENTARIA', style_titulo))
+        story.append(Paragraph('Instituto Tecnológico de Chetumal', style_subtitulo))
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(HRFlowable(width='100%', thickness=2, color=colors.HexColor('#1a3a5c')))
+        story.append(Spacer(1, 0.5 * cm))
+
+        # ── A QUIEN CORRESPONDA ───────────────────────────────────────────────
+        story.append(Paragraph('<b>A QUIEN CORRESPONDA:</b>', style_cuerpo))
+
+        # ── Párrafo principal ────────────────────────────────────────────────
+        parrafo = (
+            f'Por medio de la presente, se hace constar que el/la estudiante inscrito(a) '
+            f'en esta institución, con correo electrónico institucional '
+            f'<b>{correo_alumno}</b>, ha concluido de manera satisfactoria su participación '
+            f'en la actividad complementaria denominada:'
+        )
+        story.append(Paragraph(parrafo, style_cuerpo))
+
+        # Nombre de la actividad destacado
+        story.append(Paragraph(f'<b>{nombre_actividad}</b>', ParagraphStyle(
+            'ActividadNombre',
+            parent=styles['Normal'],
+            fontSize=12,
+            fontName='Helvetica-Bold',
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#1a3a5c'),
+            spaceBefore=4,
+            spaceAfter=12,
+        )))
+
+        # ── Segundo párrafo ───────────────────────────────────────────────────
+        parrafo2 = (
+            f'Dicha actividad se llevó a cabo durante el periodo comprendido del '
+            f'<b>{fecha_inicio_str}</b> al <b>{fecha_fin_str}</b>, cumpliendo de forma '
+            f'excelente con los objetivos y requisitos establecidos, lo que le otorga un '
+            f'valor de <b>{creditos_label}</b> créditos complementarios.'
+        )
+        story.append(Paragraph(parrafo2, style_cuerpo))
+
+        # ── Párrafo de expedición ─────────────────────────────────────────────
+        parrafo3 = (
+            f'Para constancia de lo anterior y para los fines legales y administrativos '
+            f'a los que haya lugar, se expide la presente en la fecha <b>{fecha_hoy_str}</b>.'
+        )
+        story.append(Paragraph(parrafo3, style_cuerpo))
+
+        story.append(Spacer(1, 0.4 * cm))
+        story.append(HRFlowable(width='100%', thickness=1, color=colors.HexColor('#cccccc')))
+
+        # ── Sección de validación y firmas ───────────────────────────────────
+        story.append(Paragraph('VALIDACIÓN Y FIRMAS', style_seccion))
+        story.append(Paragraph(f'Fecha de firma: <b>{fecha_hoy_str}</b>', ParagraphStyle(
+            'FechaFirma',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            alignment=TA_CENTER,
+            spaceAfter=20,
+        )))
+
+        # Línea separadora
+        story.append(Paragraph('Por la Institución', ParagraphStyle(
+            'PorInstitucion',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#555555'),
+            alignment=TA_CENTER,
+            spaceAfter=30,
+        )))
+
+        # ── Tabla de firmas ────────────────────────────────────────────────
+        linea_firma = '_' * 34
+
+        firma_jd = [
+            Paragraph(linea_firma, style_firma_nombre),
+            Paragraph(f'<b>{nombre_jd}</b>', style_firma_nombre),
+            Paragraph('Jefe(a) del Departamento', style_firma_rol),
+        ]
+        firma_estudiante = [
+            Paragraph(linea_firma, style_firma_nombre),
+            Paragraph(f'<b>{nombre_alumno}</b>', style_firma_nombre),
+            Paragraph('Estudiante', style_firma_rol),
+        ]
+
+        from reportlab.platypus import KeepTogether
+        tabla_firmas = Table(
+            [[firma_jd, firma_estudiante]],
+            colWidths=[8 * cm, 8 * cm],
+        )
+        tabla_firmas.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(tabla_firmas)
+
+        story.append(Spacer(1, 0.8 * cm))
+
+        # ── Vo. Bo. del Responsable ────────────────────────────────────────
+        story.append(Paragraph('Vo. Bo. de la Actividad:', ParagraphStyle(
+            'VoBo',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor('#555555'),
+            alignment=TA_CENTER,
+            spaceAfter=4,
+        )))
+        story.append(Paragraph(linea_firma, style_firma_nombre))
+        story.append(Paragraph(f'<b>{nombre_ra}</b>', style_firma_nombre))
+        story.append(Paragraph('Responsable de la Actividad', style_firma_rol))
+
+        doc.build(story)
+        return buf.getvalue()
+
     def action_abrir_wizard_responsable(self):
         """Abre el wizard de confirmación para asignar el Responsable de Actividad."""
         self.ensure_one()
