@@ -284,6 +284,13 @@ class Actividad(models.Model):
         store=True,
         help='True solo cuando tanto el JD como el Responsable de Actividad han firmado.',
     )
+    constancias_liberadas = fields.Boolean(
+        string='Constancias Liberadas a Expedientes',
+        default=False,
+        copy=False,
+        tracking=True,
+        help='True cuando Servicios Escolares libera las constancias al expediente del estudiante.',
+    )
     # Control de evidencias y constancias
     evidence_enabled = fields.Boolean(
         string="Evidencias Habilitadas",
@@ -2212,6 +2219,24 @@ class Actividad(models.Model):
                 body='Constancias firmadas por el Responsable de Actividad. '
                      'Pendiente firma del Jefe de Departamento.'
             )
+
+    def action_liberar_constancias(self):
+        """SE-01SC: Servicios Escolares libera las constancias firmadas a los expedientes."""
+        self.ensure_one()
+        if not self.constancias_firmadas:
+            raise ValidationError(
+                _('Las constancias deben estar firmadas por el JD y el Responsable '
+                    'antes de poder liberarse a los expedientes.')
+            )
+        if self.constancias_liberadas:
+            raise ValidationError(
+                _('Las constancias de la actividad "%s" ya fueron liberadas.') % self.name
+            )
+        self.with_context(bypass_edit_protection=True).write({'constancias_liberadas': True})
+        self.message_post(
+            body=_('✅ Constancias liberadas a los expedientes de estudiantes por Servicios Escolares.'),
+            subtype_xmlid='mail.mt_comment',
+        )
 
     def action_toggle_evidence(self):
         """Habilita/deshabilita la carga de evidencias para estudiantes.

@@ -9,3 +9,4 @@ from . import wizard_guardar_permisos
 from . import wizard_nueva_sesion
 from . import wizard_evidencia
 from . import wizard_evaluar_alumno
+from . import wizard_guardar_permisos_se
