@@ -1972,23 +1972,98 @@ class Actividad(models.Model):
         return buf.getvalue()
 
     def action_generate_certificates(self):
-        """Genera y firma automáticamente constancias para alumnos aprobados (RA-02SC, pasos 10-13).
+        """Firma las constancias del Responsable de Actividad (RA-02SC, paso 13).
+
+        Nuevo comportamiento:
+        - Solo firma constancias de alumnos aprobados (nivel > 0) que YA tengan
+          su constancia generada por el Jefe de Departamento (certificate_generated=True).
+        - No genera constancias nuevas; eso corresponde al JD mediante
+          action_generar_constancias_jd.
+        """
+        self.ensure_one()
+        if self.estado_code != 'finalizada':
+            raise UserError(
+                _('Las constancias solo pueden firmarse para actividades finalizadas.')
+            )
+
+        # Verificar usando ra_signed real en inscripciones (fuente de verdad),
+        # no el flag de cabecera que puede estar inconsistente con flujos anteriores
+        ya_firmadas = self.inscripcion_ids.filtered(lambda i: i.ra_signed)
+        pendientes = self.inscripcion_ids.filtered(
+            lambda i: i.performance_level
+            and int(i.performance_level) > 0
+            and i.certificate_generated
+            and not i.ra_signed
+        )
+
+        if not pendientes:
+            if ya_firmadas:
+                raise UserError(
+                    _('El Responsable de Actividad ya firmó las constancias de esta actividad.')
+                )
+            raise UserError(
+                _('No hay constancias generadas para firmar, contactese con el Jefe de Departamento.')
+            )
+
+        # Marcar como firmadas por el Responsable de Actividad
+        pendientes.write({"ra_signed": True})
+        self.with_context(bypass_edit_protection=True).write({'responsable_firmo': True})
+
+        self.message_post(
+            body=_(
+                "✍️ Constancias firmadas por el Responsable de Actividad: "
+                "<b>%s</b>.<br/>"
+                "Total firmadas: <b>%d</b> constancia(s).<br/>"
+                "%s"
+            ) % (
+                self.responsable_actividad_id.name or '',
+                len(pendientes),
+                "✅ Ambas firmas completas — constancias liberadas a expedientes."
+                if self.constancias_firmadas
+                else "Pendiente: firma del Jefe de Departamento.",
+            ),
+            subtype_xmlid="mail.mt_note",
+        )
+
+    def action_generar_constancias_jd(self):
+        """El Jefe de Departamento genera y firma automáticamente las constancias
+        de los alumnos aprobados.
 
         Precondiciones:
         - Actividad finalizada.
-        - Todos los estudiantes inscritos evaluados.
-        - Al menos un estudiante con nivel de desempeño > 0 (Suficiente, Bueno, Notable o Excelente).
+        - Todos los estudiantes inscritos evaluados (nivel de desempeño asignado).
+        - Al menos un estudiante aprobado (nivel > 0).
 
         Al ejecutarse:
-        - Genera constancias únicamente para los alumnos aprobados (nivel > 0).
-        - Firma automáticamente las constancias como Responsable de Actividad.
-        - Queda pendiente únicamente la firma del Jefe de Departamento.
+        - Genera constancias únicamente para alumnos aprobados (nivel > 0).
+        - Firma automáticamente las constancias como Jefe de Departamento.
+        - Genera un ZIP descargable con los PDFs de las constancias.
+        - Queda pendiente la firma del Responsable de Actividad.
         """
         self.ensure_one()
         if self.estado_code != 'finalizada':
             raise UserError(
                 _('Las constancias solo pueden generarse para actividades finalizadas.')
             )
+
+        # Verificar si ya existen constancias realmente generadas en las inscripciones.
+        # Este chequeo es más confiable que el flag jd_firmo de cabecera, ya que
+        # ese flag puede quedar inconsistente si se ejecutó el flujo anterior del JD
+        # antes de la actualización del módulo.
+        already_generated = self.inscripcion_ids.filtered(lambda i: i.certificate_generated)
+        if already_generated:
+            raise UserError(
+                _('El Jefe de Departamento ya generó las constancias de esta actividad.')
+            )
+
+        # Si jd_firmo quedó True de forma inconsistente (sin constancias reales),
+        # se resetea automáticamente para permitir la generación correcta.
+        if self.jd_firmo:
+            self.with_context(bypass_edit_protection=True).write({
+                'jd_firmo': False,
+                'certificates_generated': False,
+            })
+
         unevaluated = self.inscripcion_ids.filtered(lambda i: not i.performance_level)
         if unevaluated:
             names = ", ".join(unevaluated.mapped("partner_id.name"))
@@ -2000,6 +2075,7 @@ class Actividad(models.Model):
                 )
                 % names
             )
+
         # Solo alumnos aprobados: Suficiente (1), Bueno (2), Notable (3) o Excelente (4)
         approved = self.inscripcion_ids.filtered(
             lambda i: i.performance_level and int(i.performance_level) > 0
@@ -2011,24 +2087,27 @@ class Actividad(models.Model):
                     "para generar constancias."
                 )
             )
-        # Generar y marcar como firmadas por el Responsable de Actividad automáticamente
-        approved.write({
-            "certificate_generated": True,
-            "certificate_signed": True,
-        })
+
+        nombre_jd = self.env.user.name
+
+        # Marcar constancias como generadas y firma del JD (sin generar PDFs)
+        # Se resetea ra_signed para que el RA pueda firmar de forma independiente
+        approved.write({"certificate_generated": True, "jd_signed": True, "ra_signed": False})
         self.with_context(bypass_edit_protection=True).write({
             'certificates_generated': True,
-            'responsable_firmo': True,
+            'jd_firmo': True,
+            'responsable_firmo': False,
         })
+
         self.message_post(
             body=_(
                 "📄 Se generaron <b>%d</b> constancia(s) para alumnos aprobados "
                 "(Suficiente, Bueno, Notable o Excelente).<br/>"
-                "✍️ Constancias firmadas automáticamente por el Responsable de Actividad: "
+                "✍️ Constancias firmadas automáticamente por el Jefe de Departamento: "
                 "<b>%s</b>.<br/>"
-                "Pendiente: firma del Jefe de Departamento."
+                "Pendiente: firma del Responsable de Actividad."
             )
-            % (len(approved), self.responsable_actividad_id.name or ''),
+            % (len(approved), nombre_jd),
             subtype_xmlid="mail.mt_note",
         )
 

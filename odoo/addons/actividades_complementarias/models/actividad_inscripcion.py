@@ -79,12 +79,21 @@ class ActividadInscripcion(models.Model):
         default=False,
         readonly=True,
         copy=False,
+        help="Marcado cuando el Jefe de Departamento genera la constancia.",
     )
-    certificate_signed = fields.Boolean(
-        string="Constancia Firmada",
+    jd_signed = fields.Boolean(
+        string="Firma Jefe Departamento",
         default=False,
         readonly=True,
         copy=False,
+        help="Marcado automáticamente cuando el Jefe de Departamento genera la constancia.",
+    )
+    ra_signed = fields.Boolean(
+        string="Firma Responsable Actividad",
+        default=False,
+        readonly=True,
+        copy=False,
+        help="Marcado cuando el Responsable de Actividad firma la constancia.",
     )
 
     # Computed helpers

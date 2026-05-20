@@ -30,7 +30,8 @@
                 />
                 <field name="observations" string="Observaciones" readonly="1"/>
                 <field name="certificate_generated" readonly="1"/>
-                <field name="certificate_signed" readonly="1"/>
+                <field name="jd_signed" readonly="1"/>
+                <field name="ra_signed" readonly="1"/>
                 <button name="action_evaluar" string="Evaluar"
                         type="object" icon="fa-pencil" class="btn-sm btn-primary"/>
             </list>
