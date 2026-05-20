@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_ventana_liberacion_list" model="ir.ui.view">
+        <field name="name">actividad.ventana.liberacion.list</field>
+        <field name="model">actividad.ventana.liberacion</field>
+        <field name="arch" type="xml">
+            <list string="Ventanas de Liberación">
+                <field name="periodo_id"/>
+                <field name="fecha_inicio"/>
+                <field name="fecha_fin"/>
+                <field name="activa" widget="boolean"/>
+                <field name="reporte_generado" widget="boolean"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ventana_liberacion_form" model="ir.ui.view">
+        <field name="name">actividad.ventana.liberacion.form</field>
+        <field name="model">actividad.ventana.liberacion</field>
+        <field name="arch" type="xml">
+            <form string="Ventana de Liberación">
+                <header>
+                    <button name="action_generar_reporte"
+                            string="Generar Reporte de Liberados"
+                            type="object" class="btn-success"
+                            invisible="reporte_generado or activa"
+                            confirm="¿Generar el reporte Excel de estudiantes liberados? Esta acción no se puede deshacer."/>
+                </header>
+                <sheet>
+                    <div class="alert alert-success" role="alert"
+                         invisible="not activa">
+                        <i class="fa fa-calendar-check-o me-1"/>
+                        <strong>Ventana activa</strong> — los estudiantes pueden enviar solicitudes.
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="not reporte_generado">
+                        <i class="fa fa-file-excel-o me-1"/>
+                        Reporte generado:
+                        <field name="reporte_attachment_id" nolabel="1" readonly="1"/>
+                    </div>
+                    <group>
+                        <field name="periodo_id"
+                               options="{'no_create': True, 'no_quick_create': True}"/>
+                        <field name="fecha_inicio"/>
+                        <field name="fecha_fin"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ventana_liberacion" model="ir.actions.act_window">
+        <field name="name">Ventanas de Liberación</field>
+        <field name="res_model">actividad.ventana.liberacion</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

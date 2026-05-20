@@ -88,4 +88,188 @@
         </field>
     </record>
 
+    <!-- ── Vista SE: lista de solicitudes para revisar ── -->
+    <record id="view_solicitud_liberacion_se_list" model="ir.ui.view">
+        <field name="name">actividad.solicitud.liberacion.se.list</field>
+        <field name="model">actividad.solicitud.liberacion</field>
+        <field name="arch" type="xml">
+            <list string="Solicitudes de Liberación" create="0">
+                <field name="estudiante_id" string="Estudiante"/>
+                <field name="fecha"/>
+                <field name="creditos_validos" string="Créditos"/>
+                <field name="promedio_label" string="Desempeño"/>
+                <field name="ventana_id" string="Ventana"/>
+                <field name="estado" widget="badge"
+                    decoration-warning="estado == 'en_revision'"
+                    decoration-success="estado == 'aprobada'"
+                    decoration-danger="estado == 'rechazada'"
+                    decoration-muted="estado == 'borrador'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Vista SE: formulario con acciones de aprobación ── -->
+    <record id="view_solicitud_liberacion_se_form" model="ir.ui.view">
+        <field name="name">actividad.solicitud.liberacion.se.form</field>
+        <field name="model">actividad.solicitud.liberacion</field>
+        <field name="inherit_id" ref="view_solicitud_liberacion_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Botones SE en el header, antes del botón del estudiante -->
+            <xpath expr="//header/button[@name='action_solicitar_liberacion']"
+                position="before">
+                <button name="action_aprobar_se"
+                        string="Aprobar"
+                        type="object"
+                        class="btn-success"
+                        invisible="estado != 'en_revision'"
+                        confirm="¿Confirmar la aprobación? Esta acción no puede deshacerse."
+                        groups="actividades_complementarias.group_servicios_escolares,
+                                actividades_complementarias.group_admin_actividades"/>
+                <button name="action_rechazar_se"
+                        string="Rechazar"
+                        type="object"
+                        class="btn-danger"
+                        invisible="estado != 'en_revision'"
+                        groups="actividades_complementarias.group_servicios_escolares,
+                                actividades_complementarias.group_admin_actividades"/>
+            </xpath>
+
+            <!-- Sección SE: resolución + expediente, visible solo para SE/Admin -->
+            <xpath expr="//sheet/group" position="after">
+                <group string="Resolución de Servicios Escolares"
+                    invisible="estado == 'borrador'"
+                    groups="actividades_complementarias.group_servicios_escolares,
+                            actividades_complementarias.group_admin_actividades">
+                    <field name="ventana_id" readonly="1"/>
+                    <field name="aprobado_por" readonly="1"
+                        invisible="estado == 'en_revision'"/>
+                    <field name="observaciones_se"
+                        placeholder="Obligatorio al rechazar..."
+                        readonly="estado != 'en_revision'"/>
+                    <button name="action_ver_expediente_alumno"
+                            string="Ver Expediente del Alumno"
+                            type="object"
+                            class="btn-secondary btn-sm mt-1"
+                            icon="fa-external-link"/>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- Búsqueda SE con filtros por estado -->
+    <record id="view_solicitud_liberacion_se_search" model="ir.ui.view">
+        <field name="name">actividad.solicitud.liberacion.se.search</field>
+        <field name="model">actividad.solicitud.liberacion</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Solicitudes">
+                <field name="estudiante_id" string="Estudiante"/>
+                <filter name="filter_pendientes" string="Pendientes"
+                        domain="[('estado','=','en_revision')]"/>
+                <filter name="filter_aprobadas" string="Aprobadas"
+                        domain="[('estado','=','aprobada')]"/>
+                <filter name="filter_rechazadas" string="Rechazadas"
+                        domain="[('estado','=','rechazada')]"/>
+                <separator/>
+                <filter name="group_ventana" string="Por Ventana"
+                        context="{'group_by':'ventana_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Acción SE: solicitudes de la ventana activa (filtro automático pendientes) -->
+    <record id="action_solicitud_liberacion_se" model="ir.actions.act_window">
+        <field name="name">Solicitudes de Liberación</field>
+        <field name="res_model">actividad.solicitud.liberacion</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('estado', '!=', 'borrador')]</field>
+        <field name="context">{'search_default_filter_pendientes': 1}</field>
+        <field name="view_id" ref="view_solicitud_liberacion_se_list"/>
+        <field name="search_view_id" ref="view_solicitud_liberacion_se_search"/>
+    </record>
+
+    <!-- Acción SE: historial (aprobadas y rechazadas de periodos anteriores) -->
+    <record id="action_historial_solicitudes_se" model="ir.actions.act_window">
+        <field name="name">Historial de Solicitudes</field>
+        <field name="res_model">actividad.solicitud.liberacion</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('estado', 'in', ['aprobada', 'rechazada'])]</field>
+        <field name="search_view_id" ref="view_solicitud_liberacion_se_search"/>
+        <field name="views" eval="[
+            (ref('view_solicitud_liberacion_se_list'), 'list'),
+            (ref('view_solicitud_liberacion_se_form'), 'form'),
+        ]"/>
+    </record>
+
+    <!-- SE-03SC: consulta de estudiante por No. Control / nombre -->
+    <record id="view_sii_estudiante_se_list" model="ir.ui.view">
+        <field name="name">sii.estudiante.se.list</field>
+        <field name="model">sii.estudiante</field>
+        <field name="arch" type="xml">
+            <list string="Estudiantes" create="0" edit="0" delete="0">
+                <field name="no_control" string="No. Control"/>
+                <field name="nombre"/>
+                <field name="apellido_paterno"/>
+                <field name="apellido_materno"/>
+                <field name="id_carrera" string="Carrera"/>
+                <field name="semestre"/>
+                <field name="estado_estudiante" string="Estado"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_sii_estudiante_se_form" model="ir.ui.view">
+        <field name="name">sii.estudiante.se.form</field>
+        <field name="model">sii.estudiante</field>
+        <field name="arch" type="xml">
+            <form string="Expediente del Estudiante" create="0" edit="0" delete="0">
+                <sheet>
+                    <div name="button_box" class="oe_button_box">
+                        <button name="action_ver_expediente"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-graduation-cap">
+                            <span class="o_stat_text">Ver Expediente</span>
+                        </button>
+                    </div>
+                    <group string="Datos Generales">
+                        <field name="no_control" readonly="1"/>
+                        <field name="nombre" readonly="1"/>
+                        <field name="apellido_paterno" readonly="1"/>
+                        <field name="apellido_materno" readonly="1"/>
+                        <field name="id_carrera" readonly="1"/>
+                        <field name="semestre" readonly="1"/>
+                        <field name="grupo" readonly="1"/>
+                        <field name="estado_estudiante" readonly="1"/>
+                        <field name="correo" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_sii_estudiante_se_search" model="ir.ui.view">
+        <field name="name">sii.estudiante.se.search</field>
+        <field name="model">sii.estudiante</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Estudiante">
+                <field name="no_control" string="No. Control"/>
+                <field name="nombre" string="Nombre"/>
+                <field name="apellido_paterno"/>
+                <field name="id_carrera"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_consulta_estudiante_se" model="ir.actions.act_window">
+        <field name="name">Buscar Estudiante</field>
+        <field name="res_model">sii.estudiante</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_sii_estudiante_se_search"/>
+        <field name="views" eval="[
+            (ref('view_sii_estudiante_se_list'), 'list'),
+            (ref('view_sii_estudiante_se_form'), 'form'),
+        ]"/>
+    </record>
 </odoo>

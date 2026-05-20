@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields
+from odoo.exceptions import ValidationError
 
 
 class SiiEstudiante(models.Model):
@@ -83,3 +84,29 @@ class SiiEstudiante(models.Model):
             }
             for e in es
         ]
+
+    def action_ver_expediente(self):
+        self.ensure_one()
+        usuario = self.env['res.users'].sudo().search(
+            [('login', '=', self.correo)], limit=1
+        )
+        if not usuario:
+            raise ValidationError(
+                f'El estudiante "{self.nombre} {self.apellido_paterno}" '
+                f'(correo: {self.correo}) no tiene una cuenta activa en el sistema.'
+            )
+        # Ejecutar el search con la identidad del alumno para aplicar
+        # exactamente sus record rules (en_catalogo=True) — mismos resultados
+        # que ve el alumno en "Mi Expediente".
+        actividades_ids = self.env['actividad.complementaria'].with_user(usuario).search([
+            ('alumno_ids', 'in', usuario.ids),
+            ('constancias_firmadas', '=', True),
+        ]).ids
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'Expediente — {self.nombre} {self.apellido_paterno}',
+            'res_model': 'actividad.complementaria',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', actividades_ids)],
+            'context': {'create': False},
+        }
