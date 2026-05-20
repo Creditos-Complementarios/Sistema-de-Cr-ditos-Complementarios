@@ -15,7 +15,6 @@ Reglas de negocio:
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
-import pytz
 
 
 class ActividadAsistencia(models.Model):

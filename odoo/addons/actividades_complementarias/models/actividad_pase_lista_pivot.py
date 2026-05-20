@@ -13,8 +13,7 @@ Usado por el template QWeb ``pase_lista_pivot_template`` para renderizar
 una tabla HTML interactiva que permite marcar asistencia sin recargar la página.
 """
 
-from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
+from odoo import fields, models
 
 
 class ActividadPaseListaPivot(models.TransientModel):

@@ -17,11 +17,20 @@ GET  /actividades/pase-lista/<int:actividad_id>/exportar-excel
 
 import io
 import json
+import logging
 import re
+import traceback
+import unicodedata
 from datetime import date
+
+import openpyxl
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 
 from odoo import http
 from odoo.http import request
+
+_logger = logging.getLogger(__name__)
 
 
 class PaseListaPivotController(http.Controller):
@@ -86,8 +95,6 @@ class PaseListaPivotController(http.Controller):
         try:
             return self._generar_excel(actividad_id)
         except Exception as exc:
-            import traceback, logging
-            _logger = logging.getLogger(__name__)
             _logger.error("exportar_excel error: %s", traceback.format_exc())
             return request.make_response(
                 f"Error al generar el Excel: {exc}\n\n{traceback.format_exc()}",
@@ -96,12 +103,6 @@ class PaseListaPivotController(http.Controller):
             )
 
     def _generar_excel(self, actividad_id):
-        import openpyxl
-        from openpyxl.styles import (
-            Alignment, Border, Font, PatternFill, Side
-        )
-        from openpyxl.utils import get_column_letter
-
         env = request.env
         Asistencia = env["actividad.asistencia"]
         actividad = env["actividad.complementaria"].browse(actividad_id)
@@ -132,11 +133,11 @@ class PaseListaPivotController(http.Controller):
             mapa[(r.inscripcion_id.id, str(r.fecha))] = r.presente
 
         # ── Estilos ──────────────────────────────────────────────────
-        AZUL_OSCURO  = "1F3864"
-        AZUL_CLARO   = "D6E4F7"
-        VERDE        = "C6EFCE"
-        ROJO         = "FFCCCC"
-        GRIS         = "F2F2F2"
+        AZUL_OSCURO = "1F3864"
+        AZUL_CLARO = "D6E4F7"
+        VERDE = "C6EFCE"
+        ROJO = "FFCCCC"
+        GRIS = "F2F2F2"
         BORDE = Border(
             left=Side(style="thin"),
             right=Side(style="thin"),
@@ -193,8 +194,8 @@ class PaseListaPivotController(http.Controller):
         ws.cell(row=HEADER_ROW, column=2, value="Estudiante")
         estilo_encabezado(ws.cell(row=HEADER_ROW, column=2))
 
-        meses = ["ene","feb","mar","abr","may","jun",
-                 "jul","ago","sep","oct","nov","dic"]
+        meses = ["ene", "feb", "mar", "abr", "may", "jun",
+                 "jul", "ago", "sep", "oct", "nov", "dic"]
         for col_idx, fiso in enumerate(fechas_str, start=3):
             partes = fiso.split("-")
             label = f"{int(partes[2])} {meses[int(partes[1])-1]}"
@@ -286,7 +287,6 @@ class PaseListaPivotController(http.Controller):
         buf.seek(0)
 
         # Normalizar: quitar acentos, espacios → guion bajo, minúsculas
-        import unicodedata
         nombre_raw = actividad.name or "actividad"
         nombre_norm = unicodedata.normalize("NFD", nombre_raw)
         nombre_ascii = "".join(
