@@ -19,3 +19,5 @@ from . import propuesta_actividad  # noqa: F401
 from . import empleado_permiso  # noqa: F401
 from . import solicitud_liberacion  # noqa: F401
 from . import actividad_pase_lista_pivot  # noqa: F401
+from . import ventana_liberacion
+from . import empleado_permiso_se

@@ -9,3 +9,4 @@ from . import wizard_guardar_permisos  # noqa: F401
 from . import wizard_nueva_sesion  # noqa: F401
 from . import wizard_evidencia  # noqa: F401
 from . import wizard_evaluar_alumno  # noqa: F401
+from . import wizard_guardar_permisos_se

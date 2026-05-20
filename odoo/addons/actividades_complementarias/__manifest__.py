@@ -36,6 +36,7 @@
         # 5. Vistas
         'views/alumno_views.xml',
         'views/solicitud_liberacion_views.xml',
+        'views/ventana_liberacion_views.xml',
         'views/tipo_actividad_views.xml',
         'views/tipo_predefinida_views.xml',
         'views/periodo_views.xml',
@@ -45,6 +46,7 @@
         'views/actividad_asistencia_views.xml',
         'views/propuesta_views.xml',
         'views/empleado_views.xml',
+        'views/empleado_se_views.xml',   # antes de menu_views.xml
         'views/wizard_views.xml',
         'views/menu_views.xml',
         # 6. Permisos de los modelos SII nuevos (XML al final, cuando ir.model ya los registró)
