@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from . import models
 from . import wizards
+from . import controllers
 
 
 def post_init_hook(env):

@@ -2,36 +2,18 @@
 <!--
     actividad_asistencia_views.xml
     ================================
-    Vistas para el modelo actividad.asistencia (pase de lista).
-    RA-02SC pasos 6–8 / RAE-01SC pasos 6–8.
+    La vista matricial (pase de lista por fecha/columna) se define en
+    actividad_pase_lista_pivot_views.xml y su lógica en pase_lista_pivot.js.
+
+    Este archivo conserva solo la acción de ventana legacy para que las
+    referencias externas al modelo actividad.asistencia sigan funcionando.
 -->
 <odoo>
-    <!-- ================================================================ -->
-    <!-- VISTA LISTA (pase de lista tabular)                              -->
-    <!-- ================================================================ -->
-    <record id="view_actividad_asistencia_list" model="ir.ui.view">
-        <field name="name">actividad.asistencia.list</field>
-        <field name="model">actividad.asistencia</field>
-        <field name="arch" type="xml">
-            <list
-                string="Pase de Lista"
-                editable="bottom"
-                decoration-success="presente"
-                decoration-muted="not presente"
-            >
-                <field name="fecha"/>
-                <field name="partner_id" string="Estudiante" readonly="True"/>
-                <field name="presente" widget="boolean_toggle"/>
-            </list>
-        </field>
-    </record>
-
-    <!-- ================================================================ -->
-    <!-- ACCIÓN                                                           -->
-    <!-- ================================================================ -->
+    <!-- Acción de ventana de respaldo (usada por menús administrativos) -->
     <record id="action_actividad_asistencia" model="ir.actions.act_window">
         <field name="name">Pase de Lista</field>
         <field name="res_model">actividad.asistencia</field>
         <field name="view_mode">list</field>
+        <field name="view_id" ref="actividades_complementarias.view_actividad_asistencia_list"/>
     </record>
 </odoo>

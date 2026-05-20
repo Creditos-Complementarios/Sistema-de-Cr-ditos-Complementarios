@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
-# Copyright 2025 Your Organization
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl-3.0).
-
 """
 actividad_asistencia.py
 =======================
 Registro de asistencia por estudiante y fecha para una Actividad Complementaria.
 
-Reglas de negocio (RA-02SC / RAE-01SC):
+Reglas de negocio:
 - Solo se puede registrar asistencia dentro del rango de fechas de la actividad.
 - El pase de lista no puede modificarse una vez finalizada la actividad.
 - Un mismo estudiante no puede tener dos registros en la misma fecha para la
   misma actividad (restricción SQL).
+- Una sesión queda bloqueada cuando se crea una sesión posterior a ella:
+  solo la sesión más reciente permanece editable.
 """
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
+import pytz
 
 
 class ActividadAsistencia(models.Model):
@@ -106,7 +106,12 @@ class ActividadAsistencia(models.Model):
     # ------------------------------------------------------------------
 
     def write(self, vals):
-        """Bloquea cualquier modificación si la actividad ya está finalizada."""
+        """
+        Bloquea modificaciones si:
+        1. La actividad ya está finalizada.
+        2. La sesión es anterior a la sesión más reciente de esa actividad.
+           (Solo la sesión más reciente permanece editable.)
+        """
         for rec in self:
             if rec.actividad_id.estado_code == "finalizada":
                 raise ValidationError(
@@ -116,4 +121,23 @@ class ActividadAsistencia(models.Model):
                     )
                     % rec.actividad_id.name
                 )
+
+            # Obtener la fecha más reciente entre todos los registros
+            # de asistencia de esta actividad
+            ultima_fecha = self.env["actividad.asistencia"].search(
+                [("actividad_id", "=", rec.actividad_id.id)],
+                order="fecha desc",
+                limit=1,
+            ).fecha
+
+            if ultima_fecha and rec.fecha < ultima_fecha:
+                raise ValidationError(
+                    _(
+                        "No se puede modificar la asistencia de la sesión del %s: "
+                        "esta sesión está cerrada porque ya existe una sesión posterior (%s). "
+                        "Solo la sesión más reciente puede editarse."
+                    )
+                    % (rec.fecha, ultima_fecha)
+                )
+
         return super().write(vals)

@@ -1829,24 +1829,25 @@ class Actividad(models.Model):
             'context': {'default_actividad_id': self.id},
         }
 
-    # En action_abrir_pase_lista — añadir la acción del wizard al contexto
     def action_abrir_pase_lista(self):
+        """
+        Abre la vista matricial (pivot) del pase de lista.
+        Columnas = fechas de sesión | Filas = estudiantes inscritos.
+        La acción cliente OWL carga los datos vía /actividades/pase-lista/<id>/data
+        y guarda los cambios vía /actividades/pase-lista/toggle.
+        """
         self.ensure_one()
-        view = self.env.ref(
-            'actividades_complementarias.view_actividad_asistencia_list',
-            raise_if_not_found=False,
-        )
         return {
-            'type': 'ir.actions.act_window',
+            'type': 'ir.actions.client',
+            'tag': 'pase_lista_pivot_action',
             'name': 'Pase de Lista — %s' % self.name,
-            'res_model': 'actividad.asistencia',
-            'view_mode': 'list',
-            'views': [(view.id, 'list')] if view else [(False, 'list')],
-            'domain': [('actividad_id', '=', self.id)],
             'context': {
                 'default_actividad_id': self.id,
-                'actividad_readonly': self.estado_code == 'finalizada'
-                or self.certificates_generated,
+                'active_id': self.id,
+                'actividad_readonly': (
+                    self.estado_code == 'finalizada'
+                    or self.certificates_generated
+                ),
             },
         }
 

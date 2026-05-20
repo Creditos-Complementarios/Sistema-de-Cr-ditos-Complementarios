@@ -18,3 +18,4 @@ from . import actividad
 from . import propuesta_actividad
 from . import empleado_permiso
 from . import solicitud_liberacion
+from . import actividad_pase_lista_pivot
