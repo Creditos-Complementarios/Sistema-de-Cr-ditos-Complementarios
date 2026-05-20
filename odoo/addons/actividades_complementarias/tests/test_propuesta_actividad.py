@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 from datetime import date, timedelta
 
 from odoo import fields
@@ -75,6 +76,8 @@ class TestPropuestaActividad(TransactionCase):
         """La fecha de envío de la propuesta debe ser la fecha actual en la zona horaria del usuario."""
         propuesta = self._make_propuesta()
         self.assertEqual(propuesta.fecha, fields.Date.context_today(propuesta))
+
+    def test_fecha_limite_revision_es_5_dias_despues(self):
         """La fecha límite de revisión debe ser 5 días después de la fecha de envío."""
         propuesta = self._make_propuesta()
         esperada = propuesta.fecha + timedelta(days=5)
@@ -125,7 +128,6 @@ class TestPropuestaActividad(TransactionCase):
     def test_aprobar_no_duplica_predefinida(self):
         """Aprobar dos propuestas con el mismo nombre de actividad no debe
         crear registros duplicados en actividad.tipo.predefinida."""
-        import datetime
         hoy = datetime.date.today()
 
         actividad2 = self.env['actividad.complementaria'].with_context(

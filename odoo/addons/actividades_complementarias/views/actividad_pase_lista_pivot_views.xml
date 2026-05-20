@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    actividad_pase_lista_pivot_views.xml
+    =====================================
+    Vistas para el Pase de Lista en formato matricial (columnas = fechas de sesión).
+
+    La lógica interactiva vive en static/src/js/pase_lista_pivot.js (componente OWL).
+    Usa orm service directamente, sin controllers HTTP adicionales.
+-->
+<odoo>
+
+    <!-- ── Vista lista legacy (mantener para compatibilidad/fallback) ──── -->
+    <record id="view_actividad_asistencia_list" model="ir.ui.view">
+        <field name="name">actividad.asistencia.list</field>
+        <field name="model">actividad.asistencia</field>
+        <field name="arch" type="xml">
+            <list
+                string="Pase de Lista"
+                editable="bottom"
+                decoration-success="presente"
+                decoration-muted="not presente"
+            >
+                <field name="fecha"/>
+                <field name="partner_id" string="Estudiante" readonly="True"/>
+                <field name="presente"   widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Acción cliente — componente OWL pase_lista_pivot_action ─────── -->
+    <record id="action_pase_lista_pivot_client" model="ir.actions.client">
+        <field name="name">Pase de Lista — Matriz</field>
+        <field name="tag">pase_lista_pivot_action</field>
+    </record>
+
+</odoo>
