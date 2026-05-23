@@ -1201,8 +1201,23 @@ class Actividad(models.Model):
                         )
                 continue
 
-            # Reemplazar por ¿if is_ra and (not rec.id or rec.responsable_actividad_id.id == self.env.user.id):?
             if is_ra and rec.responsable_actividad_id.id == self.env.user.id:
+                # RA nunca puede modificar campos auto-gestionados por el sistema
+                campos_auto_solicitados = set(vals.keys()) & self._CAMPOS_AUTO_JD
+                if campos_auto_solicitados:
+                    raise UserError(
+                        _('Los siguientes campos son gestionados automáticamente '
+                          'por el sistema y no pueden modificarse directamente: %s.')
+                        % ', '.join(sorted(campos_auto_solicitados))
+                    )
+                # Una vez enviada la actividad, el RA no modifica campos directamente.
+                # Todas sus operaciones legítimas usan bypass_edit_protection=True.
+                if rec.estado_code:
+                    raise UserError(
+                        _('La actividad "%s" ya fue enviada. El Responsable de '
+                          'Actividad no puede modificar sus datos directamente.')
+                        % rec.name
+                    )
                 continue
 
             # ── Personal de Departamento ──────────────────────────────────────
@@ -1363,10 +1378,10 @@ class Actividad(models.Model):
     @api.constrains('cantidad_horas', 'fecha_inicio', 'fecha_fin')
     def _check_horas_vs_dias(self):
         """La cantidad de horas no puede exceder el total de horas disponibles
-        en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo."""
+        en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo
+        o cuando se indica explícitamente mediante contexto."""
         if (self.env.context.get('install_demo')
-                or self.env.context.get('skip_horas_check')
-                or self.env.registry._init):
+                or self.env.context.get('skip_horas_check')):
             return
         for rec in self:
             if rec.cantidad_horas <= 0:
