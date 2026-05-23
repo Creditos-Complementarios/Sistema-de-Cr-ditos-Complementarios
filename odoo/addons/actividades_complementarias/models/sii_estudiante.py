@@ -49,11 +49,8 @@ class SiiEstudiante(models.Model):
         string='Telefono'
     )
 
-    _constraints = [
-        models.Constraint(
-            'UNIQUE(no_control)',
-            'NoControl debe ser único.'
-        )
+    _sql_constraints = [
+        ('no_control_uniq', 'UNIQUE(no_control)', 'NoControl debe ser único.'),
     ]
 
     def sp_validar_alumno(self, nc):
