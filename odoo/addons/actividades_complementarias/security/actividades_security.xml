@@ -115,11 +115,46 @@
 
     <!--
         División de Estudios Profesionales / Coordinador (DEP-C-01SC, DEP-C-02SC).
-        Grupo stub — puede difundir actividades y consultar expedientes de estudiantes.
+        Grupo base compartido — hereda permisos de lectura de catálogo y consulta
+        de expedientes de estudiantes.  No puede crear, aprobar ni eliminar actividades.
+        Las dos ramas (División y Coordinador) son prácticamente idénticas en funcionalidad;
+        se separan como grupos distintos solo para poder asignar usuarios independientes.
     -->
     <record id="group_division_estudios" model="res.groups">
-        <field name="name">División de Estudios Profesionales / Coordinador</field>
+        <field name="name">División de Estudios Profesionales / Coordinador (Base)</field>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">
+            Grupo base para División de Estudios Profesionales y Coordinador.
+            Otorga acceso de solo lectura al catálogo de actividades aprobadas y
+            a la consulta del expediente de estudiantes.  No puede modificar ni crear.
+        </field>
+    </record>
+
+    <!-- Actor: División de Estudios Profesionales -->
+    <record id="group_division_estudios_profesionales" model="res.groups">
+        <field name="name">División de Estudios Profesionales</field>
+        <field name="implied_ids" eval="[
+            (4, ref('base.group_user')),
+            (4, ref('actividades_complementarias.group_division_estudios'))
+        ]"/>
+        <field name="comment">
+            Puede visualizar el catálogo de actividades complementarias aprobadas,
+            difundir (notificar) actividades a estudiantes y consultar expedientes.
+        </field>
+    </record>
+
+    <!-- Actor: Coordinador -->
+    <record id="group_coordinador" model="res.groups">
+        <field name="name">Coordinador</field>
+        <field name="implied_ids" eval="[
+            (4, ref('base.group_user')),
+            (4, ref('actividades_complementarias.group_division_estudios'))
+        ]"/>
+        <field name="comment">
+            Puede visualizar el catálogo de actividades complementarias aprobadas,
+            difundir (notificar) actividades a estudiantes y consultar expedientes.
+            Funcionalidad idéntica a División de Estudios Profesionales.
+        </field>
     </record>
 
     <!-- ════════════════════════════════════════════════════════════════════
@@ -133,6 +168,18 @@
          JD y Comité — el filtrado por departamento se gestiona en Python
                        (_search override); aquí solo se protegen escrituras ORM.
     -->
+
+    <!-- DEP/Coordinador: solo ve actividades aprobadas y en catálogo (solo lectura) -->
+    <record id="rule_actividad_division_estudios" model="ir.rule">
+        <field name="name">División/Coordinador: solo actividades en catálogo</field>
+        <field name="model_id" ref="model_actividad_complementaria"/>
+        <field name="domain_force">[('en_catalogo', '=', True)]</field>
+        <field name="groups" eval="[(4, ref('actividades_complementarias.group_division_estudios'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
 
     <record id="rule_actividad_alumno" model="ir.rule">
         <field name="name">Alumno: solo actividades en catálogo</field>
