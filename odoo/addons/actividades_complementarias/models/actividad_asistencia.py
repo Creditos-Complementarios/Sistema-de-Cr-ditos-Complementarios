@@ -62,7 +62,7 @@ class ActividadAsistencia(models.Model):
 
     _sql_constraints = [
         ('unique_asistencia', 'UNIQUE(actividad_id, inscripcion_id, fecha)',
-        'Ya existe un registro de asistencia para este estudiante en esa fecha.'),
+            'Ya existe un registro de asistencia para este estudiante en esa fecha.'),
     ]
 
     # ------------------------------------------------------------------
