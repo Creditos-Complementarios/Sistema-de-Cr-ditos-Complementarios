@@ -207,7 +207,7 @@ class SolicitudLiberacion(models.Model):
                     'Ya existe una solicitud activa (En Revisión o Aprobada) '
                     'para este estudiante. Solo puede haber una a la vez.'
                 )
- 
+
     @api.constrains('estudiante_id')
     def _check_estudiante_es_usuario(self):
         """E-03SC: el estudiante de la solicitud debe ser el usuario autenticado."""
