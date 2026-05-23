@@ -1363,10 +1363,10 @@ class Actividad(models.Model):
     @api.constrains('cantidad_horas', 'fecha_inicio', 'fecha_fin')
     def _check_horas_vs_dias(self):
         """La cantidad de horas no puede exceder el total de horas disponibles
-        en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo."""
+        en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo
+        o cuando se indica explícitamente mediante contexto."""
         if (self.env.context.get('install_demo')
-                or self.env.context.get('skip_horas_check')
-                or self.env.registry._init):
+                or self.env.context.get('skip_horas_check')):
             return
         for rec in self:
             if rec.cantidad_horas <= 0:
