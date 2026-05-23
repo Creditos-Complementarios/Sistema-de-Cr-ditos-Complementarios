@@ -208,6 +208,19 @@ class SolicitudLiberacion(models.Model):
                     'para este estudiante. Solo puede haber una a la vez.'
                 )
 
+    @api.constrains('estudiante_id')
+    def _check_estudiante_es_usuario(self):
+        """E-03SC: el estudiante de la solicitud debe ser el usuario autenticado."""
+        for rec in self:
+            if (
+                not self.env.user.has_group('actividades_complementarias.group_admin_actividades')
+                and not self.env.user.has_group('actividades_complementarias.group_servicios_escolares')
+                and rec.estudiante_id.id != self.env.user.id
+            ):
+                raise ValidationError(
+                    'Solo puedes crear solicitudes de liberación a tu propio nombre.'
+                )
+
     # ────────────────────────────────────────────────────────────────────────
     # Business logic
     # ────────────────────────────────────────────────────────────────────────
