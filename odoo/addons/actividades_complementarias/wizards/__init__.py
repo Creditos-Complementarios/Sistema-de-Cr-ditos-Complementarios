@@ -10,3 +10,4 @@ from . import wizard_nueva_sesion  # noqa: F401
 from . import wizard_evidencia  # noqa: F401
 from . import wizard_evaluar_alumno  # noqa: F401
 from . import wizard_guardar_permisos_se
+from . import wizard_difundir_actividad  # noqa: F401 — DEP-C-01SC

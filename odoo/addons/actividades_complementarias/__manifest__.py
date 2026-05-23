@@ -49,6 +49,7 @@
         'views/empleado_views.xml',
         'views/empleado_se_views.xml',   # antes de menu_views.xml
         'views/wizard_views.xml',
+        'views/wizard_difundir_actividad_views.xml',
         'views/menu_views.xml',
         # 6. Permisos de los modelos SII nuevos (XML al final, cuando ir.model ya los registró)
         'security/sii_model_access.xml',

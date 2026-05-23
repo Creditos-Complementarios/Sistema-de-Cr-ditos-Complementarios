@@ -104,7 +104,7 @@
                     <!-- Botón para actividades predefinidas (sin pasar por el Comité) -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
                         type="object" class="btn-primary"
-                        invisible="(not actividad_predefinida and estado_code not in ['aprobada', 'pendiente_inicio']) or en_catalogo"
+                        invisible="not actividad_predefinida or en_catalogo or (estado_code and estado_code not in ['pendiente_inicio','aprobada'])"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
                     <!-- Botón Enviar al Catálogo para DE (actividades extraescolar sin Comité) -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
@@ -151,6 +151,23 @@
                     <field name="certificates_generated" invisible="1"/>
                     <field name="jd_firmo" invisible="1"/>
                     <field name="responsable_firmo" invisible="1"/>
+                    <!-- ── DEP-C-01SC: Difundir actividad ────────────────────────────────
+                         Visible para División de Estudios Profesionales y Coordinador.
+                         Solo habilitado cuando:
+                           - estado_code == 'pendiente_inicio'
+                           - cupos_disponibles > 0  (o cupo es ilimitado)
+                         El campo cupos_disponibles se carga en el formulario vía
+                         el campo invisible declarado más abajo.
+                    ──────────────────────────────────────────────────────────────────── -->
+                    <field name="cupos_disponibles" invisible="1"/>
+                    <field name="cupo_ilimitado" invisible="1"/>
+                    <button name="action_abrir_difundir"
+                            string="Difundir"
+                            type="object"
+                            class="btn-info"
+                            icon="fa-bullhorn"
+                            invisible="estado_code != 'pendiente_inicio' or (not cupo_ilimitado and cupos_disponibles &lt;= 0)"
+                            groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
                 </header>
                 <sheet>
                     <field name="tipo_actividad_readonly" invisible="1"/>
