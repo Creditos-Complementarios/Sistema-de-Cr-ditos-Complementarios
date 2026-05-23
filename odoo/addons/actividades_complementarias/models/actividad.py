@@ -1473,6 +1473,8 @@ class Actividad(models.Model):
     def action_darse_de_baja(self):
         """E-02SC flujo alterno: el alumno se da de baja."""
         self.ensure_one()
+        if self.estado_code == 'finalizada':
+            raise UserError(_('No puedes darte de baja: la actividad ya ha finalizado.'))
         self.sudo().with_context(bypass_edit_protection=True).write({
             'alumno_ids': [(3, self.env.user.id)],
         })
