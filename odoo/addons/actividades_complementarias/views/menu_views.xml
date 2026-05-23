@@ -9,7 +9,7 @@
     <menuitem id="menu_actividades_root"
               name="Actividades Complementarias"
               sequence="50"
-              groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_comite_academico,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_alumno,actividades_complementarias.group_servicios_escolares"
+              groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_comite_academico,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_alumno,actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_division_estudios"
               web_icon="actividades_complementarias,static/description/icon.png"/>
 
     <!-- ── Jefe de Departamento ──────────────────────────────────────────── -->
@@ -316,5 +316,46 @@
               action="action_empleado_permiso_de"
               sequence="30"
               groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
+
+    <!-- ── División de Estudios Profesionales / Coordinador ─────────────────
+         DEP-C-01SC / DEP-C-02SC
+         Ambos actores (División de Estudios Profesionales y Coordinador)
+         comparten la misma funcionalidad: consultar el catálogo de
+         actividades aprobadas y revisar el expediente de estudiantes.
+         La separación entre los dos roles se consigue mediante grupos
+         distintos (group_division_estudios_profesionales y group_coordinador);
+         la lógica de acceso es idéntica, por lo que ambos grupos comparten
+         este mismo menú a través del grupo base group_division_estudios.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <menuitem id="menu_dep_root"
+              name="División de Estudios Profesionales"
+              parent="menu_actividades_root"
+              sequence="57"
+              groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
+
+    <!--
+        DEP-C-01SC: Catálogo de Actividades.
+        Reutiliza la misma acción del catálogo general (en_catalogo=True).
+        La record rule rule_actividad_division_estudios garantiza a nivel ORM
+        que solo se muestren actividades en catálogo.
+    -->
+    <menuitem id="menu_dep_catalogo"
+              name="Catálogo de Actividades"
+              parent="menu_dep_root"
+              action="action_actividad_catalogo"
+              sequence="10"
+              groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
+
+    <!--
+        DEP-C-02SC: Consulta de Expediente de Estudiante.
+        Reutiliza las vistas y la acción de búsqueda de Servicios Escolares
+        (view_sii_estudiante_se_*) ya que el flujo de consulta es idéntico.
+    -->
+    <menuitem id="menu_dep_estudiantes"
+              name="Buscar Estudiante"
+              parent="menu_dep_root"
+              action="action_consulta_estudiante_se"
+              sequence="20"
+              groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
 
 </odoo>

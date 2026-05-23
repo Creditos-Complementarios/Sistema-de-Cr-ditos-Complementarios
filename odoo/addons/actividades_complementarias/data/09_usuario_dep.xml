@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="1">
+
+    <!-- ============================================================ -->
+    <!-- USUARIO: División de Estudios Profesionales (DEP-C-01SC)     -->
+    <!--                                                              -->
+    <!-- Puede consultar el catálogo de actividades aprobadas y       -->
+    <!-- revisar el expediente de estudiantes.  No crea, modifica     -->
+    <!-- ni elimina actividades.                                      -->
+    <!-- ============================================================ -->
+    <record id="user_division_estudios" model="res.users">
+        <field name="name">Laura Patricia Tun Dzul</field>
+        <field name="login">laura.tun@chetumal.tecnm.mx</field>
+        <field name="password">Admin1234!</field>
+        <field name="company_id" ref="base.main_company"/>
+        <field name="group_ids" eval="[(4, ref('actividades_complementarias.group_division_estudios_profesionales'))]"/>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- USUARIO: Coordinador (DEP-C-02SC)                           -->
+    <!--                                                              -->
+    <!-- Funcionalidad idéntica a División de Estudios Profesionales: -->
+    <!-- consultar catálogo y expediente de estudiantes.              -->
+    <!-- Se separa en grupo propio para permitir asignación           -->
+    <!-- independiente de usuarios.                                   -->
+    <!-- ============================================================ -->
+    <record id="user_coordinador" model="res.users">
+        <field name="name">Jorge Arturo Caamal Noh</field>
+        <field name="login">jorge.caamal@chetumal.tecnm.mx</field>
+        <field name="password">Admin1234!</field>
+        <field name="company_id" ref="base.main_company"/>
+        <field name="group_ids" eval="[(4, ref('actividades_complementarias.group_coordinador'))]"/>
+    </record>
+
+</data>
+</odoo>

@@ -26,6 +26,7 @@
         'data/06_estudiantes.xml',
         'data/07_usuarios_sii.xml',
         'data/08_usuario_de.xml',
+        'data/09_usuario_dep.xml',
         # 4. Datos del módulo
         'data/tipo_actividad_data.xml',
         'data/tipo_actividad_de_data.xml',
