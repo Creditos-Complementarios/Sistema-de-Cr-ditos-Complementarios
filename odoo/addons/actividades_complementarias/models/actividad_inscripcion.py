@@ -158,11 +158,8 @@ class ActividadInscripcion(models.Model):
         }
 
     _sql_constraints = [
-        (
-            "unique_inscripcion",
-            "UNIQUE(actividad_id, partner_id)",
-            "El estudiante ya está inscrito en esta actividad.",
-        )
+        ('unique_inscripcion', 'UNIQUE(actividad_id, partner_id)',
+        'El estudiante ya está inscrito en esta actividad.'),
     ]
 
     @api.constrains("performance_level")
