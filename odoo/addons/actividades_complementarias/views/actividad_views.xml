@@ -104,7 +104,7 @@
                     <!-- Botón para actividades predefinidas (sin pasar por el Comité) -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
                         type="object" class="btn-primary"
-                        invisible="not actividad_predefinida or en_catalogo or (estado_code and estado_code not in ['pendiente_inicio','aprobada'])"
+                        invisible="(not actividad_predefinida and estado_code not in ['aprobada', 'pendiente_inicio']) or en_catalogo"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
                     <!-- Botón Enviar al Catálogo para DE (actividades extraescolar sin Comité) -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
