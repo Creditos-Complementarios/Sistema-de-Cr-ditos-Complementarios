@@ -268,6 +268,13 @@
             sequence="30"
             groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
 
+    <menuitem id="menu_se_historial_reportes"
+            name="Historial de Reportes"
+            parent="menu_servicios_escolares"
+            action="action_historial_reportes_se"
+            sequence="35"
+            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
+
     <menuitem id="menu_se_estudiantes"
             name="Buscar Estudiante"
             parent="menu_servicios_escolares"

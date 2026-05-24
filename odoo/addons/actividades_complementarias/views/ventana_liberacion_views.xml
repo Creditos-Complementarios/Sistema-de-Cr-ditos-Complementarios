@@ -56,4 +56,45 @@
         <field name="view_mode">list,form</field>
     </record>
 
+    <!-- ── SE-04SC: Historial de Reportes de Estudiantes Liberados ───────── -->
+
+    <record id="view_historial_reportes_list" model="ir.ui.view">
+        <field name="name">actividad.ventana.liberacion.historial.list</field>
+        <field name="model">actividad.ventana.liberacion</field>
+        <field name="arch" type="xml">
+            <list string="Historial de Reportes" create="0" edit="0" delete="0"
+                  default_order="fecha_fin desc">
+                <field name="periodo_id" string="Periodo Escolar"/>
+                <field name="fecha_inicio" string="Inicio de Ventana"/>
+                <field name="fecha_fin" string="Cierre de Ventana"/>
+                <field name="reporte_attachment_id" string="Archivo"
+                       widget="many2one" readonly="1"/>
+                <button name="action_descargar_reporte"
+                        string="Descargar"
+                        type="object"
+                        icon="fa-download"
+                        class="btn-sm btn-primary"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_historial_reportes_se" model="ir.actions.act_window">
+        <field name="name">Historial de Reportes</field>
+        <field name="res_model">actividad.ventana.liberacion</field>
+        <field name="view_mode">list</field>
+        <field name="domain">[('reporte_generado', '=', True)]</field>
+        <field name="views" eval="[
+            (ref('view_historial_reportes_list'), 'list'),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aún no se han generado reportes de estudiantes liberados.
+            </p>
+            <p>
+                Los reportes se generan desde <b>Ventanas de Evaluación</b>
+                una vez que todas las solicitudes han sido evaluadas.
+            </p>
+        </field>
+    </record>
+
 </odoo>
