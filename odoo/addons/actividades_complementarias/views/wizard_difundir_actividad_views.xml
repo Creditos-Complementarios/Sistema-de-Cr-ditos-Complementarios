@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ════════════════════════════════════════════════════════════════════════
+         Vista del Wizard de Difusión  (DEP-C-01SC)
+         División de Estudios Profesionales / Coordinador
+         ════════════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_wizard_difundir_actividad_form" model="ir.ui.view">
+        <field name="name">actividad.wizard.difundir.form</field>
+        <field name="model">actividad.wizard.difundir</field>
+        <field name="arch" type="xml">
+            <form string="Difundir Actividad">
+                <sheet>
+                    <!-- Resumen de la actividad -->
+                    <group string="Actividad seleccionada">
+                        <field name="actividad_id" invisible="1"/>
+                        <field name="info_html" nolabel="1" widget="html" readonly="1"/>
+                    </group>
+
+                    <!-- Filtros de búsqueda -->
+                    <group string="Filtros de búsqueda de alumnos">
+                        <group>
+                            <field name="filtro_carrera_id" options="{'no_create': True}"/>
+                            <field name="filtro_semestre"/>
+                        </group>
+                        <group>
+                            <field name="filtro_grupo"/>
+                            <field name="filtro_busqueda"/>
+                        </group>
+                    </group>
+
+                    <!-- Botón para aplicar filtros -->
+                    <div class="o_form_buttons_save" style="margin-bottom:8px;">
+                        <button
+                            name="action_actualizar_lista"
+                            type="object"
+                            string="Actualizar lista de alumnos"
+                            class="btn-secondary"
+                            icon="fa-refresh"/>
+                    </div>
+
+                    <!-- Lista de alumnos resultante -->
+                    <group string="Alumnos a invitar">
+                        <field name="alumno_ids"
+                               widget="many2many_tags"
+                               options="{'no_create': True, 'no_open': True}"
+                               nolabel="1"/>
+                    </group>
+                </sheet>
+
+                <footer>
+                    <button
+                        name="action_difundir"
+                        type="object"
+                        string="Enviar invitaciones"
+                        class="btn-primary"
+                        icon="fa-send"/>
+                    <button
+                        string="Cancelar"
+                        class="btn-secondary"
+                        special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Acción para abrir el wizard desde el formulario de la actividad -->
+    <record id="action_wizard_difundir_actividad" model="ir.actions.act_window">
+        <field name="name">Difundir Actividad</field>
+        <field name="res_model">actividad.wizard.difundir</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_wizard_difundir_actividad_form"/>
+        <field name="target">new</field>
+        <field name="context">{'default_actividad_id': active_id}</field>
+    </record>
+
+</odoo>

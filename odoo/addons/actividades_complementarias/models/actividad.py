@@ -1936,6 +1936,36 @@ class Actividad(models.Model):
             'target': 'new',
         }
 
+    def action_abrir_difundir(self):
+        """DEP-C-01SC: abre el wizard de difusión de actividad.
+
+        Visible para División de Estudios Profesionales y Coordinador.
+        Solo disponible cuando la actividad está en 'pendiente_inicio'
+        y hay cupos disponibles (o el cupo es ilimitado).
+        """
+        self.ensure_one()
+        # Validaciones previas (aunque el botón ya las aplica visualmente)
+        if self.estado_code != 'pendiente_inicio':
+            raise ValidationError(
+                'Solo se pueden difundir actividades en estado "Pendiente de Inicio".'
+            )
+        if not self.cupo_ilimitado and self.cupos_disponibles <= 0:
+            raise ValidationError(
+                f'La actividad "{self.name}" no tiene cupos disponibles. '
+                'No se puede difundir.'
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Difundir Actividad',
+            'res_model': 'actividad.wizard.difundir',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_actividad_id': self.id,
+                'active_id': self.id,
+            },
+        }
+
     def action_confirmar_actividad(self):
         """Responsable/Personal: confirma la actividad pasándola directamente
         a 'Pendiente de Inicio' sin intervención del comité ni del JD."""
