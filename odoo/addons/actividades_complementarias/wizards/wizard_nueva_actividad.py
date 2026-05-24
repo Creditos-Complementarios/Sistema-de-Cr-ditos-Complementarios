@@ -91,12 +91,17 @@ class WizardNuevaActividad(models.TransientModel):
     @api.onchange('actividad_predefinida')
     def _onchange_actividad_predefinida(self):
         """Al seleccionar un predefinido, autocompleta el Tipo de Actividad.
-        Si el predefinido fue aprobado por Comité, también rellena el nombre."""
+        Si el predefinido fue aprobado por Comité, también rellena el nombre.
+        Si se borra la selección, limpia los campos autocompletados."""
         if self.actividad_predefinida:
             if self.actividad_predefinida.tipo_actividad_id:
                 self.tipo_actividad_id = self.actividad_predefinida.tipo_actividad_id
             if self.actividad_predefinida.is_comite:
                 self.name = self.actividad_predefinida.name
+        else:
+            # Si se borró la actividad predefinida, limpiar campos autocompletados
+            self.tipo_actividad_id = False
+            self.name = False
 
     # ────────────────────────────────────────────────────────────────────────
     # Constraints
