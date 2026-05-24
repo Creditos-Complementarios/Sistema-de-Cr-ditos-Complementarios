@@ -11,6 +11,7 @@ Reglas de negocio:
     - El botón de difusión está deshabilitado si el cupo ya está lleno.
     - Los filtros excluyen alumnos que ya tengan créditos completos.
 """
+from markupsafe import Markup
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 
@@ -124,16 +125,16 @@ class WizardDifundirActividad(models.TransientModel):
                 'background:#eaf4fb;border-left:4px solid #2980b9;'
                 'padding:10px 16px;margin-bottom:10px;border-radius:4px;'
             )
-            rec.info_html = f'''
-<div style="font-family:sans-serif;">
-    <div style="{div_style}">
-        <strong>Vista previa de la invitación que recibirán los alumnos.</strong>
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <tbody>{rows}</tbody>
-    </table>
-</div>'''
-
+            rec.info_html = Markup(
+                '<div style="font-family:sans-serif;">'
+                '<div style="{div_style}">'
+                '<strong>Vista previa de la invitación que recibirán los alumnos.</strong>'
+                '</div>'
+                '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                '<tbody>{rows}</tbody>'
+                '</table>'
+                '</div>'
+            ).format(div_style=div_style, rows=Markup(rows))
     # ───────────────────────────────────────────────────────────────────────────
     # Acciones del wizard
     # ───────────────────────────────────────────────────────────────────────────
@@ -220,16 +221,21 @@ class WizardDifundirActividad(models.TransientModel):
         fecha_inicio = (
             a.fecha_inicio.strftime('%d/%m/%Y') if a.fecha_inicio else '—'
         )
-        cuerpo = (
-            f'<p>Estimado alumno,</p>'
-            f'<p>Te invitamos a participar en la siguiente actividad complementaria:</p>'
-            f'<ul>'
-            f'<li><strong>Actividad:</strong> {a.name}</li>'
-            f'<li><strong>Tipo:</strong> {a.tipo_actividad_id.name if a.tipo_actividad_id else "—"}</li>'
-            f'<li><strong>Fecha de inicio:</strong> {fecha_inicio}</li>'
-            f'<li><strong>Cupo:</strong> {cupo_txt}</li>'
-            f'</ul>'
-            f'<p>Accede al catálogo de actividades complementarias para inscribirte.</p>'
+        cuerpo = Markup(
+            '<p>Estimado alumno,</p>'
+            '<p>Te invitamos a participar en la siguiente actividad complementaria:</p>'
+            '<ul>'
+            '<li><strong>Actividad:</strong> {nombre}</li>'
+            '<li><strong>Tipo:</strong> {tipo}</li>'
+            '<li><strong>Fecha de inicio:</strong> {fecha}</li>'
+            '<li><strong>Cupo:</strong> {cupo}</li>'
+            '</ul>'
+            '<p>Accede al catálogo de actividades complementarias para inscribirte.</p>'
+        ).format(
+            nombre=a.name,
+            tipo=a.tipo_actividad_id.name if a.tipo_actividad_id else '—',
+            fecha=fecha_inicio,
+            cupo=cupo_txt,
         )
 
         # Enviar la notificación a cada alumno que tenga cuenta en Odoo
@@ -258,19 +264,19 @@ class WizardDifundirActividad(models.TransientModel):
             enviados += 1
 
         # Registrar la difusión en el chatter de la actividad
-        resumen_difusion = (
-            f'<p><strong>Difusión registrada por {self.env.user.name}</strong></p>'
-            f'<p>Se enviaron invitaciones a <strong>{enviados}</strong> alumno(s).</p>'
-        )
+        resumen_difusion = Markup(
+            '<p><strong>Difusión registrada por {usuario}</strong></p>'
+            '<p>Se enviaron invitaciones a <strong>{n}</strong> alumno(s).</p>'
+        ).format(usuario=self.env.user.name, n=enviados)
         if sin_cuenta:
             lista_sc = ', '.join(sin_cuenta[:10])
             if len(sin_cuenta) > 10:
                 lista_sc += f' … y {len(sin_cuenta) - 10} más'
-            resumen_difusion += (
-                f'<p style="color:#e67e22;">'
-                f'Alumnos sin cuenta en el sistema (no notificados): {lista_sc}.'
-                f'</p>'
-            )
+            resumen_difusion += Markup(
+                '<p style="color:#e67e22;">'
+                'Alumnos sin cuenta en el sistema (no notificados): {lista}.'
+                '</p>'
+            ).format(lista=lista_sc)
 
         a.sudo().message_post(
             body=resumen_difusion,
