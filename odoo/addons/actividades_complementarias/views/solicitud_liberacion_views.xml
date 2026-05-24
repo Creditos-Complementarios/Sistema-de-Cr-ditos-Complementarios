@@ -233,6 +233,17 @@
                             <span class="o_stat_text">Ver Expediente</span>
                         </button>
                     </div>
+                    <!-- DEP-C-02SC: botón para enviar aviso al estudiante.
+                         Visible solo para División de Estudios Profesionales
+                         y Coordinador. No modifica el expediente. -->
+                    <div class="o_form_statusbar" style="justify-content:flex-end;padding:4px 16px;">
+                        <button name="action_abrir_aviso_estudiante"
+                                type="object"
+                                string="Enviar Aviso"
+                                class="btn-warning"
+                                icon="fa-envelope"
+                                groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
+                    </div>
                     <group string="Datos Generales">
                         <field name="no_control" readonly="1"/>
                         <field name="nombre" readonly="1"/>
