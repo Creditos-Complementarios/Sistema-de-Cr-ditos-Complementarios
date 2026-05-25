@@ -105,7 +105,7 @@
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
                         type="object" class="btn-primary"
                         invisible="not actividad_predefinida or en_catalogo or (estado_code and estado_code not in ['pendiente_inicio','aprobada'])"
-                        groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
+                        groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_responsable_actividad"/>
                     <!-- Botón Enviar al Catálogo para DE (actividades extraescolar sin Comité) -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
                         type="object" class="btn-primary"
@@ -116,8 +116,7 @@
                         type="object"
                         class="btn-primary"
                         invisible="estado_code"
-                        groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
-                    <!-- Statusbar: solo En Revisión -->
+                        groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_responsable_actividad"/>
                     <field name="estado_barra" widget="statusbar"
                         statusbar_visible="en_revision"
                         invisible="estado_code != 'en_revision'"
@@ -535,7 +534,7 @@
         <field name="domain">[('responsable_actividad_id', '=', uid)]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'search_default_filter_pendiente': 0}</field>
-        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
+        <field name="views" eval="[(ref('view_actividad_list_jefe'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
     <!--
