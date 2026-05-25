@@ -2681,4 +2681,3 @@ class ActividadDepartamento(models.Model):
 
     name = fields.Char(string='Nombre', required=True)
     jefe_id = fields.Many2one('res.users', string='Jefe de Departamento')
-    
