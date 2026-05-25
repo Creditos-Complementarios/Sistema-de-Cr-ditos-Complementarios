@@ -11,3 +11,4 @@ from . import wizard_evidencia  # noqa: F401
 from . import wizard_evaluar_alumno  # noqa: F401
 from . import wizard_guardar_permisos_se
 from . import wizard_difundir_actividad  # noqa: F401 — DEP-C-01SC
+from . import wizard_aviso_estudiante  # noqa: F401 — DEP-C-02SC
