@@ -22,11 +22,16 @@ class WizardConfirmarEnvio(models.TransientModel):
                 rec.resumen_html = ''
                 continue
 
-            destino = (
-                '<span style="color:#e67e22;font-weight:600;">Comité Académico</span>'
-                if rec.tipo_envio == 'comite' else
-                '<span style="color:#17a589;font-weight:600;">Catálogo</span>'
-            )
+            # MODIFICADO RA-01SC Regla 5: si la actividad es de asignación directa,
+            # el destino mostrado en el resumen es "Asignación Directa" en lugar de
+            # "Catálogo", para que el usuario entienda que la actividad no se publicará
+            # en el catálogo sino que quedará disponible para los alumnos asignados.
+            if rec.tipo_envio == 'comite':
+                destino = '<span style="color:#e67e22;font-weight:600;">Comité Académico</span>'
+            elif a.tipo_inscripcion == 'asignacion':
+                destino = '<span style="color:#8e44ad;font-weight:600;">Asignación Directa (sin catálogo)</span>'
+            else:
+                destino = '<span style="color:#17a589;font-weight:600;">Catálogo</span>'
 
             def row(label, value):
                 return (
@@ -52,6 +57,9 @@ class WizardConfirmarEnvio(models.TransientModel):
                 row('Cantidad de Horas', f'{a.cantidad_horas:g} h' if a.cantidad_horas else ''),
                 row('Cupos', cupo),
                 row('Descripción', a.descripcion),
+                # NUEVO RA-01SC Regla 5: mostrar el tipo de inscripción en el resumen
+                # para que el usuario confirme conscientemente el canal de inscripción.
+                row('Tipo de Inscripción', 'Asignación Directa' if a.tipo_inscripcion == 'asignacion' else 'Inscripción Abierta (Catálogo)'),
             ])
 
             div_style = (
@@ -73,4 +81,14 @@ class WizardConfirmarEnvio(models.TransientModel):
         self.ensure_one()
         if self.tipo_envio == 'comite':
             return self.actividad_id.action_enviar_comite()
+
+        # MODIFICADO RA-01SC Regla 5: si la actividad es de asignación directa,
+        # se llama a action_confirmar_actividad() en lugar de action_enviar_catalogo().
+        # Esto permite que el flujo de confirmación del wizard funcione correctamente
+        # para ambos tipos de inscripción sin lanzar el error de validación.
+        #
+        # - 'asignacion': confirma la actividad (Pendiente de Inicio) sin publicarla.
+        # - 'catalogo':   envía la actividad al catálogo público como antes.
+        if self.actividad_id.tipo_inscripcion == 'asignacion':
+            return self.actividad_id.action_confirmar_actividad()
         return self.actividad_id.action_enviar_catalogo()

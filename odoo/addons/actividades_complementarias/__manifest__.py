@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Actividades Complementarias',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.0.0',
     'summary': 'Gestión de actividades complementarias para el Jefe de Departamento',
     'description': (
         'Módulo para la gestión de actividades complementarias. '
@@ -25,32 +25,20 @@
         'data/05_periodos.xml',
         'data/06_estudiantes.xml',
         'data/07_usuarios_sii.xml',
-        'data/08_usuario_de.xml',
-        'data/09_usuario_dep.xml',
         # 4. Datos del módulo
         'data/tipo_actividad_data.xml',
-        'data/tipo_actividad_de_data.xml',
         'data/tipo_predefinida_data.xml',
         'data/estado_actividad_data.xml',
         'data/estado_solicitud_data.xml',
         'data/cron_data.xml',
         # 5. Vistas
-        'views/alumno_views.xml',
-        'views/solicitud_liberacion_views.xml',
-        'views/ventana_liberacion_views.xml',
         'views/tipo_actividad_views.xml',
         'views/tipo_predefinida_views.xml',
         'views/periodo_views.xml',
         'views/actividad_views.xml',
-        'views/actividad_inscripcion_views.xml',
-        'views/actividad_pase_lista_pivot_views.xml',
-        'views/actividad_asistencia_views.xml',
         'views/propuesta_views.xml',
         'views/empleado_views.xml',
-        'views/empleado_se_views.xml',   # antes de menu_views.xml
         'views/wizard_views.xml',
-        'views/wizard_difundir_actividad_views.xml',
-        'views/wizard_aviso_estudiante_views.xml',
         'views/menu_views.xml',
         # 6. Permisos de los modelos SII nuevos (XML al final, cuando ir.model ya los registró)
         'security/sii_model_access.xml',
@@ -61,7 +49,6 @@
             'actividades_complementarias/static/src/xml/dark_mode_switch.xml',
             'actividades_complementarias/static/src/js/dark_mode_switch.js',
             'actividades_complementarias/static/src/js/navbar_chevron.js',
-            'actividades_complementarias/static/src/js/pase_lista_pivot.js',
             'actividades_complementarias/static/src/js/form_discard_patch.js',
         ],
     },
@@ -71,5 +58,4 @@
     'installable': True,
     'application': True,
     'license': 'LGPL-3',
-    'post_init_hook': 'post_init_hook',
 }

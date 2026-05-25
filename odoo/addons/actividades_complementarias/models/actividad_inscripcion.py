@@ -18,6 +18,12 @@ Casos de uso: RA-02SC pasos 4–13 / RAE-01SC pasos 4–13.
 NOTA: El campo partner_id actúa como referencia al estudiante. Cuando el
 módulo de Estudiante esté disponible, reemplazar por Many2one a ese modelo
 y actualizar las vistas y reglas de dominio correspondientes.
+
+MODIFICACIONES (RA-01SC Regla 5):
+- Se añadió _check_tipo_inscripcion en create() para impedir que se inscriban
+  estudiantes mediante este modelo en actividades de tipo 'catalogo'. La
+  inscripción directa vía actividad.inscripcion solo está permitida para
+  actividades de tipo 'asignacion'.
 """
 
 from odoo import _, api, fields, models
@@ -79,21 +85,12 @@ class ActividadInscripcion(models.Model):
         default=False,
         readonly=True,
         copy=False,
-        help="Marcado cuando el Jefe de Departamento genera la constancia.",
     )
-    jd_signed = fields.Boolean(
-        string="Firma Jefe Departamento",
+    certificate_signed = fields.Boolean(
+        string="Constancia Firmada",
         default=False,
         readonly=True,
         copy=False,
-        help="Marcado automáticamente cuando el Jefe de Departamento genera la constancia.",
-    )
-    ra_signed = fields.Boolean(
-        string="Firma Responsable Actividad",
-        default=False,
-        readonly=True,
-        copy=False,
-        help="Marcado cuando el Responsable de Actividad firma la constancia.",
     )
 
     # Computed helpers
@@ -119,58 +116,12 @@ class ActividadInscripcion(models.Model):
     # Constraints
     # ------------------------------------------------------------------
 
-    # ------------------------------------------------------------------
-    # ORM override: write()
-    # ------------------------------------------------------------------
-
-    def write(self, vals):
-        """Impide modificar el nivel de desempeño una vez que ha sido asignado."""
-        if 'performance_level' in vals or 'calificacion' in vals:
-            for rec in self:
-                if rec.actividad_id.estado_code != 'finalizada':
-                    raise ValidationError(
-                        _(
-                            "No se puede asignar calificación o nivel de desempeño "
-                            "al estudiante \"%s\" porque la actividad \"%s\" aún no "
-                            "ha sido finalizada."
-                        )
-                        % (rec.partner_id.name, rec.actividad_id.name)
-                    )
-        if 'performance_level' in vals:
-            for rec in self:
-                if rec.performance_level:
-                    raise ValidationError(
-                        _(
-                            "El nivel de desempeño del estudiante \"%s\" ya fue asignado "
-                            "(%s) y no puede modificarse."
-                        )
-                        % (rec.partner_id.name, rec.performance_label)
-                    )
-        return super().write(vals)
-
-    def action_evaluar(self):
-        """Abre el wizard para asignar nivel de desempeño a este alumno."""
-        self.ensure_one()
-        if self.performance_level:
-            raise ValidationError(
-                _(
-                    "El nivel de desempeño de \"%s\" ya fue asignado (%s) "
-                    "y no puede modificarse."
-                )
-                % (self.partner_id.name, self.performance_label)
-            )
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Asignar Nivel de Desempeño',
-            'res_model': 'actividad.wizard.evaluar.alumno',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_inscripcion_id': self.id},
-        }
-
     _sql_constraints = [
-        ('unique_inscripcion', 'UNIQUE(actividad_id, partner_id)',
-            'El estudiante ya está inscrito en esta actividad.'),
+        (
+            "unique_inscripcion",
+            "UNIQUE(actividad_id, partner_id)",
+            "El estudiante ya está inscrito en esta actividad.",
+        )
     ]
 
     @api.constrains("performance_level")
@@ -202,4 +153,38 @@ class ActividadInscripcion(models.Model):
                         "se ha alcanzado el cupo máximo de %d para la actividad '%s'."
                     )
                     % (actividad.cupo_max, actividad.name)
+                )
+
+    # ── NUEVO: Constraint de tipo de inscripción (RA-01SC Regla 5) ──────────
+    # La inscripción directa mediante este modelo (actividad.inscripcion) solo
+    # está permitida para actividades de tipo 'asignacion' (Asignación Directa).
+    #
+    # Las actividades de tipo 'catalogo' (Inscripción Abierta) deben gestionarse
+    # a través del catálogo público, no mediante la asignación manual de registros
+    # en este modelo. Esto garantiza que:
+    #   1. Las actividades en catálogo no acumulen inscripciones directas que
+    #      violarían la regla de negocio.
+    #   2. Se mantiene la trazabilidad del canal de inscripción (catálogo vs.
+    #      asignación directa del Responsable).
+    @api.constrains("actividad_id")
+    def _check_tipo_inscripcion_permitido(self):
+        """
+        Valida que solo se creen inscripciones directas en actividades de tipo
+        'Asignación Directa'. Las actividades de 'Inscripción Abierta (Catálogo)'
+        no admiten inscripciones manuales en este modelo.
+
+        Regla de negocio: RA-01SC, Regla 5.
+        """
+        for rec in self:
+            actividad = rec.actividad_id
+            # Si la actividad es de inscripción abierta (catálogo), no se permite
+            # registrar inscripciones directas desde este modelo.
+            if actividad.tipo_inscripcion == 'catalogo':
+                raise ValidationError(
+                    _(
+                        'No se puede inscribir directamente a un estudiante en la '
+                        'actividad "%s" porque es de tipo "Inscripción Abierta '
+                        '(Catálogo)". Los alumnos deben inscribirse a través del '
+                        'catálogo público de actividades.'
+                    ) % actividad.name
                 )

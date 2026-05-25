@@ -16,54 +16,44 @@
                 <filter name="filter_finalizada" string="Finalizadas" domain="[('estado_code','=','finalizada')]"/>
                 <filter name="filter_rechazada" string="Rechazadas" domain="[('estado_code','=','rechazada')]"/>
                 <filter name="filter_catalogo" string="En Catálogo" domain="[('en_catalogo','=',True)]"/>
+                <!-- NUEVO RA-01SC Regla 5: filtros por tipo de inscripción -->
+                <filter name="filter_tipo_asignacion" string="Asignación Directa"
+                    domain="[('tipo_inscripcion','=','asignacion')]"/>
+                <filter name="filter_tipo_catalogo" string="Inscripción Abierta"
+                    domain="[('tipo_inscripcion','=','catalogo')]"/>
                 <separator/>
                 <filter name="group_estado" string="Por Estado" context="{'group_by':'estado_id'}"/>
                 <filter name="group_tipo" string="Por Tipo" context="{'group_by':'tipo_actividad_id'}"/>
                 <filter name="group_periodo" string="Por Periodo" context="{'group_by':'periodo'}"/>
+                <!-- NUEVO RA-01SC Regla 5: agrupar por tipo de inscripción -->
+                <filter name="group_tipo_inscripcion" string="Por Tipo de Inscripción"
+                    context="{'group_by':'tipo_inscripcion'}"/>
             </search>
         </field>
     </record>
 
            <!-- ── Search Catálogo ──────────────────────────────────────────────── -->
     <record id="view_actividad_Catalogo_search" model="ir.ui.view">
-    <field name="name">actividad.complementaria.catalogo.search</field>
-    <field name="model">actividad.complementaria</field>
-    <field name="arch" type="xml">
-        <search string="Buscar Actividades">
-            <!-- Búsqueda por nombre -->
-            <field name="name" string="Actividad"/>
-            <field name="tipo_actividad_id" string="Tipo"/>
-            <field name="periodo"/>
-            <field name="departamento_id" string="Departamento"/>
-            <separator/>
-            <!-- Filtros por estado -->
-            <filter name="filter_en_curso" string="En Curso"
-                    domain="[('estado_code','=','en_curso')]"/>
-            <filter name="filter_proximas" string="Próximas"
-                    domain="[('estado_code','=','pendiente_inicio')]"/>
-            <separator/>
-            <!-- Filtros por créditos -->
-            <filter name="filter_creditos_05" string="0.5 créditos"
-                    domain="[('creditos','=','0.5')]"/>
-            <filter name="filter_creditos_1" string="1 crédito"
-                    domain="[('creditos','=','1.0')]"/>
-            <filter name="filter_creditos_15" string="1.5 créditos"
-                    domain="[('creditos','=','1.5')]"/>
-            <filter name="filter_creditos_2" string="2 créditos"
-                    domain="[('creditos','=','2.0')]"/>
-            <separator/>
-            <!-- Agrupaciones -->
-            <filter name="group_tipo" string="Por Tipo"
-                    context="{'group_by':'tipo_actividad_id'}"/>
-            <filter name="group_departamento" string="Por Departamento"
-                    context="{'group_by':'departamento_id'}"/>
-            <filter name="group_periodo" string="Por Periodo"
-                    context="{'group_by':'periodo'}"/>
-            <filter name="group_creditos" string="Por Créditos"
-                    context="{'group_by':'creditos'}"/>
-        </search>
-    </field>
-</record>
+        <field name="name">actividad.complementaria.catalogo.search</field>
+        <field name="model">actividad.complementaria</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Actividades">
+                <field name="name" string="Actividad"/>
+                <field name="tipo_actividad_id" string="Tipo"/>
+                <field name="periodo"/>
+                <separator/>
+                <filter name="filter_en_curso" string="En Curso"
+                        domain="[('estado_code','=','en_curso')]"/>
+                <filter name="filter_proximas" string="Próximas"
+                        domain="[('estado_code','=','pendiente_inicio')]"/>
+                <separator/>
+                <filter name="group_tipo" string="Por Tipo"
+                        context="{'group_by':'tipo_actividad_id'}"/>
+                <filter name="group_periodo" string="Por Periodo"
+                        context="{'group_by':'periodo'}"/>
+            </search>
+        </field>
+    </record>
 
     <!-- ── List ─────────────────────────────────────────────────────────── -->
     <record id="view_actividad_list" model="ir.ui.view">
@@ -76,14 +66,16 @@
                 <field name="periodo"/>
                 <field name="fecha_inicio" string="Fecha Inicio" width="100px"/>
                 <field name="fecha_fin" string="Fecha Fin" width="100px"/>
-                <field name="estado_barra" widget="badge" string="Estado"
-                    decoration-warning="estado_barra == 'en_revision'"
-                    decoration-success="estado_barra in ['aprobada', 'en_curso']"
-                    decoration-info="estado_barra == 'pendiente_inicio'"
-                    decoration-danger="estado_barra == 'rechazada'"
-                    decoration-muted="estado_barra in ['finalizada', 'borrador']"/>
+                <field name="estado_id" widget="badge"
+                    decoration-warning="estado_code == 'en_revision'"
+                    decoration-success="estado_code in ['aprobada', 'en_curso']"
+                    decoration-info="estado_code == 'pendiente_inicio'"
+                    decoration-danger="estado_code == 'rechazada'"
+                    decoration-muted="estado_code == 'finalizada'"/>
                 <field name="en_catalogo" widget="boolean" readonly="1"
                     column_invisible="context.get('hide_catalogo', False)"/>
+                <!-- NUEVO RA-01SC Regla 5: mostrar tipo de inscripción en la lista -->
+                <field name="tipo_inscripcion" optional="show"/>
                 <field name="alumno_count" string="Alumnos"/>
                 <field name="estado_code" column_invisible="1"/>
             </list>
@@ -101,22 +93,58 @@
                         type="object" class="btn-warning"
                         invisible="tiene_propuesta_activa or tipo_actividad_predefinida or actividad_predefinida or estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada']"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
-                    <!-- Botón para actividades predefinidas (sin pasar por el Comité) -->
+                    <!-- Botón para actividades predefinidas de tipo CATÁLOGO (sin pasar por el Comité) -->
+                    <!-- MODIFICADO RA-01SC Regla 5: se añade tipo_inscripcion != 'catalogo' para
+                        ocultar el botón cuando la actividad es de Asignación Directa. Las
+                        actividades de asignación no pueden publicarse en el catálogo. -->
                     <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
                         type="object" class="btn-primary"
-                        invisible="not actividad_predefinida or en_catalogo or (estado_code and estado_code not in ['pendiente_inicio','aprobada'])"
+                        invisible="not actividad_predefinida or en_catalogo or tipo_inscripcion != 'catalogo' or (estado_code and estado_code not in ['pendiente_inicio','aprobada'])"
                         groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
-                    <!-- Botón Enviar al Catálogo para DE (actividades extraescolar sin Comité) -->
-                    <button name="action_abrir_confirmacion_catalogo" string="Enviar al Catálogo"
+
+                    <!-- NUEVO RA-01SC Regla 5: botón de confirmación para actividades predefinidas
+                        de tipo ASIGNACIÓN DIRECTA. Usa el mismo wizard que "Enviar al Catálogo"
+                        pero action_confirmar() detecta tipo_inscripcion == 'asignacion' y redirige
+                        a action_confirmar_actividad() en lugar de action_enviar_catalogo().
+                        Se muestra solo cuando: hay predefinida + tipo asignacion + sin estado aún. -->
+                    <button name="action_abrir_confirmacion_catalogo" string="Confirmar Actividad"
                         type="object" class="btn-primary"
-                        invisible="en_catalogo or (estado_code and estado_code not in ['', False, 'aprobada', 'pendiente_inicio'])"
-                        groups="actividades_complementarias.group_depto_extraescolar"/>
+                        invisible="not actividad_predefinida or estado_code or tipo_inscripcion != 'asignacion'"
+                        groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_personal_departamento_extraescolar"/>
+
+                    <!--
+                        MODIFICADO (RA-01SC): El botón "Crear Actividad" se divide en dos
+                        según el tipo de inscripción, porque el flujo posterior difiere:
+
+                        · 'catalogo' (Inscripción Abierta): confirma y espera que el JD
+                          envíe la actividad al catálogo. Solo para Personal sin predefinida
+                          (las predefinidas tienen su botón "Enviar al Catálogo" propio).
+
+                        · 'asignacion' (Asignación Directa): confirma y espera que el JD
+                          asigne alumnos mediante el wizard. También solo sin predefinida.
+                          Se añade group_personal_departamento_extraescolar porque el flujo
+                          de asignación directa aplica también al departamento extraescolar.
+
+                        Ambos invocan action_confirmar_actividad(), que detecta
+                        tipo_inscripcion internamente y adapta el mensaje del chatter.
+                    -->
+
+                    <!-- Para actividades de INSCRIPCIÓN ABIERTA sin predefinida -->
                     <button name="action_confirmar_actividad"
                         string="Crear Actividad"
                         type="object"
                         class="btn-primary"
-                        invisible="estado_code"
+                        invisible="estado_code or actividad_predefinida or tipo_inscripcion != 'catalogo'"
                         groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
+
+                    <!-- Para actividades de ASIGNACIÓN DIRECTA sin predefinida.
+                         Incluye grupo extraescolar que no aplica al flujo de catálogo. -->
+                    <button name="action_confirmar_actividad"
+                        string="Crear Actividad"
+                        type="object"
+                        class="btn-primary"
+                        invisible="estado_code or actividad_predefinida or tipo_inscripcion != 'asignacion'"
+                        groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_personal_departamento_extraescolar"/>
                     <!-- Statusbar: solo En Revisión -->
                     <field name="estado_barra" widget="statusbar"
                         statusbar_visible="en_revision"
@@ -132,58 +160,33 @@
                         statusbar_visible="aprobada,pendiente_inicio,en_curso,finalizada"
                         invisible="estado_code not in ['aprobada','pendiente_inicio','en_curso','finalizada']"
                         readonly="1"/>
-                    <button name="action_generar_constancias_jd" string="Generar Constancias"
-                            type="object" class="btn-primary"
-                            invisible="estado_code != 'finalizada' or certificates_generated"
-                            groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                     <button name="action_firmar_constancias" string="Firmar Constancias"
                             type="object" class="btn-primary"
-                            invisible="estado_code != 'finalizada' or constancias_firmadas or jd_firmo"
+                            invisible="estado_code != 'finalizada' or constancias_firmadas"
                             groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
-                    <!-- Botón acción directa: Nueva Sesión -->
-                    <button name="action_abrir_wizard_nueva_sesion"
-                            string="Nueva Sesión"
-                            type="object"
-                            class="btn-secondary"
-                            invisible="estado_code not in ['en_curso'] or certificates_generated"
-                            groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
-                    <!-- Campos invisibles de control requeridos por botones del header -->
-                    <field name="certificates_generated" invisible="1"/>
-                    <field name="jd_firmo" invisible="1"/>
-                    <field name="responsable_firmo" invisible="1"/>
-                    <!-- ── DEP-C-01SC: Difundir actividad ────────────────────────────────
-                         Visible para División de Estudios Profesionales y Coordinador.
-                         Solo habilitado cuando:
-                           - estado_code == 'pendiente_inicio'
-                           - cupos_disponibles > 0  (o cupo es ilimitado)
-                         El campo cupos_disponibles se carga en el formulario vía
-                         el campo invisible declarado más abajo.
-                    ──────────────────────────────────────────────────────────────────── -->
-                    <field name="cupos_disponibles" invisible="1"/>
-                    <field name="cupo_ilimitado" invisible="1"/>
-                    <button name="action_abrir_difundir"
-                            string="Difundir"
-                            type="object"
-                            class="btn-info"
-                            icon="fa-bullhorn"
-                            invisible="estado_code != 'pendiente_inicio' or (not cupo_ilimitado and cupos_disponibles &lt;= 0)"
-                            groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
                 </header>
                 <sheet>
                     <field name="tipo_actividad_readonly" invisible="1"/>
                     <field name="tiene_propuesta_activa" invisible="1"/>
-                    <field name="actividad_predefinida"
-                        invisible="tipo_es_nueva"
-                        readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"
-                        options="{'no_create': True, 'no_quick_create': True}"
-                        groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"
-                        help="Seleccione si la actividad es predefinida (aprobación automática). Las actividades aprobadas por el Comité también aparecen aquí."/>                    <field name="tipo_es_nueva" invisible="1"/>
+                    <field name="tipo_actividad_predefinida" invisible="1"/>
+                    <field name="tipo_es_nueva" invisible="1"/>
                     <field name="dominio_responsable" invisible="1"/>
                     <field name="dominio_alumnos" invisible="1"/>
                     <field name="es_personal" invisible="1"/>
+                    <!--
+                        AÑADIDO: tipo_inscripcion debe declararse aquí como campo invisible
+                        para que las expresiones invisible= del <header> puedan leerlo.
+                        En Odoo 17+ los campos del header solo pueden referenciar valores
+                        que estén cargados en el formulario; sin esta declaración el campo
+                        no está disponible en el contexto del header y la condición
+                        siempre evalúa como falsy, ocultando el botón incorrectamente.
+                    -->
+                    <field name="tipo_inscripcion" invisible="1"/>
                     <!-- Flags de permisos de edición (calculados por rol y estado) -->
                     <field name="permisos_actividad_finalizada" invisible="1"/>
+                    <field name="permisos_actividad_pendiente_inicio" invisible="1"/>
                     <field name="permisos_actividad_en_curso" invisible="1"/>
+                    <field name="certificates_generated" invisible="1"/>
                     <!--
                         Banner informativo de solo lectura.
                         Aparece cuando el formulario está bloqueado para el usuario actual.
@@ -233,6 +236,13 @@
                             <field name="inscripcion_count" widget="statinfo" string="Estudiantes"/>
                         </button>
                     </div>
+                    <!-- Botón acción directa: Nueva Sesión (en header del form) -->
+                    <button name="action_abrir_wizard_nueva_sesion"
+                            string="Nueva Sesión"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="estado_code not in ['en_curso'] or certificates_generated"
+                            groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
                     <field name="asistencia_count" invisible="1"/>
                     <field name="ruta_imagen" widget="image" class="oe_avatar"
                            readonly="estado_code in ['aprobada','en_curso','finalizada','en_revision']"/>
@@ -247,16 +257,20 @@
                             <field name="tipo_actividad_id"
                                 readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision'] or es_personal"
                                 groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_admin_actividades"/>
-                            <field name="tipo_actividad_id"
-                                readonly="actividad_predefinida or estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"
+                            <field name="tipo_actividad_id" readonly="1"
                                 groups="actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia"/>
-                            <field name="dominio_predefinida" invisible="1"/>
+                            <!-- NUEVO RA-01SC Regla 5: tipo de inscripción.
+                                 Determina si los alumnos se asignan directamente ('asignacion')
+                                 o si la actividad se publica en el catálogo ('catalogo').
+                                 Solo editable antes de que la actividad sea aprobada o esté en curso. -->
+                            <field name="tipo_inscripcion"
+                                   widget="radio"
+                                   readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                             <field name="actividad_predefinida"
                                    invisible="tipo_es_nueva"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"
-                                   domain="dominio_predefinida"
                                    options="{'no_create': True, 'no_quick_create': True}"
-                                   help="Seleccione si la actividad es predefinida (aprobación automática)."/>
+                                   help="Seleccione si la actividad es predefinida (aprobación automática). Las actividades aprobadas por el Comité también aparecen aquí."/>
                             <field name="periodo"
                                    readonly="estado_code in ['aprobada','pendiente_inicio','en_curso','finalizada','en_revision']"/>
                             <field name="jefe_departamento_id" readonly="1"/>
@@ -314,9 +328,19 @@
                                placeholder="Descripción de la actividad (máximo 2000 caracteres)..."
                                readonly="estado_code in ['aprobada','en_curso','finalizada','en_revision']"/>
                     </group>
-                    <!-- Pestaña de alumnos: visible cuando aprobada o más avanzada -->
+                    <!-- Pestaña de alumnos: visible cuando aprobada o más avanzada,
+                         o bien cuando es de tipo asignacion desde pendiente_inicio -->
                     <notebook invisible="estado_code not in ['aprobada','pendiente_inicio','en_curso','finalizada'] and not en_catalogo">
                         <page string="Alumnos Asignados" name="alumnos">
+
+                            <!--
+                                RA-01SC pasos 3-4: Los alumnos se asignan directamente
+                                desde el campo alumno_ids de abajo. El wizard de selección
+                                con filtros por Carrera/Semestre/Número de Control es una
+                                mejora pendiente de implementación futura.
+                                Solo editable en estados aprobada / pendiente_inicio y
+                                cuando tipo_inscripcion == 'asignacion'.
+                            -->
                             <button name="action_abrir_wizard_eliminar_alumnos"
                                 string="Eliminar alumnos"
                                 type="object"
@@ -406,7 +430,7 @@
                 Se insertan después del último botón existente (action_firmar_constancias)
                 para respetar el orden visual de la barra de estado.
             -->
-            <xpath expr="//header/field[@name='responsable_firmo']" position="before">
+            <xpath expr="//header/button[@name='action_firmar_constancias']" position="after">
 
                 <!--
                     RA-02SC / RAE-01SC: habilitar / deshabilitar evidencias.
@@ -415,37 +439,41 @@
                 <button name="action_toggle_evidence"
                         type="object"
                         class="btn-secondary"
-                        invisible="estado_code not in ['en_curso', 'finalizada']"
+                        invisible="estado_code not in ['finalizada']"
                         groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar">
                     <span invisible="evidence_enabled">Habilitar Evidencias</span>
                     <span invisible="not evidence_enabled">Deshabilitar Evidencias</span>
                 </button>
 
                 <!--
-                    RA-02SC paso 13: firmar constancias del Responsable de Actividad.
-                    Visible unicamente cuando la actividad esta finalizada.
+                    RA-02SC / RAE-01SC pasos 9-10: generar constancias.
+                    Solo cuando la actividad está finalizada y aún no se generaron.
                 -->
                 <button name="action_generate_certificates"
+                        string="Generar Constancias"
                         type="object"
-                        class="btn-success"
-                        invisible="estado_code != 'finalizada'"
-                        groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar">
-                    <span>Firmar Constancias</span>
-                </button>
+                        class="btn-primary"
+                        invisible="estado_code not in ['finalizada'] or certificates_generated"
+                        groups="actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar"/>
 
-                <!-- SE-01SC: Liberar constancias a expedientes -->
-                <button name="action_liberar_constancias"
-                        string="Liberar a Expedientes"
+                <!--
+                    RA-02SC paso 13: firmar constancias (solo RA, no RAE).
+                    Permanece desactivado (invisible) hasta que se generan las constancias.
+                -->
+                <button name="action_firmar_constancias_responsable"
+                        string="Firmar Constancias (Responsable)"
                         type="object"
                         class="btn-success"
-                        invisible="not constancias_firmadas or constancias_liberadas"
-                        groups="actividades_complementarias.group_servicios_escolares,
-                                actividades_complementarias.group_admin_actividades"/>
+                        invisible="not certificates_generated or responsable_firmo"
+                        groups="actividades_complementarias.group_responsable_actividad"/>
+
             </xpath>
 
-            <!-- ── Campos de control invisibles (usados en botones del header) -->
+            <!-- ── Campo de control de evidencias (invisible, usado en botón) -->
             <xpath expr="//field[@name='responsable_bloqueado']" position="after">
                 <field name="evidence_enabled" invisible="1"/>
+                <field name="certificates_generated" invisible="1"/>
+                <field name="responsable_firmo" invisible="1"/>
             </xpath>
         </field>
     </record>
@@ -502,16 +530,6 @@
         <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
-    <!-- Personal de Departamento Extraescolar: ve actividades de su departamento -->
-    <record id="action_actividad_personal_extraescolar" model="ir.actions.act_window">
-        <field name="name">Mis Actividades</field>
-        <field name="res_model">actividad.complementaria</field>
-        <field name="view_mode">list,kanban,form</field>
-        <field name="domain">[('departamento_id.name', 'ilike', 'extraescolar')]</field>
-        <field name="search_view_id" ref="view_actividad_search"/>
-        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
-    </record>
-
     <!-- Catálogo global -->
     <record id="action_actividad_catalogo" model="ir.actions.act_window">
         <field name="name">Catálogo General de Actividades</field>
@@ -520,7 +538,6 @@
         <field name="domain">[('en_catalogo', '=', True)]</field>
         <field name="search_view_id" ref="view_actividad_Catalogo_search"/>
         <field name="context">{'hide_catalogo': True}</field>
-        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
     <!--
@@ -535,7 +552,6 @@
         <field name="domain">[('responsable_actividad_id', '=', uid)]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'search_default_filter_pendiente': 0}</field>
-        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
     </record>
 
     <!--
@@ -550,50 +566,6 @@
         <field name="domain">[('responsable_extraescolar_id', '=', uid)]</field>
         <field name="search_view_id" ref="view_actividad_search"/>
         <field name="context">{'search_default_filter_pendiente': 0}</field>
-        <field name="views" eval="[(ref('view_actividad_list'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
-    </record>
-
-    <!-- SE-01SC: Pendientes de liberación -->
-    <record id="action_actividad_se_pendientes" model="ir.actions.act_window">
-        <field name="name">Pendientes de Liberación</field>
-        <field name="res_model">actividad.complementaria</field>
-        <field name="view_mode">list,form</field>
-        <field name="domain">[
-            ('estado_code', '=', 'finalizada'),
-            ('constancias_firmadas', '=', True),
-            ('constancias_liberadas', '=', False)
-        ]</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                No hay constancias pendientes de liberación
-            </p>
-            <p>Aparecerán aquí las actividades finalizadas cuyas constancias estén firmadas por ambos actores.</p>
-        </field>
-    </record>
-
-    <!-- SE-01SC: Historial de liberadas -->
-    <record id="action_actividad_se_liberadas" model="ir.actions.act_window">
-        <field name="name">Historial de Liberaciones</field>
-        <field name="res_model">actividad.complementaria</field>
-        <field name="view_mode">list,form</field>
-        <field name="domain">[
-            ('estado_code', '=', 'finalizada'),
-            ('constancias_liberadas', '=', True)
-        ]</field>
-    </record>
-    <record id="action_actividad_de" model="ir.actions.act_window">
-        <field name="name">Mis Actividades</field>
-        <field name="res_model">actividad.complementaria</field>
-        <field name="view_mode">list,kanban,form</field>
-        <field name="domain">[('jefe_departamento_id', '=', uid)]</field>
-        <field name="search_view_id" ref="view_actividad_search"/>
-        <field name="views" eval="[(ref('view_actividad_list_jefe'), 'list'), (ref('view_actividad_kanban'), 'kanban'), (ref('view_actividad_form'), 'form')]"/>
-    </record>
-
-    <record id="action_empleado_permiso_de" model="ir.actions.act_window">
-        <field name="name">Gestión de Personal</field>
-        <field name="res_model">actividad.empleado.permiso</field>
-        <field name="view_mode">list,form</field>
     </record>
 
 </odoo>

@@ -41,7 +41,6 @@ class EmpleadoPermiso(models.Model):
         ('sistemas', 'Personal de Departamento de Sistemas'),
         ('electrica', 'Personal de Departamento de Eléctrica'),
         ('biologia', 'Personal de Departamento de Biología'),
-        ('extraescolar', 'Personal de Departamento Extraescolar'),
     ], string='Rama de Departamento', required=True,
        help='Determina a qué grupo de seguridad pertenece este empleado.')
 

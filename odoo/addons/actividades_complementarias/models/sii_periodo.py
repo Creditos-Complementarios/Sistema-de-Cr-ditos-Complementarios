@@ -22,6 +22,9 @@ class SiiPeriodo(models.Model):
         required=True
     )
 
-    _sql_constraints = [
-        ('clave_periodo_uniq', 'UNIQUE(clave_periodo)', 'ClavePeriodo debe ser única.'),
+    _constraints = [
+        models.Constraint(
+            'UNIQUE(clave_periodo)',
+            'ClavePeriodo debe ser única.'
+        )
     ]

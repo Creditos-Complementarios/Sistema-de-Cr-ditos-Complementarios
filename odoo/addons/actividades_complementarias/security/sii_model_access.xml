@@ -117,14 +117,6 @@
         <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
     </record>
 
-    <record id="access_sii_periodo_depto_extraescolar" model="ir.model.access">
-        <field name="name">sii_periodo_depto_extraescolar</field>
-        <field name="model_id" ref="model_sii_periodo"/>
-        <field name="group_id" ref="actividades_complementarias.group_depto_extraescolar"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-
     <!-- sii.empleado -->
     <record id="access_sii_empleado_admin" model="ir.model.access">
         <field name="name">sii_empleado_admin</field>
@@ -211,71 +203,6 @@
         <field name="name">sii_periodo_alumno</field>
         <field name="model_id" ref="model_sii_periodo"/>
         <field name="group_id" ref="actividades_complementarias.group_alumno"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-    <!-- sii.estudiante — SE -->
-    <record id="access_sii_estudiante_se" model="ir.model.access">
-        <field name="name">sii_estudiante_se</field>
-        <field name="model_id" ref="model_sii_estudiante"/>
-        <field name="group_id" ref="actividades_complementarias.group_servicios_escolares"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-    <!-- sii.carrera — SE -->
-    <record id="access_sii_carrera_se" model="ir.model.access">
-        <field name="name">sii_carrera_se</field>
-        <field name="model_id" ref="model_sii_carrera"/>
-        <field name="group_id" ref="actividades_complementarias.group_servicios_escolares"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-    <!-- sii.periodo — SE -->
-    <record id="access_sii_periodo_se" model="ir.model.access">
-        <field name="name">sii_periodo_se</field>
-        <field name="model_id" ref="model_sii_periodo"/>
-        <field name="group_id" ref="actividades_complementarias.group_servicios_escolares"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-
-    <!-- ════════════════════════════════════════════════════════════
-         División de Estudios Profesionales / Coordinador (DEP)
-         Solo lectura en todos los modelos SII que necesitan para
-         consultar catálogo y expedientes de estudiantes.
-         ════════════════════════════════════════════════════════════ -->
-    <record id="access_sii_departamento_dep" model="ir.model.access">
-        <field name="name">sii_departamento_dep</field>
-        <field name="model_id" ref="model_sii_departamento"/>
-        <field name="group_id" ref="actividades_complementarias.group_division_estudios"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-    <record id="access_sii_carrera_dep" model="ir.model.access">
-        <field name="name">sii_carrera_dep</field>
-        <field name="model_id" ref="model_sii_carrera"/>
-        <field name="group_id" ref="actividades_complementarias.group_division_estudios"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-    <record id="access_sii_periodo_dep" model="ir.model.access">
-        <field name="name">sii_periodo_dep</field>
-        <field name="model_id" ref="model_sii_periodo"/>
-        <field name="group_id" ref="actividades_complementarias.group_division_estudios"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-    <record id="access_sii_estudiante_dep" model="ir.model.access">
-        <field name="name">sii_estudiante_dep</field>
-        <field name="model_id" ref="model_sii_estudiante"/>
-        <field name="group_id" ref="actividades_complementarias.group_division_estudios"/>
-        <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
-        <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
-    </record>
-    <record id="access_sii_empleado_dep" model="ir.model.access">
-        <field name="name">sii_empleado_dep</field>
-        <field name="model_id" ref="model_sii_empleado"/>
-        <field name="group_id" ref="actividades_complementarias.group_division_estudios"/>
         <field name="perm_read" eval="1"/><field name="perm_write" eval="0"/>
         <field name="perm_create" eval="0"/><field name="perm_unlink" eval="0"/>
     </record>

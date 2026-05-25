@@ -8,7 +8,7 @@
             <list string="Actividades Predefinidas">
                 <field name="name" string="Nombre"/>
                 <field name="tipo_actividad_id" string="Tipo de Actividad"/>
-                <field name="is_comite" string="Aprobado por Comité" widget="boolean" readonly="1" width="200px"/>
+                <field name="is_comite" string="Aprobado por Comité" widget="boolean_toggle"/>
                 <field name="actividad_origen_id" string="Actividad de Origen" optional="show"/>
                 <field name="active" string="Activo" optional="show"/>
             </list>

@@ -9,7 +9,7 @@
     <menuitem id="menu_actividades_root"
               name="Actividades Complementarias"
               sequence="50"
-              groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_comite_academico,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar,actividades_complementarias.group_alumno,actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_division_estudios"
+              groups="actividades_complementarias.group_jefe_departamento,actividades_complementarias.group_comite_academico,actividades_complementarias.group_personal_departamento_sistemas,actividades_complementarias.group_personal_departamento_electrica,actividades_complementarias.group_personal_departamento_biologia,actividades_complementarias.group_admin_actividades,actividades_complementarias.group_responsable_actividad,actividades_complementarias.group_responsable_actividad_extraescolar"
               web_icon="actividades_complementarias,static/description/icon.png"/>
 
     <!-- ── Jefe de Departamento ──────────────────────────────────────────── -->
@@ -86,7 +86,7 @@
               name="Mis Actividades"
               parent="menu_personal_depto"
               action="action_actividad_complementaria"
-              sequence="14"
+              sequence="13"
               groups="actividades_complementarias.group_admin_actividades"/>
 
     <menuitem id="menu_personal_catalogo"
@@ -204,158 +204,5 @@
               action="actividades_complementarias.action_tipo_predefinida"
               sequence="12"
               groups="actividades_complementarias.group_admin_actividades,actividades_complementarias.group_comite_academico"/>
-
-    <!-- ── Alumno ────────────────────────────────────────────────────────── -->
-    <menuitem id="menu_alumno_root"
-              name="Mis Actividades Complementarias"
-              parent="menu_actividades_root"
-              sequence="60"
-              groups="actividades_complementarias.group_alumno"/>
-
-    <menuitem id="menu_alumno_catalogo"
-              name="Catálogo de Actividades"
-              parent="menu_alumno_root"
-              action="action_catalogo_alumno"
-              sequence="10"
-              groups="actividades_complementarias.group_alumno"/>
-
-    <menuitem id="menu_alumno_inscripciones"
-              name="Mis Inscripciones"
-              parent="menu_alumno_root"
-              action="action_mis_inscripciones_alumno"
-              sequence="20"
-              groups="actividades_complementarias.group_alumno"/>
-
-    <menuitem id="menu_alumno_expediente"
-              name="Mi Expediente"
-              parent="menu_alumno_root"
-              action="action_expediente_alumno"
-              sequence="30"
-              groups="actividades_complementarias.group_alumno"/>
-
-    <menuitem id="menu_alumno_liberacion"
-              name="Solicitud de Liberación"
-              parent="menu_alumno_root"
-              action="action_solicitud_liberacion_alumno"
-              sequence="40"
-              groups="actividades_complementarias.group_alumno"/>
-
-    <!-- ── Servicios Escolares ───────────────────────────────────────────────── -->
-    <menuitem id="menu_servicios_escolares"
-            name="Servicios Escolares"
-            parent="menu_actividades_root"
-            sequence="55"
-            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_se_solicitudes"
-            name="Solicitudes de Liberación"
-            parent="menu_servicios_escolares"
-            action="action_solicitud_liberacion_se"
-            sequence="10"
-            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_se_ventanas"
-            name="Ventanas de Evaluación"
-            parent="menu_servicios_escolares"
-            action="action_ventana_liberacion"
-            sequence="20"
-            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_se_historial"
-            name="Historial de Solicitudes"
-            parent="menu_servicios_escolares"
-            action="action_historial_solicitudes_se"
-            sequence="30"
-            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_se_estudiantes"
-            name="Buscar Estudiante"
-            parent="menu_servicios_escolares"
-            action="action_consulta_estudiante_se"
-            sequence="40"
-            groups="actividades_complementarias.group_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_se_gestion_personal"
-            name="Gestión de Personal"
-            parent="menu_servicios_escolares"
-            action="action_empleado_permiso_se"
-            sequence="50"
-            groups="actividades_complementarias.group_jefe_servicios_escolares,actividades_complementarias.group_admin_actividades"/>
-
-    <!-- ── Departamento de Extraescolares ────────────────────────────────── -->
-    <!--
-        DE-01SC / DE-02SC / DE-03SC
-        Menú paralelo al de Jefe de Departamento pero reservado al
-        Departamento de Extraescolares. Solo puede crear y gestionar
-        actividades de tipo Extraescolar y Selectivo Extraescolar.
-        No envía propuestas al Comité Académico.
-    -->
-    <menuitem id="menu_depto_extraescolar"
-              name="Departamento de Extraescolares"
-              parent="menu_actividades_root"
-              sequence="15"
-              groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_de_mis_actividades"
-              name="Mis Actividades"
-              parent="menu_depto_extraescolar"
-              action="action_actividad_de"
-              sequence="10"
-              groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_de_catalogo"
-              name="Catálogo de Actividades"
-              parent="menu_depto_extraescolar"
-              action="action_actividad_catalogo"
-              sequence="20"
-              groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
-
-    <menuitem id="menu_de_gestion_personal"
-              name="Gestión de Personal"
-              parent="menu_depto_extraescolar"
-              action="action_empleado_permiso_de"
-              sequence="30"
-              groups="actividades_complementarias.group_depto_extraescolar,actividades_complementarias.group_admin_actividades"/>
-
-    <!-- ── División de Estudios Profesionales / Coordinador ─────────────────
-         DEP-C-01SC / DEP-C-02SC
-         Ambos actores (División de Estudios Profesionales y Coordinador)
-         comparten la misma funcionalidad: consultar el catálogo de
-         actividades aprobadas y revisar el expediente de estudiantes.
-         La separación entre los dos roles se consigue mediante grupos
-         distintos (group_division_estudios_profesionales y group_coordinador);
-         la lógica de acceso es idéntica, por lo que ambos grupos comparten
-         este mismo menú a través del grupo base group_division_estudios.
-    ──────────────────────────────────────────────────────────────────────── -->
-    <menuitem id="menu_dep_root"
-              name="División de Estudios Profesionales"
-              parent="menu_actividades_root"
-              sequence="57"
-              groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
-
-    <!--
-        DEP-C-01SC: Catálogo de Actividades.
-        Reutiliza la misma acción del catálogo general (en_catalogo=True).
-        La record rule rule_actividad_division_estudios garantiza a nivel ORM
-        que solo se muestren actividades en catálogo.
-    -->
-    <menuitem id="menu_dep_catalogo"
-              name="Catálogo de Actividades"
-              parent="menu_dep_root"
-              action="action_actividad_catalogo"
-              sequence="10"
-              groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
-
-    <!--
-        DEP-C-02SC: Consulta de Expediente de Estudiante.
-        Reutiliza las vistas y la acción de búsqueda de Servicios Escolares
-        (view_sii_estudiante_se_*) ya que el flujo de consulta es idéntico.
-    -->
-    <menuitem id="menu_dep_estudiantes"
-              name="Buscar Estudiante"
-              parent="menu_dep_root"
-              action="action_consulta_estudiante_se"
-              sequence="20"
-              groups="actividades_complementarias.group_division_estudios,actividades_complementarias.group_admin_actividades"/>
 
 </odoo>

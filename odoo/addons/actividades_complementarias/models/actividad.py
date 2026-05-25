@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
+from odoo import models, fields, api, _
+import logging
+
+from odoo.exceptions import ValidationError, UserError
+from datetime import date, timedelta
 import base64
 import io
-import logging
 import zipfile
-from datetime import date, timedelta
-
-from markupsafe import Markup
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
+from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
-
-from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError, UserError
-
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 _logger = logging.getLogger(__name__)
 
 PERFORMANCE_LEVELS = [
@@ -24,6 +21,17 @@ PERFORMANCE_LEVELS = [
     ("2", "Bueno"),
     ("3", "Notable"),
     ("4", "Excelente"),
+]
+
+# ── NUEVO: Tipos de inscripción disponibles para una actividad complementaria ──
+# Regla de negocio (RA-01SC):
+#   - 'asignacion': el Responsable asigna alumnos directamente; la actividad
+#     NO debe aparecer en el catálogo público.
+#   - 'catalogo': inscripción abierta; la actividad SÍ aparece en el catálogo
+#     para que los alumnos se inscriban por su cuenta.
+TIPOS_INSCRIPCION = [
+    ('asignacion', 'Asignación Directa'),
+    ('catalogo', 'Inscripción Abierta (Catálogo)'),
 ]
 
 
@@ -94,6 +102,29 @@ class Actividad(models.Model):
         'sii.periodo',
         string='Periodo Escolar',
         required=True,
+    )
+
+    # ── NUEVO: Tipo de inscripción ───────────────────────────────────────────
+    # Determina si la actividad es de asignación directa (el Responsable asigna
+    # alumnos manualmente) o de inscripción abierta (aparece en el catálogo).
+    #
+    # Regla de negocio implementada (RA-01SC, Regla 5):
+    #   "Las actividades complementarias a las que se les asignan alumnos
+    #    no pueden estar en catálogo."
+    #
+    # La separación en este campo hace explícita la intención desde la creación
+    # y permite validar automáticamente en los constraints y en action_enviar_catalogo.
+    tipo_inscripcion = fields.Selection(
+        selection=TIPOS_INSCRIPCION,
+        string='Tipo de Inscripción',
+        required=True,
+        default='catalogo',
+        tracking=True,
+        help=(
+            'Asignación Directa: el Responsable asigna alumnos manualmente. '
+            'La actividad NO aparecerá en el catálogo público.\n'
+            'Inscripción Abierta: los alumnos se inscriben desde el catálogo.'
+        ),
     )
 
     # ── Responsables ────────────────────────────────────────────────────────
@@ -203,7 +234,6 @@ class Actividad(models.Model):
     # (los campos related no permiten filtrar statusbar_visible correctamente)
     estado_barra = fields.Selection(
         selection=[
-            ('borrador',         'Borrador'),
             ('en_revision',      'En Revisión'),
             ('rechazada',        'Rechazada'),
             ('aprobada',         'Aprobada'),
@@ -258,23 +288,6 @@ class Actividad(models.Model):
         help='Si la actividad es de tipo predefinido se aprueba automáticamente '
              'sin pasar por el Comité Académico. Puede dejarse en blanco para quitarlo.',
     )
-
-    dominio_predefinida = fields.Binary(
-        compute='_compute_dominio_predefinida',
-        string='Dominio Predefinidas',
-    )
-
-    def _compute_dominio_predefinida(self):
-        es_extraescolar = self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
-        if es_extraescolar:
-            domain = [('key', 'in', ['extraescolar', 'selectivo']), ('is_comite', '=', False)]
-        else:
-            domain = [('key', 'not in', ['extraescolar', 'selectivo'])]
-        for rec in self:
-            rec.dominio_predefinida = domain
-
     # Firma doble: Ambos actores deben firmar antes de que las constancias lleguen a los alumnos
     jd_firmo = fields.Boolean(string='Firmado por Jefe de Departamento', default=False, tracking=True)
     responsable_firmo = fields.Boolean(string='Firmado por Responsable de Actividad', default=False, tracking=True)
@@ -283,13 +296,6 @@ class Actividad(models.Model):
         compute='_compute_constancias_firmadas',
         store=True,
         help='True solo cuando tanto el JD como el Responsable de Actividad han firmado.',
-    )
-    constancias_liberadas = fields.Boolean(
-        string='Constancias Liberadas a Expedientes',
-        default=False,
-        copy=False,
-        tracking=True,
-        help='True cuando Servicios Escolares libera las constancias al expediente del estudiante.',
     )
     # Control de evidencias y constancias
     evidence_enabled = fields.Boolean(
@@ -332,12 +338,6 @@ class Actividad(models.Model):
         compute='_compute_responsable_readonly',
     )
 
-    # ── Restricción de duplicación ──────────────────────────────────────────
-    def copy(self, default=None):
-        raise UserError(_(
-            "Acción no valida, no es posible duplicar actividades"
-        ))
-
     @api.depends('estado_code')
     def _compute_responsable_readonly(self):
         is_jd = self.env.user.has_group(
@@ -346,16 +346,12 @@ class Actividad(models.Model):
         is_admin = self.env.user.has_group(
             'actividades_complementarias.group_admin_actividades'
         )
-        # DE behaves like JD for readonly logic
-        is_de = self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
         # JD y admin pueden editar según estado; el resto siempre readonly
         for rec in self:
             if is_admin:
                 rec.responsable_readonly = False
                 rec.tipo_actividad_readonly = False
-            elif is_jd or is_de:
+            elif is_jd:
                 rec.responsable_readonly = rec.estado_code in ('en_revision', 'finalizada')
                 rec.tipo_actividad_readonly = rec.estado_code in (
                     'aprobada', 'pendiente_inicio', 'en_curso', 'finalizada', 'en_revision'
@@ -419,8 +415,7 @@ class Actividad(models.Model):
         """
         user = self.env.user
         if (user.has_group('actividades_complementarias.group_jefe_departamento')
-                or user.has_group('actividades_complementarias.group_admin_actividades')
-                or user.has_group('actividades_complementarias.group_depto_extraescolar')):
+                or user.has_group('actividades_complementarias.group_admin_actividades')):
             return user
 
         # Buscar por correo en sii.empleado → departamento → JD
@@ -447,12 +442,6 @@ class Actividad(models.Model):
         """True si el usuario en sesion pertenece a algun grupo de Personal."""
         return any(self.env.user.has_group(g) for g in self._GRUPOS_PERSONAL)
 
-    def _es_depto_extraescolar(self):
-        """True si el usuario en sesión es el Departamento de Extraescolares."""
-        return self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
-
     es_personal = fields.Boolean(
         compute='_compute_es_personal_field',
         store=False,
@@ -469,12 +458,57 @@ class Actividad(models.Model):
             [('user_id', '=', self.env.user.id)], limit=1
         )
 
-    def _notify_jd_nueva_actividad(self):
-        """Notifica al JD cuando el RA crea una nueva actividad complementaria.
+    def _notify_alumnos_asignados(self):
+        """Notifica a cada alumno recién asignado directamente a la actividad.
 
-        Canal 1 — Conversaciones de Odoo (discuss.channel DM): mensaje directo
-                   interno sin SMTP, con HTML renderizado via Markup.
-        Canal 2 — Correo SMTP (mail.mail): si el JD tiene email configurado.
+        NUEVO RA-01SC, flujo de Asignación Directa, paso 6:
+        "El sistema envía una notificación al alumno informándole que se le
+        ha inscrito a la actividad complementaria."
+
+        Se llama desde write() cuando se detecta un cambio en alumno_ids
+        en una actividad de tipo 'asignacion'. La notificación es best-effort:
+        un fallo no interrumpe el guardado.
+        """
+        self.ensure_one()
+        for alumno in self.alumno_ids:
+            if not alumno.partner_id:
+                continue
+            self.message_post(
+                body=_(
+                    'El alumno <b>%(alumno)s</b> ha sido inscrito en esta '
+                    'actividad por asignación directa del Responsable de Actividad.'
+                ) % {'alumno': alumno.name},
+                partner_ids=[alumno.partner_id.id],
+                subtype_xmlid='mail.mt_comment',
+                message_type='comment',
+            )
+            # Correo directo si el alumno tiene email configurado
+            if not alumno.email:
+                continue
+            self.env['mail.mail'].sudo().create({
+                'subject': _('Inscripción a actividad complementaria: %s') % self.name,
+                'email_to': alumno.email,
+                'body_html': _(
+                    '<p>Estimado/a <b>%(alumno)s</b>,</p>'
+                    '<p>Has sido inscrito/a en la actividad complementaria '
+                    '<b>%(actividad)s</b> con fecha de inicio <b>%(inicio)s</b> '
+                    'y fecha de finalización <b>%(fin)s</b>.</p>'
+                    '<p>Ingresa al sistema para más información.</p>'
+                ) % {
+                    'alumno': alumno.name,
+                    'actividad': self.name,
+                    'inicio': self.fecha_inicio.strftime('%d/%m/%Y') if self.fecha_inicio else '—',
+                    'fin': self.fecha_fin.strftime('%d/%m/%Y') if self.fecha_fin else '—',
+                },
+                'auto_delete': True,
+            }).send()
+
+    def _notify_jd_nueva_actividad(self):
+        """Notifica al JD que el Responsable de Actividad creó una nueva actividad.
+
+        Canal 1 — Chatter (siempre): mensaje interno visible en Odoo para el JD.
+        Canal 2 — Correo directo (si el JD tiene email): construido en Python,
+                   sin depender de ningún mail.template en base de datos.
 
         La notificación solo se dispara cuando:
           - El creador pertenece a group_responsable_actividad o a Personal.
@@ -492,65 +526,36 @@ class Actividad(models.Model):
         if not es_ra or not jd or jd == creator:
             return
 
-        if not jd.partner_id:
-            return
-
-        body_markup = Markup(
-            'El Responsable de Actividad <b>{ra}</b> ha creado la actividad '
-            '<b>{act}</b>. Está pendiente de revisión por el Jefe de '
-            'Departamento <b>{jd}</b>.'
-        ).format(
-            ra=creator.name,
-            act=self.name,
-            jd=jd.name,
+        # 1. Mensaje interno en el chatter
+        self.message_post(
+            body=_(
+                'El Responsable de Actividad <b>%(ra)s</b> ha creado esta actividad. '
+                'Está pendiente de revisión por el Jefe de Departamento <b>%(jd)s</b>.'
+            ) % {'ra': creator.name, 'jd': jd.name},
+            partner_ids=[jd.partner_id.id] if jd.partner_id else [],
+            subtype_xmlid='mail.mt_note',
+            message_type='comment',
         )
 
-        # 1. Mensaje directo en Conversaciones (discuss.channel DM)
-        try:
-            channel = self.env['discuss.channel'].sudo().with_context(
-                mail_create_nosubscribe=True,
-            )._get_or_create_direct_message_channel(jd.id)
-            channel.sudo().message_post(
-                body=body_markup,
-                message_type='comment',
-                subtype_xmlid='mail.mt_comment',
-                author_id=creator.partner_id.id,
-                notify_by_email=False,
-            )
-        except Exception:
-            _logger.warning(
-                'No se pudo crear canal DM para notificar al JD %s, '
-                'usando fallback al chatter.', jd.name
-            )
-            # Fallback — chatter suscribiendo al JD
-            self.message_subscribe(partner_ids=[jd.partner_id.id])
-            self.message_post(
-                body=body_markup,
-                subtype_xmlid='mail.mt_comment',
-                message_type='comment',
-                notify_by_email=False,
-            )
-
-        # 2. Correo SMTP al JD
+        # 2. Correo directo sin template
         if not jd.email:
             return
 
         self.env['mail.mail'].sudo().create({
             'subject': _('Nueva actividad complementaria: %s') % self.name,
             'email_to': jd.email,
-            'body_html': Markup(
-                '<p>Estimado/a <b>{jd}</b>,</p>'
-                '<p>El Responsable de Actividad <b>{ra}</b> ha creado la actividad '
-                '<b>{act}</b> con fecha de inicio <b>{inicio}</b> '
-                'y fin <b>{fin}</b>.</p>'
+            'body_html': _(
+                '<p>Estimado/a <b>%(jd)s</b>,</p>'
+                '<p>El Responsable de Actividad <b>%(ra)s</b> ha creado la actividad '
+                '<b>%(act)s</b> con fecha de inicio <b>%(inicio)s</b> y fin <b>%(fin)s</b>.</p>'
                 '<p>Ingrese al sistema para revisarla.</p>'
-            ).format(
-                jd=jd.name,
-                ra=creator.name,
-                act=self.name,
-                inicio=str(self.fecha_inicio or '—'),
-                fin=str(self.fecha_fin or '—'),
-            ),
+            ) % {
+                'jd': jd.name,
+                'ra': creator.name,
+                'act': self.name,
+                'inicio': self.fecha_inicio or '—',
+                'fin': self.fecha_fin or '—',
+            },
             'auto_delete': True,
         }).send()
 
@@ -766,6 +771,33 @@ class Actividad(models.Model):
         if self.actividad_predefinida and self._es_personal():
             self.responsable_actividad_id = self.env.user
 
+    # ── NUEVO: onchange para limpiar alumnos al cambiar a tipo catálogo ─────
+    # Cuando el usuario cambia el tipo de inscripción de 'asignacion' a 'catalogo',
+    # se advierte visualmente (el constraint hará la validación definitiva en write/create).
+    @api.onchange('tipo_inscripcion')
+    def _onchange_tipo_inscripcion(self):
+        """
+        Avisa al usuario si cambia a 'Inscripción Abierta' con alumnos ya asignados.
+        El constraint _check_tipo_inscripcion_vs_catalogo hará la validación al guardar.
+
+        Asimismo, si el tipo es 'asignacion', se asegura que en_catalogo sea False
+        para mantener consistencia visual antes de que el constraint lo valide.
+        """
+        if self.tipo_inscripcion == 'catalogo' and self.alumno_ids:
+            return {
+                'warning': {
+                    'title': 'Alumnos asignados',
+                    'message': (
+                        'Esta actividad tiene alumnos asignados directamente. '
+                        'Si cambia a "Inscripción Abierta (Catálogo)", deberá '
+                        'eliminar los alumnos asignados antes de guardar.'
+                    ),
+                }
+            }
+        if self.tipo_inscripcion == 'asignacion' and self.en_catalogo:
+            # Limpiar el flag visual; la validación definitiva ocurre en write()
+            self.en_catalogo = False
+
     def _compute_dominios(self):
         def _user_ids_en_grupo(xmlid):
             grupo = self.env.ref(xmlid, raise_if_not_found=False)
@@ -870,7 +902,7 @@ class Actividad(models.Model):
         todos los valores del Selection de origen).
         """
         for rec in self:
-            rec.estado_barra = rec.estado_code or 'borrador'
+            rec.estado_barra = rec.estado_code or False
 
     @api.depends('alumno_ids')
     def _compute_alumno_count(self):
@@ -906,12 +938,6 @@ class Actividad(models.Model):
         is_ra = self.env.user.has_group(
             'actividades_complementarias.group_responsable_actividad'
         )
-        # DE actor behaves identically to JD for form edit permissions
-        is_de = self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
-        # Treat DE as JD for all permission-computation purposes
-        is_jd_or_de = is_jd or is_de
 
         for rec in self:
             # Regla 1 (absoluta): finalizada → nadie edita
@@ -934,18 +960,18 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            if not is_jd_or_de:
+            if not is_jd:
                 # Otros roles: formulario de solo lectura
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
                 continue
 
-            # Usuario es JD o DE (no admin)
+            # Usuario es JD (no admin)
             es_dueno = (rec.jefe_departamento_id.id == self.env.user.id)
 
             if not es_dueno:
-                # Regla 6: JD/DE viendo actividad de otro JD/DE
+                # Regla 6: JD viendo actividad de otro JD (solo catálogo accesible via record rule)
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
@@ -957,7 +983,7 @@ class Actividad(models.Model):
                 rec.permisos_actividad_en_curso = False
 
             elif rec.estado_code == 'en_revision':
-                # Regla 2/3: propuesta en revisión → JD/DE no puede modificar nada
+                # Regla 2/3: propuesta en revisión → JD no puede modificar nada
                 rec.permisos_actividad_finalizada = True
                 rec.permisos_actividad_pendiente_inicio = False
                 rec.permisos_actividad_en_curso = False
@@ -977,31 +1003,6 @@ class Actividad(models.Model):
     # ────────────────────────────────────────────────────────────────────────
     # ORM override: create()
     # ────────────────────────────────────────────────────────────────────────
-
-    def _sincronizar_inscripciones(self):
-        """Sincroniza actividad.inscripcion con alumno_ids.
-        Crea registros faltantes y elimina los que ya no corresponden.
-        Permite que la evaluación de desempeño encuentre a todos los alumnos.
-        """
-        Inscripcion = self.env['actividad.inscripcion'].sudo()
-        for rec in self:
-            partners_alumno = rec.alumno_ids.mapped('partner_id')
-            partners_inscritos = rec.inscripcion_ids.mapped('partner_id')
-
-            # Crear inscripciones para alumnos nuevos
-            por_crear = partners_alumno - partners_inscritos
-            for partner in por_crear:
-                Inscripcion.create({
-                    'actividad_id': rec.id,
-                    'partner_id': partner.id,
-                })
-
-            # Eliminar inscripciones de alumnos que ya no están asignados
-            por_eliminar = rec.inscripcion_ids.filtered(
-                lambda i: i.partner_id not in partners_alumno
-            )
-            if por_eliminar:
-                por_eliminar.unlink()
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -1040,10 +1041,6 @@ class Actividad(models.Model):
         is_admin = self.env.user.has_group(
             'actividades_complementarias.group_admin_actividades'
         )
-        # DE behaves like JD: does not auto-assign responsable
-        is_de = self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
         for vals in vals_list:
             # Recuperar tipo_actividad_id desde el predefinido cuando el campo
             # llega vacío (campo readonly no enviado por el cliente)
@@ -1053,9 +1050,28 @@ class Actividad(models.Model):
                 )
                 if predefinida.tipo_actividad_id:
                     vals['tipo_actividad_id'] = predefinida.tipo_actividad_id.id
-            # Auto-asignar responsable para RA/Personal (no para JD, Admin ni DE)
-            if not is_jd and not is_admin and not is_de:
+            # Auto-asignar responsable para RA/Personal
+            if not is_jd and not is_admin:
                 vals.setdefault('responsable_actividad_id', self.env.user.id)
+
+            # ── NUEVO: Validación al crear ────────────────────────────────────
+            # Si se crea una actividad de tipo 'asignacion' con alumnos asignados
+            # no puede tener en_catalogo=True (regla de negocio RA-01SC, Regla 5).
+            tipo = vals.get('tipo_inscripcion', 'catalogo')
+            tiene_alumnos = bool(vals.get('alumno_ids'))
+            if tipo == 'asignacion' and vals.get('en_catalogo'):
+                raise ValidationError(
+                    _('Una actividad de "Asignación Directa" no puede estar '
+                      'en el catálogo. Cambie el tipo de inscripción a '
+                      '"Inscripción Abierta" o desmarque "En Catálogo".')
+                )
+            if tipo == 'catalogo' and tiene_alumnos:
+                raise ValidationError(
+                    _('Una actividad de "Inscripción Abierta (Catálogo)" no puede '
+                      'tener alumnos asignados directamente. Cambie el tipo de '
+                      'inscripción a "Asignación Directa" o elimine los alumnos.')
+                )
+
         records = super(
             Actividad,
             self.with_context(actividad_creating=True),
@@ -1139,10 +1155,6 @@ class Actividad(models.Model):
         is_ra = self.env.user.has_group(
             'actividades_complementarias.group_responsable_actividad'
         )
-        # DE: Departamento de Extraescolares — same restrictions as JD for write
-        is_de = self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
 
         for rec in self:
             # ── Regla 1: Finalizada → nadie puede modificar (incluido admin) ──
@@ -1157,67 +1169,8 @@ class Actividad(models.Model):
             if is_admin:
                 continue
 
-            # ── Departamento de Extraescolares — misma lógica que JD ──────────
-            if is_de:
-                if rec.jefe_departamento_id.id != self.env.user.id:
-                    raise UserError(
-                        _('No tiene permiso para modificar actividades de '
-                          'otros responsables de Extraescolares.')
-                    )
-                campos_auto_solicitados = set(vals.keys()) & self._CAMPOS_AUTO_JD
-                if campos_auto_solicitados:
-                    raise UserError(
-                        _('Los siguientes campos son gestionados automáticamente '
-                          'por el sistema y no pueden modificarse directamente: %s.')
-                        % ', '.join(sorted(campos_auto_solicitados))
-                    )
-                # DE nunca genera propuestas en revisión, pero por seguridad:
-                if rec.estado_code == 'en_revision':
-                    raise UserError(
-                        _('La actividad "%s" está en revisión y no puede ser modificada.')
-                        % rec.name
-                    )
-                if rec.en_catalogo or rec.estado_code in ('aprobada', 'pendiente_inicio'):
-                    campos_permitidos = {
-                        'responsable_actividad_id', 'fecha_inicio',
-                        'fecha_fin', 'horario', 'horario_valido',
-                        'horario_sanitizado', 'alumno_ids',
-                    }
-                    campos_no_permitidos = set(vals.keys()) - campos_permitidos
-                    if campos_no_permitidos:
-                        raise UserError(
-                            _('La actividad "%s" está en estado aprobada o pendiente de inicio. '
-                              'Solo puede modificar Responsable, Fechas, Alumnos y Horario.')
-                            % rec.name
-                        )
-                if rec.estado_code == 'en_curso':
-                    campos_permitidos = {'responsable_actividad_id'}
-                    campos_no_permitidos = set(vals.keys()) - campos_permitidos
-                    if campos_no_permitidos:
-                        raise UserError(
-                            _('La actividad "%s" está en curso. '
-                              'Solo puede modificar el Responsable de Actividad.')
-                            % rec.name
-                        )
-                continue
-
+            # Reemplazar por ¿if is_ra and (not rec.id or rec.responsable_actividad_id.id == self.env.user.id):?
             if is_ra and rec.responsable_actividad_id.id == self.env.user.id:
-                # RA nunca puede modificar campos auto-gestionados por el sistema
-                campos_auto_solicitados = set(vals.keys()) & self._CAMPOS_AUTO_JD
-                if campos_auto_solicitados:
-                    raise UserError(
-                        _('Los siguientes campos son gestionados automáticamente '
-                          'por el sistema y no pueden modificarse directamente: %s.')
-                        % ', '.join(sorted(campos_auto_solicitados))
-                    )
-                # Una vez enviada la actividad, el RA no modifica campos directamente.
-                # Todas sus operaciones legítimas usan bypass_edit_protection=True.
-                if rec.estado_code:
-                    raise UserError(
-                        _('La actividad "%s" ya fue enviada. El Responsable de '
-                          'Actividad no puede modificar sus datos directamente.')
-                        % rec.name
-                    )
                 continue
 
             # ── Personal de Departamento ──────────────────────────────────────
@@ -1317,8 +1270,23 @@ class Actividad(models.Model):
             #    que no sea auto-gestionado (ya validado arriba). ──
 
         result = super().write(vals)
-        if 'alumno_ids' in vals:
-            self._sincronizar_inscripciones()
+
+        # NUEVO RA-01SC, flujo de Asignación Directa, paso 6:
+        # Cuando se modifica alumno_ids en una actividad de tipo 'asignacion',
+        # se notifica a cada alumno asignado que fue inscrito en la actividad.
+        # Se usa best-effort (try/except) para que un fallo de correo no
+        # interrumpa el guardado del registro.
+        if 'alumno_ids' in vals and not self.env.context.get('skip_notify_alumnos'):
+            for rec in self:
+                if rec.tipo_inscripcion == 'asignacion' and rec.alumno_ids:
+                    try:
+                        rec._notify_alumnos_asignados()
+                    except Exception:
+                        _logger.exception(
+                            'Error al notificar alumnos asignados en actividad %s (id=%s)',
+                            rec.name, rec.id,
+                        )
+
         return result
 
     # ────────────────────────────────────────────────────────────────────────
@@ -1378,10 +1346,10 @@ class Actividad(models.Model):
     @api.constrains('cantidad_horas', 'fecha_inicio', 'fecha_fin')
     def _check_horas_vs_dias(self):
         """La cantidad de horas no puede exceder el total de horas disponibles
-        en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo
-        o cuando se indica explícitamente mediante contexto."""
+        en el rango de fechas (dias * 12 h como tope). Se omite en carga de demo."""
         if (self.env.context.get('install_demo')
-                or self.env.context.get('skip_horas_check')):
+                or self.env.context.get('skip_horas_check')
+                or self.env.registry._init):
             return
         for rec in self:
             if rec.cantidad_horas <= 0:
@@ -1427,379 +1395,51 @@ class Actividad(models.Model):
                     "el tipo de actividad antes de continuar."
                 )
 
-    # Nombres de los tipos de actividad permitidos para el Departamento de Extraescolares.
-    # Regla de negocio DE-01SC regla 3.
-    _TIPOS_DE = frozenset({'Extraescolar', 'Selectivo Extraescolar'})
-
-    @api.constrains('tipo_actividad_id')
-    def _check_tipo_actividad_de(self):
-        """DE-01SC regla 3: el Departamento de Extraescolares solo puede crear
-        actividades de tipo 'Extraescolar' o 'Selectivo Extraescolar'.
-        Esta restricción se aplica al crear o modificar el tipo.
-        Se omite para admin, instalación demo y migración.
+    # ── NUEVO: Constraint principal — Regla de negocio RA-01SC Regla 5 ──────
+    # "Las actividades complementarias a las que se les asignan alumnos
+    #  no pueden estar en catálogo."
+    #
+    # Se validan dos condiciones mutuamente excluyentes:
+    #   1. tipo_inscripcion == 'asignacion'  → en_catalogo debe ser False.
+    #   2. tipo_inscripcion == 'catalogo'    → alumno_ids debe estar vacío.
+    #
+    # Este constraint se dispara tanto en create() como en write(), por lo que
+    # cubre todos los flujos: creación directa, asignación de alumnos posterior
+    # y envío al catálogo.
+    @api.constrains('tipo_inscripcion', 'en_catalogo', 'alumno_ids')
+    def _check_tipo_inscripcion_vs_catalogo(self):
         """
-        if (self.env.context.get('install_demo')
-                or self.env.context.get('skip_tipo_de_check')
-                or self.env.registry._init):
-            return
-        if not self.env.user.has_group('actividades_complementarias.group_depto_extraescolar'):
-            return
+        Valida la regla de negocio RA-01SC (Regla 5):
+        Las actividades de asignación directa NO pueden aparecer en el catálogo,
+        y las actividades de inscripción abierta NO pueden tener alumnos asignados.
+        """
         for rec in self:
-            if rec.tipo_actividad_id and rec.tipo_actividad_id.name not in self._TIPOS_DE:
+            # Caso 1: Asignación directa no puede estar en catálogo
+            if rec.tipo_inscripcion == 'asignacion' and rec.en_catalogo:
                 raise ValidationError(
-                    'El Departamento de Extraescolares solo puede crear actividades '
-                    'de tipo "Extraescolar" o "Selectivo Extraescolar". '
-                    f'Tipo seleccionado: "{rec.tipo_actividad_id.name}".'
+                    _(
+                        'La actividad "%s" es de tipo "Asignación Directa" y no '
+                        'puede estar publicada en el catálogo. '
+                        'Retire la actividad del catálogo antes de asignar alumnos, '
+                        'o cambie el tipo de inscripción a "Inscripción Abierta".'
+                    ) % rec.name
+                )
+            # Caso 2: Inscripción abierta (catálogo) no puede tener alumnos asignados
+            if rec.tipo_inscripcion == 'catalogo' and rec.alumno_ids:
+                raise ValidationError(
+                    _(
+                        'La actividad "%s" es de tipo "Inscripción Abierta (Catálogo)" '
+                        'y no puede tener alumnos asignados directamente. '
+                        'Elimine los alumnos asignados o cambie el tipo de inscripción '
+                        'a "Asignación Directa".'
+                    ) % rec.name
                 )
 
-    # ── Campos calculados para el Alumno ─────────────────────────────────────
-    alumno_inscrito = fields.Boolean(
-        string='Inscrito',
-        compute='_compute_campos_alumno',
-        store=False,
-    )
-    cupos_disponibles = fields.Integer(
-        string='Cupos Disponibles',
-        compute='_compute_campos_alumno',
-        store=False,
-    )
-
-    def _compute_campos_alumno(self):
-        """E-01SC / E-02SC: flags contextuales para el alumno en sesión."""
-        uid = self.env.user.id
-        for rec in self:
-            rec.alumno_inscrito = uid in rec.alumno_ids.ids
-            if rec.cupo_ilimitado:
-                rec.cupos_disponibles = 9999
-            else:
-                rec.cupos_disponibles = max(0, rec.cupo_max - len(rec.alumno_ids))
-
-    def action_inscribirse(self):
-        """E-01SC paso 1.6: el alumno se inscribe a la actividad."""
-        self.ensure_one()
-        self.sudo().with_context(bypass_edit_protection=True).write({
-            'alumno_ids': [(4, self.env.user.id)],
-        })
-        self.sudo().message_post(
-            body=f'Alumno {self.env.user.name} se inscribió a la actividad.',
-            subtype_xmlid='mail.mt_note',
-        )
-
-    def action_darse_de_baja(self):
-        """E-02SC flujo alterno: el alumno se da de baja."""
-        self.ensure_one()
-        if self.estado_code == 'finalizada':
-            raise UserError(_('No puedes darte de baja: la actividad ya ha finalizado.'))
-        self.sudo().with_context(bypass_edit_protection=True).write({
-            'alumno_ids': [(3, self.env.user.id)],
-        })
-        self.sudo().message_post(
-            body=f'Alumno {self.env.user.name} se dio de baja de la actividad.',
-            subtype_xmlid='mail.mt_note',
-        )
-
-    def action_abrir_evidencia(self):
-        """E-02SC: abre el wizard de subida de evidencia."""
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Subir Evidencia',
-            'res_model': 'actividad.wizard.evidencia',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_actividad_id': self.id},
-        }
     # ────────────────────────────────────────────────────────────────────────
     # Business Logic
     # Todas las acciones de negocio que escriben campos auto-gestionados
     # usan with_context(bypass_edit_protection=True) para pasar el guard de write().
     # ────────────────────────────────────────────────────────────────────────
-
-    def action_descargar_constancia(self):
-        """E-03SC: El estudiante descarga su constancia en PDF si ambas firmas están completas."""
-        self.ensure_one()
-        user = self.env.user
-
-        # Verificar que el estudiante esté inscrito
-        if user.id not in self.alumno_ids.ids:
-            raise UserError(_('No estás inscrito en esta actividad.'))
-
-        # Verificar que ambas firmas estén completas (usar sudo para evitar error de permisos)
-        actividad_sudo = self.sudo()
-        if not actividad_sudo.constancias_firmadas:
-            raise UserError(
-                _('La constancia aún no está lista. Debe ser firmada por el'
-                  ' Jefe de Departamento y el Responsable de Actividad.')
-            )
-
-        # Buscar la inscripción del alumno con sudo (el estudiante no tiene acceso a inscripcion_ids)
-        inscripcion = actividad_sudo.inscripcion_ids.filtered(
-            lambda i: i.partner_id.id == user.partner_id.id
-        )
-        if not inscripcion or not inscripcion[0].certificate_generated:
-            raise UserError(
-                _('No tienes una constancia generada para esta actividad. Contacta al Jefe de Departamento.')
-            )
-
-        # Obtener datos del estudiante
-        nombre_alumno = user.name
-        correo_alumno = user.login
-
-        if 'sii.estudiante' in self.env:
-            estudiante = self.env['sii.estudiante'].sudo().search(
-                [('no_control', '=', user.login)], limit=1
-            )
-            if estudiante:
-                nombre_alumno = ' '.join(filter(None, [
-                    estudiante.nombre,
-                    estudiante.apellido_paterno,
-                    estudiante.apellido_materno,
-                ]))
-                if estudiante.correo:
-                    correo_alumno = estudiante.correo
-
-        # Obtener datos de la actividad via sudo para evitar restricciones de permisos
-        creditos_map = dict(self._fields['creditos'].selection)
-        creditos_label = creditos_map.get(actividad_sudo.creditos, actividad_sudo.creditos or '—')
-
-        fecha_inicio_str = (
-            actividad_sudo.fecha_inicio.strftime('%d de %B de %Y')
-            if actividad_sudo.fecha_inicio else '—'
-        )
-        fecha_fin_str = (
-            actividad_sudo.fecha_fin.strftime('%d de %B de %Y')
-            if actividad_sudo.fecha_fin else '—'
-        )
-        fecha_hoy_str = date.today().strftime('%d de %B de %Y')
-
-        nombre_jd = actividad_sudo.jefe_departamento_id.name or '—'
-        nombre_ra = actividad_sudo.responsable_actividad_id.name or '—'
-        nombre_actividad = actividad_sudo.name
-
-        # Generar PDF con el formato de constancia oficial
-        pdf_bytes = self._generar_pdf_constancia_alumno(
-            nombre_alumno=nombre_alumno,
-            correo_alumno=correo_alumno,
-            nombre_actividad=nombre_actividad,
-            fecha_inicio_str=fecha_inicio_str,
-            fecha_fin_str=fecha_fin_str,
-            creditos_label=creditos_label,
-            fecha_hoy_str=fecha_hoy_str,
-            nombre_jd=nombre_jd,
-            nombre_ra=nombre_ra,
-        )
-
-        # Nombre del archivo: nombreactividad_constancia.pdf (sin espacios)
-        nombre_archivo = self.name.replace(' ', '_').lower() + '_constancia.pdf'
-
-        # Guardar como adjunto y devolver URL de descarga (data: URL no funciona en Odoo)
-        adjunto = self.env['ir.attachment'].sudo().create({
-            'name': nombre_archivo,
-            'type': 'binary',
-            'datas': base64.b64encode(pdf_bytes).decode(),
-            'mimetype': 'application/pdf',
-            'res_model': self._name,
-            'res_id': self.id,
-        })
-
-        return {
-            'type': 'ir.actions.act_url',
-            'url': f'/web/content/{adjunto.id}?download=true',
-            'target': 'new',
-        }
-
-    def _generar_pdf_constancia_alumno(
-        self, nombre_alumno, correo_alumno, nombre_actividad,
-        fecha_inicio_str, fecha_fin_str, creditos_label,
-        fecha_hoy_str, nombre_jd, nombre_ra,
-    ):
-        """Genera el PDF de constancia oficial para el alumno."""
-        buf = io.BytesIO()
-        doc = SimpleDocTemplate(
-            buf,
-            pagesize=letter,
-            rightMargin=3 * cm,
-            leftMargin=3 * cm,
-            topMargin=3 * cm,
-            bottomMargin=3 * cm,
-        )
-
-        styles = getSampleStyleSheet()
-
-        style_titulo = ParagraphStyle(
-            'Titulo',
-            parent=styles['Normal'],
-            fontSize=14,
-            fontName='Helvetica-Bold',
-            textColor=colors.HexColor('#1a3a5c'),
-            alignment=TA_CENTER,
-            spaceAfter=4,
-            leading=18,
-        )
-        style_subtitulo = ParagraphStyle(
-            'Subtitulo',
-            parent=styles['Normal'],
-            fontSize=10,
-            fontName='Helvetica',
-            textColor=colors.HexColor('#555555'),
-            alignment=TA_CENTER,
-            spaceAfter=2,
-        )
-        style_cuerpo = ParagraphStyle(
-            'Cuerpo',
-            parent=styles['Normal'],
-            fontSize=11,
-            fontName='Helvetica',
-            leading=18,
-            alignment=TA_JUSTIFY,
-            spaceAfter=12,
-        )
-        style_seccion = ParagraphStyle(
-            'Seccion',
-            parent=styles['Normal'],
-            fontSize=11,
-            fontName='Helvetica-Bold',
-            textColor=colors.HexColor('#1a3a5c'),
-            alignment=TA_CENTER,
-            spaceBefore=16,
-            spaceAfter=8,
-        )
-        style_firma_nombre = ParagraphStyle(
-            'FirmaNombre',
-            parent=styles['Normal'],
-            fontSize=11,
-            fontName='Helvetica-Bold',
-            alignment=TA_CENTER,
-            spaceAfter=2,
-        )
-        style_firma_rol = ParagraphStyle(
-            'FirmaRol',
-            parent=styles['Normal'],
-            fontSize=10,
-            fontName='Helvetica',
-            textColor=colors.HexColor('#555555'),
-            alignment=TA_CENTER,
-            spaceAfter=2,
-        )
-
-        story = []
-
-        # ── Encabezado ───────────────────────────────────────────────────────
-        story.append(Paragraph('CONSTANCIA DE TERMINACIÓN DE ACTIVIDAD COMPLEMENTARIA', style_titulo))
-        story.append(Paragraph('Instituto Tecnológico de Chetumal', style_subtitulo))
-        story.append(Spacer(1, 0.3 * cm))
-        story.append(HRFlowable(width='100%', thickness=2, color=colors.HexColor('#1a3a5c')))
-        story.append(Spacer(1, 0.5 * cm))
-
-        # ── A QUIEN CORRESPONDA ───────────────────────────────────────────────
-        story.append(Paragraph('<b>A QUIEN CORRESPONDA:</b>', style_cuerpo))
-
-        # ── Párrafo principal ────────────────────────────────────────────────
-        parrafo = (
-            f'Por medio de la presente, se hace constar que el/la estudiante inscrito(a) '
-            f'en esta institución, con correo electrónico institucional '
-            f'<b>{correo_alumno}</b>, ha concluido de manera satisfactoria su participación '
-            f'en la actividad complementaria denominada:'
-        )
-        story.append(Paragraph(parrafo, style_cuerpo))
-
-        # Nombre de la actividad destacado
-        story.append(Paragraph(f'<b>{nombre_actividad}</b>', ParagraphStyle(
-            'ActividadNombre',
-            parent=styles['Normal'],
-            fontSize=12,
-            fontName='Helvetica-Bold',
-            alignment=TA_CENTER,
-            textColor=colors.HexColor('#1a3a5c'),
-            spaceBefore=4,
-            spaceAfter=12,
-        )))
-
-        # ── Segundo párrafo ───────────────────────────────────────────────────
-        parrafo2 = (
-            f'Dicha actividad se llevó a cabo durante el periodo comprendido del '
-            f'<b>{fecha_inicio_str}</b> al <b>{fecha_fin_str}</b>, cumpliendo de forma '
-            f'excelente con los objetivos y requisitos establecidos, lo que le otorga un '
-            f'valor de <b>{creditos_label}</b> créditos complementarios.'
-        )
-        story.append(Paragraph(parrafo2, style_cuerpo))
-
-        # ── Párrafo de expedición ─────────────────────────────────────────────
-        parrafo3 = (
-            f'Para constancia de lo anterior y para los fines legales y administrativos '
-            f'a los que haya lugar, se expide la presente en la fecha <b>{fecha_hoy_str}</b>.'
-        )
-        story.append(Paragraph(parrafo3, style_cuerpo))
-
-        story.append(Spacer(1, 0.4 * cm))
-        story.append(HRFlowable(width='100%', thickness=1, color=colors.HexColor('#cccccc')))
-
-        # ── Sección de validación y firmas ───────────────────────────────────
-        story.append(Paragraph('VALIDACIÓN Y FIRMAS', style_seccion))
-        story.append(Paragraph(f'Fecha de firma: <b>{fecha_hoy_str}</b>', ParagraphStyle(
-            'FechaFirma',
-            parent=styles['Normal'],
-            fontSize=10,
-            fontName='Helvetica',
-            alignment=TA_CENTER,
-            spaceAfter=20,
-        )))
-
-        # Línea separadora
-        story.append(Paragraph('Por la Institución', ParagraphStyle(
-            'PorInstitucion',
-            parent=styles['Normal'],
-            fontSize=10,
-            fontName='Helvetica-Bold',
-            textColor=colors.HexColor('#555555'),
-            alignment=TA_CENTER,
-            spaceAfter=30,
-        )))
-
-        # ── Tabla de firmas ────────────────────────────────────────────────
-        linea_firma = '_' * 34
-
-        firma_jd = [
-            Paragraph(linea_firma, style_firma_nombre),
-            Paragraph(f'<b>{nombre_jd}</b>', style_firma_nombre),
-            Paragraph('Jefe(a) del Departamento', style_firma_rol),
-        ]
-        firma_estudiante = [
-            Paragraph(linea_firma, style_firma_nombre),
-            Paragraph(f'<b>{nombre_alumno}</b>', style_firma_nombre),
-            Paragraph('Estudiante', style_firma_rol),
-        ]
-
-        tabla_firmas = Table(
-            [[firma_jd, firma_estudiante]],
-            colWidths=[8 * cm, 8 * cm],
-        )
-        tabla_firmas.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ]))
-        story.append(tabla_firmas)
-
-        story.append(Spacer(1, 0.8 * cm))
-
-        # ── Vo. Bo. del Responsable ────────────────────────────────────────
-        story.append(Paragraph('Vo. Bo. de la Actividad:', ParagraphStyle(
-            'VoBo',
-            parent=styles['Normal'],
-            fontSize=10,
-            fontName='Helvetica-Bold',
-            textColor=colors.HexColor('#555555'),
-            alignment=TA_CENTER,
-            spaceAfter=4,
-        )))
-        story.append(Paragraph(linea_firma, style_firma_nombre))
-        story.append(Paragraph(f'<b>{nombre_ra}</b>', style_firma_nombre))
-        story.append(Paragraph('Responsable de la Actividad', style_firma_rol))
-
-        doc.build(story)
-        return buf.getvalue()
 
     def action_abrir_wizard_responsable(self):
         """Abre el wizard de confirmación para asignar el Responsable de Actividad."""
@@ -1853,49 +1493,44 @@ class Actividad(models.Model):
             'context': {'default_actividad_id': self.id},
         }
 
+    # En action_abrir_pase_lista — añadir la acción del wizard al contexto
     def action_abrir_pase_lista(self):
-        """
-        Abre la vista matricial (pivot) del pase de lista.
-        Columnas = fechas de sesión | Filas = estudiantes inscritos.
-        La acción cliente OWL carga los datos vía /actividades/pase-lista/<id>/data
-        y guarda los cambios vía /actividades/pase-lista/toggle.
-        """
         self.ensure_one()
+        wizard_action = self.env.ref(
+            'actividades_complementarias.action_wizard_nueva_sesion'
+        )
         return {
-            'type': 'ir.actions.client',
-            'tag': 'pase_lista_pivot_action',
+            'type': 'ir.actions.act_window',
             'name': 'Pase de Lista — %s' % self.name,
+            'res_model': 'actividad.asistencia',
+            'view_mode': 'list',
+            'views': [(self.env.ref(
+                'actividades_complementarias.view_asistencia_list_standalone'
+            ).id, 'list')],
+            'domain': [('actividad_id', '=', self.id)],
             'context': {
                 'default_actividad_id': self.id,
-                'active_id': self.id,
-                'actividad_readonly': (
-                    self.estado_code == 'finalizada'
-                    or self.certificates_generated
-                ),
+                'actividad_readonly': self.estado_code == 'finalizada'
+                or self.certificates_generated,
+                # Botón "Nueva Sesión" en el panel de control mediante acción auxiliar
+                'search_panel_default_action': wizard_action.id,
             },
         }
 
     def action_abrir_evaluacion(self):
+        """Abre la vista de evaluación de desempeño separada."""
         self.ensure_one()
         if self.estado_code != 'finalizada':
             raise ValidationError(
                 _('La evaluación de desempeño solo está disponible para actividades finalizadas.')
             )
-        view_id = self.env.ref(
-            'actividades_complementarias.view_actividad_inscripcion_list'
-        ).id
         return {
             'type': 'ir.actions.act_window',
             'name': 'Evaluación de Desempeño — %s' % self.name,
             'res_model': 'actividad.inscripcion',
             'view_mode': 'list',
-            'views': [(view_id, 'list')],
             'domain': [('actividad_id', '=', self.id)],
-            'context': {
-                'default_actividad_id': self.id,
-                'create': False,
-                'delete': False,
-            },
+            'context': {'default_actividad_id': self.id},
         }
 
     def action_abrir_confirmacion_comite(self):
@@ -1934,36 +1569,6 @@ class Actividad(models.Model):
             'res_id': wizard.id,
             'view_mode': 'form',
             'target': 'new',
-        }
-
-    def action_abrir_difundir(self):
-        """DEP-C-01SC: abre el wizard de difusión de actividad.
-
-        Visible para División de Estudios Profesionales y Coordinador.
-        Solo disponible cuando la actividad está en 'pendiente_inicio'
-        y hay cupos disponibles (o el cupo es ilimitado).
-        """
-        self.ensure_one()
-        # Validaciones previas (aunque el botón ya las aplica visualmente)
-        if self.estado_code != 'pendiente_inicio':
-            raise ValidationError(
-                'Solo se pueden difundir actividades en estado "Pendiente de Inicio".'
-            )
-        if not self.cupo_ilimitado and self.cupos_disponibles <= 0:
-            raise ValidationError(
-                f'La actividad "{self.name}" no tiene cupos disponibles. '
-                'No se puede difundir.'
-            )
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Difundir Actividad',
-            'res_model': 'actividad.wizard.difundir',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_actividad_id': self.id,
-                'active_id': self.id,
-            },
         }
 
     def action_confirmar_actividad(self):
@@ -2057,7 +1662,13 @@ class Actividad(models.Model):
         }
 
     def action_enviar_catalogo(self):
-        """Envia la actividad al catalogo."""
+        """
+        Envia la actividad al catálogo.
+
+        MODIFICADO (RA-01SC Regla 5): Se agregó validación para impedir que
+        actividades de tipo 'Asignación Directa' sean enviadas al catálogo.
+        Solo las actividades con tipo_inscripcion == 'catalogo' pueden publicarse.
+        """
         self.ensure_one()
         if self._es_personal():
             permiso = self._get_permiso_personal()
@@ -2074,24 +1685,28 @@ class Actividad(models.Model):
                 'Esta actividad ya fue finalizada y no puede ser enviada al catálogo. '
                 'Cree una nueva propuesta de actividad si desea volver a ofertarla.'
             )
+
+        # ── NUEVO: Bloquear envío al catálogo si es de asignación directa ──────
+        # Regla de negocio RA-01SC (Regla 5): las actividades con alumnos asignados
+        # directamente no pueden aparecer en el catálogo público.
+        if self.tipo_inscripcion == 'asignacion':
+            raise ValidationError(
+                _(
+                    'La actividad "%s" es de tipo "Asignación Directa". '
+                    'Este tipo de actividad no puede publicarse en el catálogo. '
+                    'Si desea que los alumnos se inscriban libremente, cambie el '
+                    'tipo de inscripción a "Inscripción Abierta (Catálogo)" y '
+                    'elimine los alumnos asignados directamente.'
+                ) % self.name
+            )
+
         # Validar responsable obligatorio
         if not self.responsable_actividad_id:
             raise ValidationError(
                 'Debe asignar un Responsable de Actividad antes de enviar al catálogo.'
             )
-        # DE: Departamento de Extraescolares auto-aprueba sus actividades
-        # (no pasan por Comité Académico — regla de negocio DE-01SC / DE-02SC).
-        is_de = self._es_depto_extraescolar()
-        if is_de and not self.estado_code:
-            estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
-            self.with_context(bypass_edit_protection=True).write(
-                {'estado_id': estado_pendiente.id}
-            )
-            self.message_post(
-                body='Actividad de Extraescolares aprobada automáticamente y enviada al catálogo.'
-            )
         # Si es predefinida y aún no está en un estado válido, la aprobamos automáticamente
-        elif self.actividad_predefinida and self.estado_code not in ('aprobada', 'pendiente_inicio', 'en_curso'):
+        if self.actividad_predefinida and self.estado_code not in ('aprobada', 'pendiente_inicio', 'en_curso'):
             estado_pendiente = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
             self.with_context(bypass_edit_protection=True).write({'estado_id': estado_pendiente.id})
             self.message_post(
@@ -2306,98 +1921,18 @@ class Actividad(models.Model):
         return buf.getvalue()
 
     def action_generate_certificates(self):
-        """Firma las constancias del Responsable de Actividad (RA-02SC, paso 13).
-
-        Nuevo comportamiento:
-        - Solo firma constancias de alumnos aprobados (nivel > 0) que YA tengan
-          su constancia generada por el Jefe de Departamento (certificate_generated=True).
-        - No genera constancias nuevas; eso corresponde al JD mediante
-          action_generar_constancias_jd.
-        """
-        self.ensure_one()
-        if self.estado_code != 'finalizada':
-            raise UserError(
-                _('Las constancias solo pueden firmarse para actividades finalizadas.')
-            )
-
-        # Verificar usando ra_signed real en inscripciones (fuente de verdad),
-        # no el flag de cabecera que puede estar inconsistente con flujos anteriores
-        ya_firmadas = self.inscripcion_ids.filtered(lambda i: i.ra_signed)
-        pendientes = self.inscripcion_ids.filtered(
-            lambda i: i.performance_level
-            and int(i.performance_level) > 0
-            and i.certificate_generated
-            and not i.ra_signed
-        )
-
-        if not pendientes:
-            if ya_firmadas:
-                raise UserError(
-                    _('El Responsable de Actividad ya firmó las constancias de esta actividad.')
-                )
-            raise UserError(
-                _('No hay constancias generadas para firmar, contactese con el Jefe de Departamento.')
-            )
-
-        # Marcar como firmadas por el Responsable de Actividad
-        pendientes.write({"ra_signed": True})
-        self.with_context(bypass_edit_protection=True).write({'responsable_firmo': True})
-
-        self.message_post(
-            body=_(
-                "✍️ Constancias firmadas por el Responsable de Actividad: "
-                "<b>%s</b>.<br/>"
-                "Total firmadas: <b>%d</b> constancia(s).<br/>"
-                "%s"
-            ) % (
-                self.responsable_actividad_id.name or '',
-                len(pendientes),
-                "✅ Ambas firmas completas — constancias liberadas a expedientes."
-                if self.constancias_firmadas
-                else "Pendiente: firma del Jefe de Departamento.",
-            ),
-            subtype_xmlid="mail.mt_note",
-        )
-
-    def action_generar_constancias_jd(self):
-        """El Jefe de Departamento genera y firma automáticamente las constancias
-        de los alumnos aprobados.
+        """Genera constancias para estudiantes con desempeño > 0 (RA-02SC, pasos 10-12).
 
         Precondiciones:
         - Actividad finalizada.
-        - Todos los estudiantes inscritos evaluados (nivel de desempeño asignado).
-        - Al menos un estudiante aprobado (nivel > 0).
-
-        Al ejecutarse:
-        - Genera constancias únicamente para alumnos aprobados (nivel > 0).
-        - Firma automáticamente las constancias como Jefe de Departamento.
-        - Genera un ZIP descargable con los PDFs de las constancias.
-        - Queda pendiente la firma del Responsable de Actividad.
+        - Todos los estudiantes inscritos evaluados.
+        - Al menos un estudiante con nivel de desempeño > 0.
         """
         self.ensure_one()
         if self.estado_code != 'finalizada':
             raise UserError(
                 _('Las constancias solo pueden generarse para actividades finalizadas.')
             )
-
-        # Verificar si ya existen constancias realmente generadas en las inscripciones.
-        # Este chequeo es más confiable que el flag jd_firmo de cabecera, ya que
-        # ese flag puede quedar inconsistente si se ejecutó el flujo anterior del JD
-        # antes de la actualización del módulo.
-        already_generated = self.inscripcion_ids.filtered(lambda i: i.certificate_generated)
-        if already_generated:
-            raise UserError(
-                _('El Jefe de Departamento ya generó las constancias de esta actividad.')
-            )
-
-        # Si jd_firmo quedó True de forma inconsistente (sin constancias reales),
-        # se resetea automáticamente para permitir la generación correcta.
-        if self.jd_firmo:
-            self.with_context(bypass_edit_protection=True).write({
-                'jd_firmo': False,
-                'certificates_generated': False,
-            })
-
         unevaluated = self.inscripcion_ids.filtered(lambda i: not i.performance_level)
         if unevaluated:
             names = ", ".join(unevaluated.mapped("partner_id.name"))
@@ -2409,39 +1944,25 @@ class Actividad(models.Model):
                 )
                 % names
             )
-
-        # Solo alumnos aprobados: Suficiente (1), Bueno (2), Notable (3) o Excelente (4)
         approved = self.inscripcion_ids.filtered(
-            lambda i: i.performance_level and int(i.performance_level) > 0
+            lambda i: int(i.performance_level) > 0
         )
         if not approved:
             raise UserError(
                 _(
-                    "No hay estudiantes aprobados (Suficiente, Bueno, Notable o Excelente) "
+                    "No hay estudiantes aprobados (nivel de desempeño > 0) "
                     "para generar constancias."
                 )
             )
-
-        nombre_jd = self.env.user.name
-
-        # Marcar constancias como generadas y firma del JD (sin generar PDFs)
-        # Se resetea ra_signed para que el RA pueda firmar de forma independiente
-        approved.write({"certificate_generated": True, "jd_signed": True, "ra_signed": False})
-        self.with_context(bypass_edit_protection=True).write({
-            'certificates_generated': True,
-            'jd_firmo': True,
-            'responsable_firmo': False,
-        })
-
+        approved.write({"certificate_generated": True})
+        self.certificates_generated = True
         self.message_post(
             body=_(
-                "📄 Se generaron <b>%d</b> constancia(s) para alumnos aprobados "
-                "(Suficiente, Bueno, Notable o Excelente).<br/>"
-                "✍️ Constancias firmadas automáticamente por el Jefe de Departamento: "
-                "<b>%s</b>.<br/>"
-                "Pendiente: firma del Responsable de Actividad."
+                "📄 Se generaron <b>%d</b> constancia(s). "
+                "Se requiere la firma del Responsable de Actividad "
+                "y del Jefe de Departamento."
             )
-            % (len(approved), nombre_jd),
+            % len(approved),
             subtype_xmlid="mail.mt_note",
         )
 
@@ -2553,24 +2074,6 @@ class Actividad(models.Model):
                 body='Constancias firmadas por el Responsable de Actividad. '
                      'Pendiente firma del Jefe de Departamento.'
             )
-
-    def action_liberar_constancias(self):
-        """SE-01SC: Servicios Escolares libera las constancias firmadas a los expedientes."""
-        self.ensure_one()
-        if not self.constancias_firmadas:
-            raise ValidationError(
-                _('Las constancias deben estar firmadas por el JD y el Responsable '
-                    'antes de poder liberarse a los expedientes.')
-            )
-        if self.constancias_liberadas:
-            raise ValidationError(
-                _('Las constancias de la actividad "%s" ya fueron liberadas.') % self.name
-            )
-        self.with_context(bypass_edit_protection=True).write({'constancias_liberadas': True})
-        self.message_post(
-            body=_('✅ Constancias liberadas a los expedientes de estudiantes por Servicios Escolares.'),
-            subtype_xmlid='mail.mt_comment',
-        )
 
     def action_toggle_evidence(self):
         """Habilita/deshabilita la carga de evidencias para estudiantes.

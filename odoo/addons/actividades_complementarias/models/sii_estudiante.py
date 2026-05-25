@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields
-from odoo.exceptions import ValidationError
 
 
 class SiiEstudiante(models.Model):
@@ -49,8 +48,11 @@ class SiiEstudiante(models.Model):
         string='Telefono'
     )
 
-    _sql_constraints = [
-        ('no_control_uniq', 'UNIQUE(no_control)', 'NoControl debe ser único.'),
+    _constraints = [
+        models.Constraint(
+            'UNIQUE(no_control)',
+            'NoControl debe ser único.'
+        )
     ]
 
     def sp_validar_alumno(self, nc):
@@ -81,49 +83,3 @@ class SiiEstudiante(models.Model):
             }
             for e in es
         ]
-
-    def action_ver_expediente(self):
-        self.ensure_one()
-        usuario = self.env['res.users'].sudo().search(
-            [('login', '=', self.correo)], limit=1
-        )
-        if not usuario:
-            raise ValidationError(
-                f'El estudiante "{self.nombre} {self.apellido_paterno}" '
-                f'(correo: {self.correo}) no tiene una cuenta activa en el sistema.'
-            )
-        # Ejecutar el search con la identidad del alumno para aplicar
-        # exactamente sus record rules (en_catalogo=True) — mismos resultados
-        # que ve el alumno en "Mi Expediente".
-        actividades_ids = self.env['actividad.complementaria'].with_user(usuario).search([
-            ('alumno_ids', 'in', usuario.ids),
-            ('constancias_firmadas', '=', True),
-        ]).ids
-        return {
-            'type': 'ir.actions.act_window',
-            'name': f'Expediente — {self.nombre} {self.apellido_paterno}',
-            'res_model': 'actividad.complementaria',
-            'view_mode': 'list,form',
-            'domain': [('id', 'in', actividades_ids)],
-            'context': {'create': False},
-        }
-
-    def action_abrir_aviso_estudiante(self):
-        """DEP-C-02SC: abre el wizard para enviar un aviso al estudiante.
-
-        Solo disponible para División de Estudios Profesionales y Coordinador.
-        La validación de créditos completos y cuenta del sistema se realiza
-        en el propio wizard al confirmar el envío.
-        """
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Enviar Aviso al Estudiante',
-            'res_model': 'actividad.wizard.aviso.estudiante',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_estudiante_id': self.id,
-                'active_id': self.id,
-            },
-        }

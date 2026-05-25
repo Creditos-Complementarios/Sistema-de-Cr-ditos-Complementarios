@@ -35,8 +35,11 @@ class SiiEmpleado(models.Model):
         string='Telefono'
     )
 
-    _sql_constraints = [
-        ('rfc_empleado_uniq', 'UNIQUE(rfc_empleado)', 'RFCEmpleado debe ser único.'),
+    _constraints = [
+        models.Constraint(
+            'UNIQUE(rfc_empleado)',
+            'RFCEmpleado debe ser único.'
+        )
     ]
 
     def sp_validar_empleado(self, rfc):

@@ -48,19 +48,6 @@ class WizardNuevaActividad(models.TransientModel):
         compute='_compute_es_predefinida',
         store=False,
     )
-    es_usuario_de = fields.Boolean(
-        string='Es Depto. Extraescolares',
-        compute='_compute_es_usuario_de',
-        store=False,
-    )
-
-    @api.depends_context('uid')
-    def _compute_es_usuario_de(self):
-        is_de = self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
-        for rec in self:
-            rec.es_usuario_de = is_de
     actividad_predefinida = fields.Many2one(
         'actividad.tipo.predefinida',
         string='Actividades Predefinidas',
@@ -91,17 +78,12 @@ class WizardNuevaActividad(models.TransientModel):
     @api.onchange('actividad_predefinida')
     def _onchange_actividad_predefinida(self):
         """Al seleccionar un predefinido, autocompleta el Tipo de Actividad.
-        Si el predefinido fue aprobado por Comité, también rellena el nombre.
-        Si se borra la selección, limpia los campos autocompletados."""
+        Si el predefinido fue aprobado por Comité, también rellena el nombre."""
         if self.actividad_predefinida:
             if self.actividad_predefinida.tipo_actividad_id:
                 self.tipo_actividad_id = self.actividad_predefinida.tipo_actividad_id
             if self.actividad_predefinida.is_comite:
                 self.name = self.actividad_predefinida.name
-        else:
-            # Si se borró la actividad predefinida, limpiar campos autocompletados
-            self.tipo_actividad_id = False
-            self.name = False
 
     # ────────────────────────────────────────────────────────────────────────
     # Constraints
@@ -152,15 +134,6 @@ class WizardNuevaActividad(models.TransientModel):
             errores.append(u'\u2022 Nombre de la Actividad es obligatorio.')
         if not self.tipo_actividad_id:
             errores.append(u'\u2022 Tipo de Actividad es obligatorio.')
-        else:
-            # DE-01SC regla 3: solo Extraescolar o Selectivo Extraescolar
-            if self.env.user.has_group('actividades_complementarias.group_depto_extraescolar'):
-                _TIPOS_DE = {'Extraescolar', 'Selectivo Extraescolar'}
-                if self.tipo_actividad_id.name not in _TIPOS_DE:
-                    errores.append(
-                        u'\u2022 El Departamento de Extraescolares solo puede crear '
-                        u'actividades de tipo "Extraescolar" o "Selectivo Extraescolar".'
-                    )
         if not self.periodo:
             errores.append(u'\u2022 Periodo Escolar es obligatorio.')
         if not self.fecha_inicio:
@@ -189,20 +162,16 @@ class WizardNuevaActividad(models.TransientModel):
             if self.cupo_max < self.cupo_min:
                 errores.append(u'\u2022 El Cupo Maximo debe ser mayor o igual al Cupo Minimo.')
 
-        # --- Validaciones extra para actividades predefinidas o DE ----------
+        # --- Validaciones extra para actividades predefinidas ---------------
         es_predefinida_check = (
             bool(self.actividad_predefinida) or
             (self.tipo_actividad_id.es_predefinida if self.tipo_actividad_id else False)
         )
-        # DE también necesita responsable y créditos porque auto-aprueba sin Comité
-        es_de_check = self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
-        if es_predefinida_check or es_de_check:
+        if es_predefinida_check:
             if not self.creditos:
-                errores.append(u'\u2022 Cantidad de Creditos es obligatoria.')
+                errores.append(u'\u2022 Cantidad de Creditos es obligatoria para enviar al Catalogo.')
             if not self.responsable_actividad_id:
-                errores.append(u'\u2022 Responsable de Actividad es obligatorio.')
+                errores.append(u'\u2022 Responsable de Actividad es obligatorio para enviar al Catalogo.')
         else:
             # Para enviar al Comite la cantidad de horas tambien debe ser > 0 (ya cubierto arriba)
             if not self.creditos:
@@ -220,13 +189,7 @@ class WizardNuevaActividad(models.TransientModel):
             (self.tipo_actividad_id.es_predefinida if self.tipo_actividad_id else False)
         )
 
-        # DE-01SC: Departamento de Extraescolares no envía propuestas al Comité.
-        # Sus actividades pasan directamente a "Pendiente de Inicio".
-        es_de = self.env.user.has_group(
-            'actividades_complementarias.group_depto_extraescolar'
-        )
-
-        if es_predefinida or es_de:
+        if es_predefinida:
             estado = self.env.ref('actividades_complementarias.estado_pendiente_inicio')
         else:
             estado = self.env.ref('actividades_complementarias.estado_en_revision')
@@ -260,25 +223,16 @@ class WizardNuevaActividad(models.TransientModel):
         ).create(vals)
 
         if not es_predefinida:
-            # --- Propuesta al Comité solo para JD/Personal (no para DE) --------
-            if not es_de:
-                # Crear propuesta al comité en estado "en revisión"
-                estado_revision = self.env.ref('actividades_complementarias.estado_solicitud_en_revision')
-                self.env['actividad.propuesta'].sudo().create({
-                    'actividad_id': actividad.id,
-                    'estado_solicitud_id': estado_revision.id,
-                })
-                actividad.message_post(
-                    body='Propuesta enviada al Comité Académico para su revisión. '
-                         'Se aprobará automáticamente si no hay respuesta en 5 días.'
-                )
-            else:
-                # DE: actividad aprobada automáticamente, lista para catálogo
-                actividad.message_post(
-                    body='Actividad del Departamento de Extraescolares registrada '
-                         'y aprobada automáticamente. '
-                         'Asigne un Responsable de Actividad y envíe al catálogo.'
-                )
+            # Crear propuesta al comité en estado "en revisión"
+            estado_revision = self.env.ref('actividades_complementarias.estado_solicitud_en_revision')
+            self.env['actividad.propuesta'].sudo().create({
+                'actividad_id': actividad.id,
+                'estado_solicitud_id': estado_revision.id,
+            })
+            actividad.message_post(
+                body='Propuesta enviada al Comité Académico para su revisión. '
+                     'Se aprobará automáticamente si no hay respuesta en 5 días.'
+            )
         else:
             tipo_label = (
                 self.actividad_predefinida.name if self.actividad_predefinida
@@ -290,7 +244,7 @@ class WizardNuevaActividad(models.TransientModel):
             )
 
         # Redirigir según el tipo de actividad
-        if not es_predefinida and not es_de:
+        if not es_predefinida:
             # Enviada al comité → ir a "Mis Propuestas al Comité"
             action = self.env.ref(
                 'actividades_complementarias.action_propuesta',
@@ -300,7 +254,7 @@ class WizardNuevaActividad(models.TransientModel):
                 result = action.sudo().read()[0]
                 result['target'] = 'current'
                 return result
-        # Predefinida o DE → abrir el registro para asignar responsable y enviar al catálogo
+        # Predefinida → abrir el registro para que el JD pueda enviarlo al catálogo
         return {
             'type': 'ir.actions.act_window',
             'res_model': 'actividad.complementaria',

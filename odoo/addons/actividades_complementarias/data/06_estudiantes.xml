@@ -1,17 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 <data noupdate="1">
-<record id="sii_est_alumno1" model="sii.estudiante">
-  <field name="no_control">DEMO001</field>
-  <field name="id_carrera" ref="actividades_complementarias.car_isc"/>
-  <field name="nombre">Jorge</field>
-  <field name="apellido_paterno">Pérez</field>
-  <field name="apellido_materno">Castillo</field>
-  <field name="semestre">6</field>
-  <field name="grupo">A</field>
-  <field name="correo">alumno1@ittech.edu.mx</field>
-  <field name="estado_estudiante">Activo</field>
-</record>
 <record id="stu_21390001" model="sii.estudiante">
   <field name="no_control">21390001</field>
   <field name="id_carrera" ref="car_isc"/>

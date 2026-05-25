@@ -21,6 +21,9 @@ class SiiCarrera(models.Model):
         required=True
     )
 
-    _sql_constraints = [
-        ('clave_carrera_uniq', 'UNIQUE(clave_carrera)', 'ClaveCarrera debe ser única.'),
+    _constraints = [
+        models.Constraint(
+            'UNIQUE(clave_carrera)',
+            'ClaveCarrera debe ser única.'
+        )
     ]

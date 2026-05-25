@@ -41,7 +41,11 @@ class WizardAsignarResponsable(models.TransientModel):
             raise_if_not_found=False,
         )
         if grupo:
-            ids = grupo.users.ids
+            self.env.cr.execute(
+                "SELECT uid FROM res_groups_users_rel WHERE gid = %s",
+                (grupo.id,)
+            )
+            ids = [r[0] for r in self.env.cr.fetchall()]
             dominio = [('id', 'in', ids)] if ids else [('id', '=', False)]
         else:
             dominio = [('id', '=', False)]

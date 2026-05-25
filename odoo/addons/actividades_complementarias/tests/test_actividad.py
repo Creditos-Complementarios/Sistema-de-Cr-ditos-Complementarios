@@ -285,8 +285,14 @@ class TestActividad(TransactionCase):
     # ── Computes ─────────────────────────────────────────────────────────────
 
     def test_alumno_count_compute(self):
-        """El contador de alumnos debe reflejar los registros en Many2many."""
-        actividad = self._make_actividad()
+        """El contador de alumnos debe reflejar los registros en Many2many.
+        
+        MODIFICADO: se añade tipo_inscripcion='asignacion' porque el nuevo
+        constraint _check_tipo_inscripcion_vs_catalogo impide asignar alumnos
+        directamente a actividades de tipo 'catalogo' (RA-01SC, Regla 5).
+        """
+        # La actividad debe ser de asignación directa para poder añadir alumnos
+        actividad = self._make_actividad(tipo_inscripcion='asignacion')
         self.assertEqual(actividad.alumno_count, 0)
 
         user1 = self.env['res.users'].create({
@@ -335,3 +341,228 @@ class TestActividad(TransactionCase):
             mooc.is_comite,
             'Curso MOOC no debe estar marcado como aprobado por comité.',
         )
+
+    # ── NUEVOS: Tipo de inscripción — Regla de negocio RA-01SC (Regla 5) ────
+    #
+    # Los siguientes tests verifican que el campo `tipo_inscripcion` funcione
+    # correctamente en todos los flujos descritos en el PDF RA-01SC:
+    #
+    #   - El valor por defecto del campo es 'catalogo'.
+    #   - Una actividad de 'asignacion' no puede publicarse en el catálogo
+    #     (`_check_tipo_inscripcion_vs_catalogo` en actividad.py).
+    #   - Una actividad de 'catalogo' no puede tener alumnos asignados directamente
+    #     (`_check_tipo_inscripcion_vs_catalogo` en actividad.py).
+    #   - `action_enviar_catalogo` rechaza explícitamente actividades de 'asignacion'
+    #     antes de publicarlas (validación temprana añadida al método).
+    #   - El modelo `actividad.inscripcion` bloquea inscripciones directas en
+    #     actividades de tipo 'catalogo'
+    #     (`_check_tipo_inscripcion_permitido` en actividad_inscripcion.py).
+
+    def test_tipo_inscripcion_default_es_catalogo(self):
+        """
+        NUEVO — verifica que el valor por defecto de tipo_inscripcion sea 'catalogo'.
+
+        Razón del cambio: El campo fue introducido en actividad.py con
+        `default='catalogo'` para que las actividades de inscripción abierta
+        sean la opción estándar sin necesidad de configuración extra.
+        """
+        actividad = self._make_actividad()
+        self.assertEqual(
+            actividad.tipo_inscripcion,
+            'catalogo',
+            "El campo tipo_inscripcion debe tener el valor por defecto 'catalogo'.",
+        )
+
+    def test_asignacion_con_en_catalogo_true_en_create_falla(self):
+        """
+        NUEVO — verifica que no se pueda crear una actividad de 'asignacion'
+        con en_catalogo=True.
+
+        Razón del cambio: La validación en el método create() de actividad.py
+        detecta esta combinación ilegal antes de llamar a super().create(),
+        para dar un mensaje de error claro (RA-01SC, Regla 5).
+        """
+        with self.assertRaises(ValidationError):
+            self._make_actividad(
+                tipo_inscripcion='asignacion',
+                en_catalogo=True,
+            )
+
+    def test_asignacion_con_en_catalogo_true_en_write_falla(self):
+        """
+        NUEVO — verifica que no se pueda cambiar en_catalogo a True en una
+        actividad que ya es de tipo 'asignacion'.
+
+        Razón del cambio: El constraint `_check_tipo_inscripcion_vs_catalogo`
+        en actividad.py se dispara también en write(), cubriendo el caso de
+        una actividad modificada después de crearse (RA-01SC, Regla 5).
+        """
+        actividad = self._make_actividad(tipo_inscripcion='asignacion')
+        with self.assertRaises(ValidationError):
+            actividad.with_context(bypass_edit_protection=True).write(
+                {'en_catalogo': True}
+            )
+
+    def test_catalogo_con_alumno_ids_en_create_falla(self):
+        """
+        NUEVO — verifica que no se pueda crear una actividad de 'catalogo'
+        con alumnos asignados directamente.
+
+        Razón del cambio: La validación en create() de actividad.py rechaza
+        esta combinación para mantener la trazabilidad del canal de inscripción
+        (RA-01SC, Regla 5).
+        """
+        alumno = self.env['res.users'].create({
+            'name': 'Alumno Catalogo Test',
+            'login': 'alumno_catalogo_create@test.com',
+        })
+        with self.assertRaises(ValidationError):
+            self._make_actividad(
+                tipo_inscripcion='catalogo',
+                alumno_ids=[(4, alumno.id)],
+            )
+
+    def test_catalogo_con_alumno_ids_en_write_falla(self):
+        """
+        NUEVO — verifica que no se puedan añadir alumnos directamente a una
+        actividad de tipo 'catalogo' mediante write().
+
+        Razón del cambio: El constraint `_check_tipo_inscripcion_vs_catalogo`
+        en actividad.py cubre el ciclo de vida completo del registro, no solo
+        la creación (RA-01SC, Regla 5).
+        """
+        actividad = self._make_actividad(tipo_inscripcion='catalogo')
+        alumno = self.env['res.users'].create({
+            'name': 'Alumno Catalogo Write',
+            'login': 'alumno_catalogo_write@test.com',
+        })
+        with self.assertRaises(ValidationError):
+            actividad.with_context(bypass_edit_protection=True).write(
+                {'alumno_ids': [(4, alumno.id)]}
+            )
+
+    def test_asignacion_sin_catalogo_ok(self):
+        """
+        NUEVO — verifica que una actividad de tipo 'asignacion' se puede
+        crear sin en_catalogo (comportamiento normal y esperado).
+
+        Razón del cambio: Confirmación positiva de que la nueva lógica no
+        rompe el flujo legítimo de asignación directa (RA-01SC, flujo principal).
+        """
+        alumno = self.env['res.users'].create({
+            'name': 'Alumno Asignacion OK',
+            'login': 'alumno_asignacion_ok@test.com',
+        })
+        actividad = self._make_actividad(
+            tipo_inscripcion='asignacion',
+            alumno_ids=[(4, alumno.id)],
+        )
+        self.assertEqual(actividad.tipo_inscripcion, 'asignacion')
+        self.assertFalse(actividad.en_catalogo)
+        self.assertIn(alumno, actividad.alumno_ids)
+
+    def test_catalogo_sin_alumnos_ok(self):
+        """
+        NUEVO — verifica que una actividad de tipo 'catalogo' sin alumnos
+        asignados se puede crear sin problemas.
+
+        Razón del cambio: Confirmación positiva del flujo estándar de inscripción
+        abierta, donde los alumnos se inscriben desde el catálogo público
+        (RA-01SC, flujo principal — envío al catálogo).
+        """
+        actividad = self._make_actividad(tipo_inscripcion='catalogo')
+        self.assertEqual(actividad.tipo_inscripcion, 'catalogo')
+        self.assertFalse(actividad.alumno_ids)
+
+    def test_enviar_catalogo_tipo_asignacion_falla(self):
+        """
+        NUEVO — verifica que `action_enviar_catalogo` bloquea actividades
+        de tipo 'asignacion'.
+
+        Razón del cambio: Se añadió una validación temprana al inicio de
+        `action_enviar_catalogo` en actividad.py para dar al usuario un mensaje
+        claro en lugar del error técnico del constraint (RA-01SC, Regla 5).
+        """
+        actividad = self._make_actividad(
+            estado_id=self.estado_aprobada.id,
+            tipo_inscripcion='asignacion',
+            responsable_actividad_id=self.env.user.id,
+        )
+        with self.assertRaises(ValidationError):
+            actividad.action_enviar_catalogo()
+
+    def test_enviar_catalogo_tipo_catalogo_ok(self):
+        """
+        NUEVO — verifica que `action_enviar_catalogo` sí permite publicar
+        actividades de tipo 'catalogo' (flujo normal tras los cambios).
+
+        Razón del cambio: Confirmación de que la nueva validación no interfiere
+        con el flujo legítimo de publicación de actividades de inscripción abierta
+        (RA-01SC, flujo principal — paso 3: envío al catálogo).
+        """
+        actividad = self._make_actividad(
+            estado_id=self.estado_aprobada.id,
+            tipo_inscripcion='catalogo',
+            responsable_actividad_id=self.env.user.id,
+        )
+        actividad.action_enviar_catalogo()
+        self.assertTrue(actividad.en_catalogo)
+
+    # ── NUEVOS: actividad.inscripcion — _check_tipo_inscripcion_permitido ────
+    #
+    # Los dos tests siguientes verifican el constraint añadido en
+    # actividad_inscripcion.py que bloquea la inscripción directa de alumnos
+    # en actividades de tipo 'catalogo' a través del modelo actividad.inscripcion.
+    # Este cierra el último vector de entrada descrito en el ítem 7 del resumen
+    # de cambios.
+
+    def test_inscripcion_directa_en_catalogo_falla(self):
+        """
+        NUEVO — verifica que no se puede crear un registro actividad.inscripcion
+        en una actividad de tipo 'catalogo'.
+
+        Razón del cambio: El constraint `_check_tipo_inscripcion_permitido` en
+        actividad_inscripcion.py bloquea este vector de entrada para garantizar
+        que las actividades de catálogo nunca acumulen inscripciones directas
+        (RA-01SC, Regla 5 — ítem 7 del resumen de cambios).
+        """
+        # Se crea la actividad como tipo 'asignacion' para que el constraint de
+        # actividad.complementaria no interfiera; luego se cambia a 'catalogo'
+        # directamente en BD para simular el estado problemático sin pasar
+        # por los constraints de write().
+        actividad = self._make_actividad(tipo_inscripcion='asignacion')
+        # Forzar el cambio de tipo a 'catalogo' a nivel ORM, sin disparar
+        # _check_tipo_inscripcion_vs_catalogo (no hay alumnos asignados aún).
+        actividad.with_context(bypass_edit_protection=True).write(
+            {'tipo_inscripcion': 'catalogo'}
+        )
+
+        partner = self.env['res.partner'].create({
+            'name': 'Estudiante Catalogo Inscripcion',
+        })
+        with self.assertRaises(ValidationError):
+            self.env['actividad.inscripcion'].create({
+                'actividad_id': actividad.id,
+                'partner_id': partner.id,
+            })
+
+    def test_inscripcion_directa_en_asignacion_ok(self):
+        """
+        NUEVO — verifica que sí se puede crear un registro actividad.inscripcion
+        en una actividad de tipo 'asignacion' (comportamiento esperado).
+
+        Razón del cambio: Confirmación positiva de que el constraint
+        `_check_tipo_inscripcion_permitido` solo bloquea actividades de catálogo
+        y no afecta el flujo de asignación directa (RA-01SC, flujo de asignación
+        de alumnos, pasos 4-13 del caso de uso RA-02SC).
+        """
+        actividad = self._make_actividad(tipo_inscripcion='asignacion')
+        partner = self.env['res.partner'].create({
+            'name': 'Estudiante Asignacion Inscripcion',
+        })
+        inscripcion = self.env['actividad.inscripcion'].create({
+            'actividad_id': actividad.id,
+            'partner_id': partner.id,
+        })
+        self.assertTrue(inscripcion.id)
+        self.assertEqual(inscripcion.actividad_id, actividad)

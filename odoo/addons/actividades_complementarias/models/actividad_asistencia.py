@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
+# Copyright 2025 Your Organization
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl-3.0).
+
 """
 actividad_asistencia.py
 =======================
 Registro de asistencia por estudiante y fecha para una Actividad Complementaria.
 
-Reglas de negocio:
+Reglas de negocio (RA-02SC / RAE-01SC):
 - Solo se puede registrar asistencia dentro del rango de fechas de la actividad.
 - El pase de lista no puede modificarse una vez finalizada la actividad.
 - Un mismo estudiante no puede tener dos registros en la misma fecha para la
   misma actividad (restricción SQL).
-- Una sesión queda bloqueada cuando se crea una sesión posterior a ella:
-  solo la sesión más reciente permanece editable.
 """
 
 from odoo import _, api, fields, models
@@ -61,8 +62,11 @@ class ActividadAsistencia(models.Model):
     # ------------------------------------------------------------------
 
     _sql_constraints = [
-        ('unique_asistencia', 'UNIQUE(actividad_id, inscripcion_id, fecha)',
-            'Ya existe un registro de asistencia para este estudiante en esa fecha.'),
+        (
+            "unique_asistencia",
+            "UNIQUE(actividad_id, inscripcion_id, fecha)",
+            "Ya existe un registro de asistencia para este estudiante en esa fecha.",
+        )
     ]
 
     # ------------------------------------------------------------------
@@ -74,22 +78,22 @@ class ActividadAsistencia(models.Model):
         """La fecha del pase de lista debe estar dentro del rango de la actividad."""
         for rec in self:
             actividad = rec.actividad_id
-            if not actividad.fecha_inicio or not actividad.fecha_fin:
+            if not actividad.date_start or not actividad.date_end:
                 continue
-            if rec.fecha < actividad.fecha_inicio or rec.fecha > actividad.fecha_fin:
+            if rec.fecha < actividad.date_start or rec.fecha > actividad.date_end:
                 raise ValidationError(
                     _(
                         "La fecha de asistencia (%s) está fuera del rango de la "
                         "actividad (%s – %s)."
                     )
-                    % (rec.fecha, actividad.fecha_inicio, actividad.fecha_fin)
+                    % (rec.fecha, actividad.date_start, actividad.date_end)
                 )
 
     @api.constrains("actividad_id")
     def _check_actividad_no_finalizada(self):
         """No se puede modificar el pase de lista de una actividad finalizada."""
         for rec in self:
-            if rec.actividad_id.estado_code == "finalizada":
+            if rec.actividad_id.state == "done":
                 raise ValidationError(
                     _(
                         "El pase de lista no puede modificarse una vez que "
@@ -102,14 +106,9 @@ class ActividadAsistencia(models.Model):
     # ------------------------------------------------------------------
 
     def write(self, vals):
-        """
-        Bloquea modificaciones si:
-        1. La actividad ya está finalizada.
-        2. La sesión es anterior a la sesión más reciente de esa actividad.
-           (Solo la sesión más reciente permanece editable.)
-        """
+        """Bloquea cualquier modificación si la actividad ya está finalizada."""
         for rec in self:
-            if rec.actividad_id.estado_code == "finalizada":
+            if rec.actividad_id.state == "done":
                 raise ValidationError(
                     _(
                         "No se puede modificar el registro de asistencia: "
@@ -117,23 +116,4 @@ class ActividadAsistencia(models.Model):
                     )
                     % rec.actividad_id.name
                 )
-
-            # Obtener la fecha más reciente entre todos los registros
-            # de asistencia de esta actividad
-            ultima_fecha = self.env["actividad.asistencia"].search(
-                [("actividad_id", "=", rec.actividad_id.id)],
-                order="fecha desc",
-                limit=1,
-            ).fecha
-
-            if ultima_fecha and rec.fecha < ultima_fecha:
-                raise ValidationError(
-                    _(
-                        "No se puede modificar la asistencia de la sesión del %s: "
-                        "esta sesión está cerrada porque ya existe una sesión posterior (%s). "
-                        "Solo la sesión más reciente puede editarse."
-                    )
-                    % (rec.fecha, ultima_fecha)
-                )
-
         return super().write(vals)

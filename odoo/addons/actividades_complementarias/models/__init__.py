@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 # Modelos SII (catálogos externos)
-from . import sii_departamento  # noqa: F401
-from . import sii_carrera  # noqa: F401
-from . import sii_tipousuario  # noqa: F401
-from . import sii_empleado  # noqa: F401
-from . import sii_periodo  # noqa: F401
-from . import sii_estudiante  # noqa: F401
+from . import sii_departamento
+from . import sii_carrera
+from . import sii_tipousuario
+from . import sii_empleado
+from . import sii_periodo
+from . import sii_estudiante
 # Modelos del módulo
-from . import actividad_horario  # noqa: F401
-from . import actividad_inscripcion  # noqa: F401
-from . import actividad_asistencia  # noqa: F401
-from . import tipo_actividad  # noqa: F401
-from . import actividad_tipo_predefinida  # noqa: F401
-from . import estado_actividad  # noqa: F401
-from . import estado_solicitud  # noqa: F401
-from . import actividad  # noqa: F401
-from . import propuesta_actividad  # noqa: F401
-from . import empleado_permiso  # noqa: F401
-from . import solicitud_liberacion  # noqa: F401
-from . import actividad_pase_lista_pivot  # noqa: F401
-from . import ventana_liberacion
-from . import empleado_permiso_se
+from . import actividad_horario
+from . import actividad_inscripcion
+from . import actividad_asistencia
+from . import tipo_actividad
+from . import actividad_tipo_predefinida
+from . import estado_actividad
+from . import estado_solicitud
+from . import actividad
+from . import propuesta_actividad
+from . import empleado_permiso
