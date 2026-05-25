@@ -171,3 +171,20 @@ class VentanaLiberacion(models.Model):
             'url': f'/web/content/{attachment.id}?access_token={access_token}&download=true',
             'target': 'self',
         }
+
+    def action_descargar_reporte(self):
+        """SE-04SC: descarga el reporte Excel ya generado desde el historial."""
+        self.ensure_one()
+        if not self.reporte_attachment_id:
+            from odoo.exceptions import UserError
+            raise UserError('Esta ventana no tiene un reporte generado.')
+        attachment = self.reporte_attachment_id.sudo()
+        access_token = attachment.generate_access_token()[0]
+        return {
+            'type': 'ir.actions.act_url',
+            'url': (
+                f'/web/content/{attachment.id}'
+                f'?access_token={access_token}&download=true'
+            ),
+            'target': 'self',
+        }
