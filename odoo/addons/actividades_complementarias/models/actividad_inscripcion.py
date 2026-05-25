@@ -125,6 +125,17 @@ class ActividadInscripcion(models.Model):
 
     def write(self, vals):
         """Impide modificar el nivel de desempeño una vez que ha sido asignado."""
+        if 'performance_level' in vals or 'calificacion' in vals:
+            for rec in self:
+                if rec.actividad_id.estado_code != 'finalizada':
+                    raise ValidationError(
+                        _(
+                            "No se puede asignar calificación o nivel de desempeño "
+                            "al estudiante \"%s\" porque la actividad \"%s\" aún no "
+                            "ha sido finalizada."
+                        )
+                        % (rec.partner_id.name, rec.actividad_id.name)
+                    )
         if 'performance_level' in vals:
             for rec in self:
                 if rec.performance_level:
