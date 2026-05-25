@@ -463,6 +463,32 @@ class Actividad(models.Model):
         for rec in self:
             rec.es_personal = is_personal
 
+    es_responsable_de_actividad = fields.Boolean(
+        compute='_compute_es_responsable_de_actividad',
+        store=False,
+    )
+    es_jefe_o_admin = fields.Boolean(
+        compute='_compute_es_jefe_o_admin',
+        store=False,
+    )
+
+    @api.depends('responsable_actividad_id')
+    def _compute_es_responsable_de_actividad(self):
+        for rec in self:
+            rec.es_responsable_de_actividad = (
+                rec.responsable_actividad_id.id == self.env.user.id
+            )
+
+    @api.depends('jefe_departamento_id')
+    def _compute_es_jefe_o_admin(self):
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+        for rec in self:
+            rec.es_jefe_o_admin = (
+                rec.jefe_departamento_id.id == self.env.user.id or is_admin
+            )
+
     def _get_permiso_personal(self):
         """Devuelve el registro EmpleadoPermiso del usuario en sesion o vacio."""
         return self.env['actividad.empleado.permiso'].sudo().search(
