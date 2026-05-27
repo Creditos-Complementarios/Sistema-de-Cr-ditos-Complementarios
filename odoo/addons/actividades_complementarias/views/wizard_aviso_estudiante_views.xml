@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Vista del Wizard: Enviar Aviso al Estudiante  (DEP-C-02SC)
+         División de Estudios Profesionales / Coordinador
+         ══════════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_wizard_aviso_estudiante_form" model="ir.ui.view">
+        <field name="name">actividad.wizard.aviso.estudiante.form</field>
+        <field name="model">actividad.wizard.aviso.estudiante</field>
+        <field name="arch" type="xml">
+            <form string="Enviar Aviso al Estudiante">
+                <sheet>
+                    <field name="estudiante_id" invisible="1"/>
+
+                    <!-- Resumen del estudiante -->
+                    <group string="Datos del estudiante">
+                        <field name="info_html" nolabel="1" widget="html" readonly="1"/>
+                    </group>
+
+                    <!-- Contenido del aviso -->
+                    <group string="Redactar aviso">
+                        <field name="asunto"/>
+                        <field name="mensaje" widget="text"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_enviar_aviso"
+                            type="object"
+                            string="Enviar aviso"
+                            class="btn-primary"
+                            icon="fa-paper-plane"/>
+                    <button string="Cancelar"
+                            class="btn-secondary"
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

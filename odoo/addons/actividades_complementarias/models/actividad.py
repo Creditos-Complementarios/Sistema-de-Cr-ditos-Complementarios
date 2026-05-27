@@ -463,6 +463,32 @@ class Actividad(models.Model):
         for rec in self:
             rec.es_personal = is_personal
 
+    es_responsable_de_actividad = fields.Boolean(
+        compute='_compute_es_responsable_de_actividad',
+        store=False,
+    )
+    es_jefe_o_admin = fields.Boolean(
+        compute='_compute_es_jefe_o_admin',
+        store=False,
+    )
+
+    @api.depends('responsable_actividad_id')
+    def _compute_es_responsable_de_actividad(self):
+        for rec in self:
+            rec.es_responsable_de_actividad = (
+                rec.responsable_actividad_id.id == self.env.user.id
+            )
+
+    @api.depends('jefe_departamento_id')
+    def _compute_es_jefe_o_admin(self):
+        is_admin = self.env.user.has_group(
+            'actividades_complementarias.group_admin_actividades'
+        )
+        for rec in self:
+            rec.es_jefe_o_admin = (
+                rec.jefe_departamento_id.id == self.env.user.id or is_admin
+            )
+
     def _get_permiso_personal(self):
         """Devuelve el registro EmpleadoPermiso del usuario en sesion o vacio."""
         return self.env['actividad.empleado.permiso'].sudo().search(
@@ -1465,14 +1491,29 @@ class Actividad(models.Model):
     )
 
     def _compute_campos_alumno(self):
-        """E-01SC / E-02SC: flags contextuales para el alumno en sesión."""
+        """E-01SC / E-02SC: flags contextuales para el alumno en sesión.
+
+        BUG-05 / TC-SEC-05: alumno_ids es Many2many con store=True.
+        Si este método se ejecuta en un contexto con sudo() activo
+        (p. ej. disparado desde action_inscribirse), el ORM resuelve
+        alumno_ids.ids sin reglas de acceso y devuelve TODOS los alumnos,
+        haciendo que uid in rec.alumno_ids.ids sea True para cualquier
+        usuario.
+
+        Fix: leemos alumno_ids forzando sudo=False para garantizar que
+        la consulta siempre se ejecuta con las reglas de acceso del
+        usuario real, independientemente del contexto del llamador.
+        """
         uid = self.env.user.id
         for rec in self:
-            rec.alumno_inscrito = uid in rec.alumno_ids.ids
+            # sudo=False asegura que la lectura de alumno_ids nunca hereda
+            # un entorno elevado del stack de llamada.
+            alumno_ids_reales = rec.sudo(False).alumno_ids.ids
+            rec.alumno_inscrito = uid in alumno_ids_reales
             if rec.cupo_ilimitado:
                 rec.cupos_disponibles = 9999
             else:
-                rec.cupos_disponibles = max(0, rec.cupo_max - len(rec.alumno_ids))
+                rec.cupos_disponibles = max(0, rec.cupo_max - len(alumno_ids_reales))
 
     def action_inscribirse(self):
         """E-01SC paso 1.6: el alumno se inscribe a la actividad."""

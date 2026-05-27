@@ -107,3 +107,23 @@ class SiiEstudiante(models.Model):
             'domain': [('id', 'in', actividades_ids)],
             'context': {'create': False},
         }
+
+    def action_abrir_aviso_estudiante(self):
+        """DEP-C-02SC: abre el wizard para enviar un aviso al estudiante.
+
+        Solo disponible para División de Estudios Profesionales y Coordinador.
+        La validación de créditos completos y cuenta del sistema se realiza
+        en el propio wizard al confirmar el envío.
+        """
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Enviar Aviso al Estudiante',
+            'res_model': 'actividad.wizard.aviso.estudiante',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_estudiante_id': self.id,
+                'active_id': self.id,
+            },
+        }
