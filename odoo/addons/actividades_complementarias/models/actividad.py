@@ -2101,13 +2101,11 @@ class Actividad(models.Model):
         """Envia la actividad al catalogo."""
         self.ensure_one()
         if self._es_personal():
-            # El responsable asignado puede enviar su propia actividad sin permiso delegado
-            if self.responsable_actividad_id.id != self.env.user.id:
-                permiso = self._get_permiso_personal()
-                if not permiso or not permiso.perm_enviar_catalogo:
-                    raise UserError(
-                        _('No tiene el permiso "Enviar al Catalogo".')
-                    )
+            permiso = self._get_permiso_personal()
+            if not permiso or not permiso.perm_enviar_catalogo:
+                raise UserError(
+                    _('No tiene el permiso "Enviar al Catalogo".')
+                )
         if self.estado_code == 'rechazada':
             raise ValidationError(
                 'Las actividades rechazadas no pueden ser enviadas al catálogo.'

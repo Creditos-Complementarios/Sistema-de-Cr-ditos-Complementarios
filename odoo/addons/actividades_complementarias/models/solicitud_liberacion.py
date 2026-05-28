@@ -85,12 +85,28 @@ class SolicitudLiberacion(models.Model):
     # Computes
     # ────────────────────────────────────────────────────────────────────────
 
+    # [#201] Se amplía @api.depends para que el recálculo se dispare también
+    # cuando cambia el estado de las constancias. El recálculo reactivo ante
+    # cambios de performance_level se gestiona mediante el hook post-write en
+    # actividad_inscripcion.py → _invalidar_por_inscripcion().
     @api.depends('estudiante_id')
     def _compute_resumen(self):
         """
         RN1: máx 2 créditos por tipo de actividad.
-        Promedio: media de performance_level en actividad.inscripcion,
-        redondeada al entero más próximo (paso 5 del flujo).
+
+        Promedio [#201]: media aritmética de performance_level sobre TODAS
+        las inscripciones acreditadas (constancias_firmadas=True), incluyendo
+        el nivel 0 (Insuficiente). El documento E-03SC paso 5 especifica el
+        promedio de TODAS las actividades; los niveles son el resultado posible,
+        no un filtro de entrada.
+
+        Correcciones #201:
+        - Eliminado filtro ('performance_level', '!= '0'') — Insuficiente
+          debe participar en el promedio según E-03SC.
+        - Se conserva ('performance_level', '!= False') para ignorar únicamente
+          las inscripciones aún sin evaluar.
+        - performance_level es Selection de strings ('0'..'4'); int() es
+          necesario para operar aritméticamente.
         """
         for rec in self:
             if not rec.estudiante_id:
@@ -114,15 +130,19 @@ class SolicitudLiberacion(models.Model):
                 min(v, 2.0) for v in creditos_por_tipo.values()
             )
 
-            # Promedio ─ desde actividad.inscripcion
+            # [#201] Promedio ─ desde actividad.inscripcion
+            # Se incluyen TODOS los niveles evaluados, incluyendo Insuficiente (0).
+            # El filtro anterior ('performance_level', '!=', '0') era incorrecto
+            # según E-03SC paso 5: el promedio es sobre TODAS las actividades.
             partner = rec.estudiante_id.partner_id
             inscripciones = self.env['actividad.inscripcion'].sudo().search([
                 ('actividad_id', 'in', acreditadas.ids),
                 ('partner_id', '=', partner.id),
-                ('performance_level', '!=', False),
-                ('performance_level', '!=', '0'),   # insuficiente no promedia
+                ('performance_level', '!=', False),  # solo excluir los no evaluados
+                # [#201] Eliminado: ('performance_level', '!=', '0')
             ])
             if inscripciones:
+                # performance_level es Selection de strings ('0'..'4')
                 niveles = [int(i.performance_level) for i in inscripciones]
                 promedio_redondeado = round(sum(niveles) / len(niveles))
                 rec.promedio_desempenio = promedio_redondeado
@@ -316,6 +336,35 @@ class SolicitudLiberacion(models.Model):
             'target': 'new',
             'views': [(False, 'form')],
         }
+
+    # [#201] ─────────────────────────────────────────────────────────────────
+    # Recálculo reactivo: dispara _compute_resumen cuando performance_level
+    # cambia en actividad.inscripcion (que no tiene relación directa con este
+    # modelo, por lo que @api.depends traversal no es posible en Odoo).
+    # Se llama desde ActividadInscripcion.write() post-super().
+    # ─────────────────────────────────────────────────────────────────────────
+    @api.model
+    def _invalidar_por_inscripcion(self, estudiante_ids):
+        """[#201] Invalida y recalcula el resumen de solicitudes afectadas.
+
+        Debe ser llamado desde actividad.inscripcion.write() tras asignar
+        performance_level, pasando los IDs de res.users de los estudiantes
+        evaluados.
+
+        Args:
+            estudiante_ids: lista de IDs de res.users afectados.
+        """
+        if not estudiante_ids:
+            return
+        solicitudes = self.search([
+            ('estudiante_id', 'in', estudiante_ids),
+            ('estado', 'not in', ['aprobada']),  # aprobadas ya no cambian
+        ])
+        if solicitudes:
+            solicitudes.invalidate_recordset(
+                ['creditos_validos', 'promedio_desempenio', 'promedio_label']
+            )
+            solicitudes._compute_resumen()
 
     def _notificar_estudiante_se(self, aprobada):
         """Publica mensaje en el chatter y notifica al estudiante."""

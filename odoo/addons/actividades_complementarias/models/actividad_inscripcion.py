@@ -124,7 +124,14 @@ class ActividadInscripcion(models.Model):
     # ------------------------------------------------------------------
 
     def write(self, vals):
-        """Impide modificar el nivel de desempeño una vez que ha sido asignado."""
+        """Impide modificar el nivel de desempeño una vez que ha sido asignado.
+
+        [#201] Tras persistir el nuevo performance_level, invoca el recálculo
+        del promedio de desempeño en actividad.solicitud.liberacion para que
+        el estudiante vea su promedio actualizado sin recargar manualmente.
+        El hook se ejecuta post-super() para que el ORM ya tenga el valor
+        nuevo en base de datos al momento del recálculo.
+        """
         if 'performance_level' in vals or 'calificacion' in vals:
             for rec in self:
                 if rec.actividad_id.estado_code != 'finalizada':
@@ -146,7 +153,22 @@ class ActividadInscripcion(models.Model):
                         )
                         % (rec.partner_id.name, rec.performance_label)
                     )
-        return super().write(vals)
+
+        result = super().write(vals)
+
+        # [#201] Post-write: disparar recálculo del promedio en las solicitudes
+        # de liberación afectadas. Se ejecuta después de super().write() para
+        # que el ORM ya tenga el nuevo performance_level en BD.
+        if 'performance_level' in vals:
+            partners = self.mapped('partner_id')
+            usuarios = self.env['res.users'].sudo().search([
+                ('partner_id', 'in', partners.ids)
+            ])
+            if usuarios:
+                self.env['actividad.solicitud.liberacion'].sudo()\
+                    ._invalidar_por_inscripcion(usuarios.ids)
+
+        return result
 
     def action_evaluar(self):
         """Abre el wizard para asignar nivel de desempeño a este alumno."""

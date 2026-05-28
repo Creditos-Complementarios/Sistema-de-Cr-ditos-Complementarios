@@ -46,7 +46,13 @@ class WizardEvaluarAlumno(models.TransientModel):
             insc = self.env['actividad.inscripcion'].browse(inscripcion_id)
             res.update({
                 'inscripcion_id': insc.id,
-                'performance_level': insc.performance_level or '0',
+                # [#201] Eliminado el fallback 'or \"0\"'.
+                # Precargar Insuficiente cuando la inscripción no tiene nivel
+                # asignado provocaba que cerrar el wizard sin elegir nada
+                # guardara '0' de forma involuntaria, bloqueando la inscripción
+                # permanentemente y contaminando el promedio del estudiante.
+                # El campo queda vacío y el RA debe elegir explícitamente.
+                'performance_level': insc.performance_level or False,
                 'observations': insc.observations or '',
             })
         return res
