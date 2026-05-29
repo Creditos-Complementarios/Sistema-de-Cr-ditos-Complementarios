@@ -103,9 +103,27 @@ class ActividadInscripcion(models.Model):
         store=True,
     )
 
+    puede_evaluar = fields.Boolean(
+        string="Puede Evaluar",
+        compute="_compute_puede_evaluar",
+        help=(
+            "Verdadero únicamente cuando el usuario en sesión es el "
+            "Responsable de la Actividad. El Jefe de Departamento no puede "
+            "evaluar alumnos aunque tenga acceso de lectura a la actividad."
+        ),
+    )
+
     # ------------------------------------------------------------------
     # Computes
     # ------------------------------------------------------------------
+
+    @api.depends("actividad_id.responsable_actividad_id")
+    def _compute_puede_evaluar(self):
+        uid = self.env.user.id
+        for rec in self:
+            rec.puede_evaluar = (
+                rec.actividad_id.responsable_actividad_id.id == uid
+            )
 
     @api.depends("performance_level")
     def _compute_performance_label(self):
@@ -149,8 +167,21 @@ class ActividadInscripcion(models.Model):
         return super().write(vals)
 
     def action_evaluar(self):
-        """Abre el wizard para asignar nivel de desempeño a este alumno."""
+        """Abre el wizard para asignar nivel de desempeño a este alumno.
+
+        Solo puede ejecutarse si el usuario en sesión es el Responsable de
+        la Actividad.  El Jefe de Departamento (y cualquier otro rol) recibe
+        un error de permisos aunque logre llamar la acción manualmente.
+        """
         self.ensure_one()
+        if not self.puede_evaluar:
+            raise ValidationError(
+                _(
+                    "No tiene permiso para evaluar alumnos en esta actividad. "
+                    "Solo el Responsable de la Actividad puede asignar el "
+                    "nivel de desempeño."
+                )
+            )
         if self.performance_level:
             raise ValidationError(
                 _(

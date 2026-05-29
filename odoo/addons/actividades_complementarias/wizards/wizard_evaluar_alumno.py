@@ -53,6 +53,16 @@ class WizardEvaluarAlumno(models.TransientModel):
 
     def action_confirmar(self):
         self.ensure_one()
+        # Verificar que el usuario en sesión es el Responsable de la Actividad
+        inscripcion = self.inscripcion_id
+        if inscripcion.actividad_id.responsable_actividad_id.id != self.env.user.id:
+            raise ValidationError(
+                _(
+                    "No tiene permiso para evaluar alumnos en esta actividad. "
+                    "Solo el Responsable de la Actividad puede asignar el "
+                    "nivel de desempeño."
+                )
+            )
         if self.inscripcion_id.performance_level:
             raise ValidationError(
                 _(
