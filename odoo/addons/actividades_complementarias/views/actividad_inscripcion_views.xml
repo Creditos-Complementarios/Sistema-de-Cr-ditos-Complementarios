@@ -32,10 +32,8 @@
                 <field name="certificate_generated" readonly="1"/>
                 <field name="jd_signed" readonly="1"/>
                 <field name="ra_signed" readonly="1"/>
-                <field name="puede_evaluar" column_invisible="1"/>
                 <button name="action_evaluar" string="Evaluar"
-                        type="object" icon="fa-pencil" class="btn-sm btn-primary"
-                        invisible="not puede_evaluar"/>
+                        type="object" icon="fa-pencil" class="btn-sm btn-primary"/>
             </list>
         </field>
     </record>

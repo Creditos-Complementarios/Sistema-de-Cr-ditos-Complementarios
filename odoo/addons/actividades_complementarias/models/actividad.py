@@ -1516,8 +1516,68 @@ class Actividad(models.Model):
                 rec.cupos_disponibles = max(0, rec.cupo_max - len(alumno_ids_reales))
 
     def action_inscribirse(self):
-        """E-01SC paso 1.6: el alumno se inscribe a la actividad."""
+        """E-01SC paso 1.6: el alumno se inscribe a la actividad.
+
+        Validaciones previas (BUG-01 / TC-E01-05):
+        1. La actividad debe estar publicada en el catálogo (en_catalogo=True).
+        2. El estado debe ser exactamente 'en_curso' — los estados borrador,
+           en_revision, aprobada, pendiente_inicio, finalizada y rechazada
+           no permiten nuevas inscripciones.
+        3. La fecha de inicio no puede haber pasado ya (la actividad no puede
+           haber arrancado antes de que el alumno confirme la inscripción).
+        4. No pueden superarse los cupos disponibles.
+        5. El alumno no puede inscribirse dos veces a la misma actividad.
+        """
         self.ensure_one()
+
+        # ── 1. Debe estar en el catálogo ────────────────────────────────────
+        if not self.en_catalogo:
+            raise UserError(
+                _('No es posible inscribirse: la actividad no está publicada '
+                  'en el catálogo.')
+            )
+
+        # ── 2. Estado válido para inscripción ───────────────────────────────
+        ESTADOS_INSCRIPCION_PERMITIDOS = {'en_curso'}
+        if self.estado_code not in ESTADOS_INSCRIPCION_PERMITIDOS:
+            mensajes_estado = {
+                'borrador':         _('la actividad aún no ha sido publicada.'),
+                'en_revision':      _('la actividad está en revisión por el Comité Académico.'),
+                'rechazada':        _('la actividad fue rechazada.'),
+                'aprobada':         _('la actividad aún no ha iniciado.'),
+                'pendiente_inicio': _('la actividad aún no ha iniciado.'),
+                'finalizada':       _('la actividad ya ha finalizado.'),
+            }
+            razon = mensajes_estado.get(
+                self.estado_code,
+                _('el estado actual no permite inscripciones.')
+            )
+            raise UserError(
+                _('No es posible inscribirse: %s') % razon
+            )
+
+        # ── 3. La fecha de inicio no ha pasado ──────────────────────────────
+        if self.fecha_inicio and self.fecha_inicio < date.today():
+            raise UserError(
+                _('No es posible inscribirse: la actividad ya inició el %s.')
+                % self.fecha_inicio.strftime('%d/%m/%Y')
+            )
+
+        # ── 4. Cupo disponible ──────────────────────────────────────────────
+        if self.cupos_disponibles is not None and self.cupos_disponibles <= 0:
+            raise UserError(
+                _('No es posible inscribirse: la actividad "%s" no tiene '
+                  'cupos disponibles.')
+                % self.name
+            )
+
+        # ── 5. Sin doble inscripción ────────────────────────────────────────
+        if self.env.user.id in self.alumno_ids.ids:
+            raise UserError(
+                _('Ya estás inscrito en la actividad "%s".') % self.name
+            )
+
+        # ── Inscripción ─────────────────────────────────────────────────────
         self.sudo().with_context(bypass_edit_protection=True).write({
             'alumno_ids': [(4, self.env.user.id)],
         })
