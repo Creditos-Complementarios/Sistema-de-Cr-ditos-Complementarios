@@ -68,6 +68,15 @@ class PaseListaPivotController(http.Controller):
     )
     def toggle_asistencia(self, asistencia_id, presente, **kw):
         """Actualiza presente/ausente de un registro de asistencia."""
+        # Restricción: Jefe de Departamento no puede modificar asistencias
+        if request.env.user.has_group(
+            "actividades_complementarias.group_jefe_departamento"
+        ):
+            return {
+                "ok": False,
+                "error": "El perfil Jefe de Departamento no tiene permitido modificar el pase de lista.",
+            }
+
         rec = request.env["actividad.asistencia"].browse(int(asistencia_id))
         if not rec.exists():
             return {"ok": False, "error": "Registro no encontrado."}

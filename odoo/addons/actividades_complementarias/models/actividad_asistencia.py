@@ -104,10 +104,22 @@ class ActividadAsistencia(models.Model):
     def write(self, vals):
         """
         Bloquea modificaciones si:
-        1. La actividad ya está finalizada.
-        2. La sesión es anterior a la sesión más reciente de esa actividad.
+        1. El usuario pertenece al grupo Jefe de Departamento.
+        2. La actividad ya está finalizada.
+        3. La sesión es anterior a la sesión más reciente de esa actividad.
            (Solo la sesión más reciente permanece editable.)
         """
+        # Restricción: Jefe de Departamento no puede modificar asistencias
+        if self.env.user.has_group(
+            "actividades_complementarias.group_jefe_departamento"
+        ):
+            raise ValidationError(
+                _(
+                    "El perfil Jefe de Departamento no tiene permitido "
+                    "modificar el pase de lista."
+                )
+            )
+
         for rec in self:
             if rec.actividad_id.estado_code == "finalizada":
                 raise ValidationError(
