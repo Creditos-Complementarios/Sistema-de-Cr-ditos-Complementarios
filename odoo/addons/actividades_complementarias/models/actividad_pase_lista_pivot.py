@@ -52,6 +52,9 @@ class ActividadPaseListaPivot(models.TransientModel):
         readonly = (
             actividad.estado_code == "finalizada"
             or actividad.certificates_generated
+            or self.env.user.has_group(
+                "actividades_complementarias.group_jefe_departamento"
+            )
         )
 
         # 1. Todas las fechas únicas de sesión, ordenadas
